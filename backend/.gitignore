@@ -1,0 +1,31 @@
+# Node modules
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+# .env
+
+# Uploaded images
+images/
+uploads/
+
+# Build output
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE settings (optional)
+.vscode/
+.idea/
+.env
+<<<<<<< HEAD
+.env
+=======
+>>>>>>> a2791b92cdef7dd09beabd8ed129cdd52f9c0c09
+.env
