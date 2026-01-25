@@ -18,6 +18,8 @@ import LandingPage from "../screens/pages/landing/LandingPage";
 import SignUp from "../screens/auth/SignUp";
 import ResetPassword from "../screens/auth/ResetPassword";
 import ForgotPassword from "../screens/auth/ForgotPassword";
+import Staff from "../screens/pages/staff/staff";
+import AddDriverPage from "../screens/pages/staff/AddDriverPage";
 
 
 const privateRoutes = [
@@ -41,6 +43,10 @@ const privateRoutes = [
     path: "/view-vehicle/:hashId",
     element: <ViewVehicle />,
   },
+  // {
+  //   path: "/driver/view/:hashId",
+  //   element: <ViewDriver />
+  // },
   {
     path: "/profile",
     element: <ProfilePage />,
@@ -62,8 +68,16 @@ const privateRoutes = [
     element: <BunkList />,
   },
   {
+    path: "/driver/add",
+    element: <AddDriverPage />,
+  },
+  {
     path: "/banks",
     element: <Banks />,
+  },
+  {
+    path: "/staff",
+    element: <Staff />,
   },
 
   {

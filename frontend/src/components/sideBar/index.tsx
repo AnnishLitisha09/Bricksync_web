@@ -73,11 +73,11 @@ const menu: MenuItem[] = [
     name: "Staff",
     icon: UserCheck,
     path: "/staff",
-    children: [
-      { name: "View Staff", path: "/staff/view" },
-      { name: "Add Staff", path: "/staff/add" },
-      { name: "Edit Staff", path: "/staff/edit" },
-    ],
+    // children: [
+    //   { name: "View Staff", path: "/staff/view" },
+    //   { name: "Add Staff", path: "/staff/add" },
+    //   { name: "Edit Staff", path: "/staff/edit" },
+    // ],
   },
   {
     name: "Shop",

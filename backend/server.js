@@ -25,6 +25,7 @@ app.use("/api/vehicle-services", require("./routes/vehicleServiceRoutes"));
 app.use("/api/bunks", require("./routes/bunkRoutes"));
 app.use("/api/vehicle-fuels", require("./routes/vehicleFuelRoutes"));
 app.use("/api/bunk-statements", require("./routes/bunkStatementRoutes"));
+app.use("/api/driver", require("./routes/driver"));
 
 // Default route
 app.get("/", (req, res) => {

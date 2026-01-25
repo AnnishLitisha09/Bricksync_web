@@ -134,3 +134,31 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+exports.getDriversOnly = async (req, res) => {
+  try {
+    const drivers = await User.findAll({
+      where: {
+        isDeleted: false,
+        userRole: 2,
+      },
+      attributes: [
+        "userid",
+        "name",
+        "email",
+        "phoneNumber",
+        "amount",
+        "imageUrl",
+        "aadharUrl",
+        "drivingLicenceUrl",
+        "drivingLicenceBackUrl",
+        "drivingLicenceValidity",
+        "userRole",
+      ],
+    });
+
+    res.json(drivers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
