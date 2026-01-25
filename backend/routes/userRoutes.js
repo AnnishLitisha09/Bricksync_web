@@ -9,11 +9,15 @@ const {
   updateAadharImage,
   updateDrivingLicenceImage,
   updateDrivingLicenceBack,
+  getDriversOnly,
   getAllUsers,
   deleteUser,
 } = require("../controllers/userController");
 
 router.get("/profile", verifyToken, getProfile);
+
+// Get only drivers
+router.get("/drivers", verifyToken, getDriversOnly);
 
 // Profile Image
 router.put(

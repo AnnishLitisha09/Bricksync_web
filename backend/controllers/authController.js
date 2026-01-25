@@ -172,3 +172,43 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+exports.createDriver = async (req, res) => {
+  try {
+    const {
+      name,
+      email,
+      phoneNumber,
+      password,
+      amount,
+      drivingLicenceValidity,
+    } = req.body;
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      name,
+      email,
+      phoneNumber,
+      password: hashedPassword,
+      amount,
+      userRole: 2, // DRIVER ROLE
+      imageUrl: req.files?.image?.[0]?.filename
+        ? `/images/${req.files.image[0].filename}`
+        : null,
+      aadharUrl: req.files?.aadhar?.[0]?.filename
+        ? `/images/${req.files.aadhar[0].filename}`
+        : null,
+      drivingLicenceUrl: req.files?.drivingLicence?.[0]?.filename
+        ? `/images/${req.files.drivingLicence[0].filename}`
+        : null,
+      drivingLicenceBackUrl: req.files?.drivingLicenceBack?.[0]?.filename
+        ? `/images/${req.files.drivingLicenceBack[0].filename}`
+        : null,
+      drivingLicenceValidity,
+    });
+
+    res.status(201).json({ message: "Driver created", user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
