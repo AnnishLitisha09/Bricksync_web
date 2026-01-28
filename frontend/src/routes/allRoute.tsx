@@ -21,6 +21,8 @@ import ServiceShopPage from "../screens/pages/shops/services/ServiceShopPage";
 import BunkPage from "../screens/pages/shops/bunks/bunkPage";
 import AddBunkPage from "../screens/pages/shops/bunks/AddBunkPage";
 import AddServiceShopPage from "../screens/pages/shops/services/AddServiceShopPage";
+import ServicePage from "../screens/pages/Vehicles/service/ServicePage";
+import AddServicePage from "../screens/pages/Vehicles/service/AddServicePage";
 
 
 const privateRoutes = [
@@ -90,7 +92,7 @@ const privateRoutes = [
     path: "/shop/bunks",
     element: <BunkPage />,
   },
-    {
+  {
     path: "/shop/services",
     element: <ServiceShopPage />,
   },
@@ -103,9 +105,17 @@ const privateRoutes = [
     path: "/shop/bunks/add",
     element: <AddBunkPage />,
   },
-    {
+  {
     path: "/shop/services/add",
     element: <AddServiceShopPage />,
+  },
+  {
+    path: "/vehicles/services",
+    element: <ServicePage />,
+  },
+  {
+    path: "/vehicles/services/add",
+    element: <AddServicePage />,
   },
 ];
 

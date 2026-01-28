@@ -1,5 +1,3 @@
-// controllers/vehicleServiceController.js
-
 // Import db models
 const db = require("../models");
 const { sequelize, VehicleService, Vehicle, ServiceShop } = db; // include all models you need
@@ -38,7 +36,7 @@ exports.createVehicleService = async (req, res) => {
   }
 };
 
-// Get all services for a vehicle
+// Get all services for a specific vehicle
 exports.getServicesByVehicleId = async (req, res) => {
   try {
     const services = await VehicleService.findAll({
@@ -63,6 +61,22 @@ exports.getVehicleWithServices = async (req, res) => {
     }
 
     res.json(vehicle);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// 🔹 New: Get all vehicle services
+exports.getAllVehicleServices = async (req, res) => {
+  try {
+    const services = await VehicleService.findAll({
+      order: [["date", "DESC"]],
+      include: [
+        { model: Vehicle, as: "vehicle" },
+        { model: ServiceShop, as: "serviceShop" },
+      ],
+    });
+    res.json(services);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

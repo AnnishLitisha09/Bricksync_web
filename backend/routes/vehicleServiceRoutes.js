@@ -7,6 +7,7 @@ const {
   createVehicleService,
   getServicesByVehicleId,
   getVehicleWithServices,
+  getAllVehicleServices, // new
 } = require("../controllers/vehicleServiceController");
 
 /**
@@ -22,5 +23,8 @@ router.get("/vehicle/:vehicleId", getServicesByVehicleId);
 
 // Get vehicle + services
 router.get("/vehicle-with-services/:id", getVehicleWithServices);
+
+// 🔹 New: Get all vehicle services
+router.get("/", getAllVehicleServices);
 
 module.exports = router;

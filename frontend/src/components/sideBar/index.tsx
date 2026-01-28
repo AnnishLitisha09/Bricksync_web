@@ -46,7 +46,7 @@ const menu: MenuItem[] = [
     path: "/vehicles",
     children: [
       { name: "Fuel", path: "/vehicles/fuel" },
-      { name: "Service", path: "/vehicles/service" },
+      { name: "Service", path: "/vehicles/services" },
     ],
   },
   {
