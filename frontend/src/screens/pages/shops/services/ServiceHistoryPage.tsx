@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar, Gauge, CreditCard, Wrench, Car } from "lucide-react";
+import { ArrowLeft, Calendar, Gauge, Wrench, Car } from "lucide-react";
 import { BASE_URL, getAuthHeader } from "../../../../api/base";
 // Assuming your utility file is named apiConfig.ts or similar
 
