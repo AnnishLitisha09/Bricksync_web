@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Filter, Plus } from "lucide-react";
-import { useBunkStore } from "../../../store/useBunkStore";
+import { useBunkStore } from "../../../../store/useBunkStore";
 
 type AmountFilter = "ALL" | "10000" | "20000" | "50000";
 

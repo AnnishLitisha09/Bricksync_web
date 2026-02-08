@@ -18,6 +18,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
 
+      serviceShopId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+
       topic: {
         type: DataTypes.STRING,
         allowNull: false,

@@ -1,18 +1,42 @@
+// Import db models
 const db = require("../models");
-const VehicleService = db.VehicleService;
-const Vehicle = db.Vehicle;
+const { sequelize, VehicleService, Vehicle, ServiceShop } = db; // include all models you need
 
-// Create service
+// Create vehicle service
 exports.createVehicleService = async (req, res) => {
+  const transaction = await sequelize.transaction();
+
   try {
-    const service = await VehicleService.create(req.body);
-    res.status(201).json(service);
+    const { serviceShopId, amount } = req.body;
+
+    // Create vehicle service
+    const service = await VehicleService.create(req.body, { transaction });
+
+    // Update service shop amount
+    const shop = await ServiceShop.findByPk(serviceShopId, { transaction });
+
+    if (!shop) {
+      await transaction.rollback();
+      return res.status(404).json({ message: "Service shop not found" });
+    }
+
+    await shop.update({ amount: shop.amount + amount }, { transaction });
+
+    await transaction.commit();
+
+    res.status(201).json({
+      success: true,
+      message: "Vehicle service added and shop amount updated",
+      data: service,
+    });
+
   } catch (error) {
+    await transaction.rollback();
     res.status(500).json({ message: error.message });
   }
 };
 
-// Get all services for a vehicle
+// Get all services for a specific vehicle
 exports.getServicesByVehicleId = async (req, res) => {
   try {
     const services = await VehicleService.findAll({
@@ -29,12 +53,7 @@ exports.getServicesByVehicleId = async (req, res) => {
 exports.getVehicleWithServices = async (req, res) => {
   try {
     const vehicle = await Vehicle.findByPk(req.params.id, {
-      include: [
-        {
-          model: VehicleService,
-          as: "services",
-        },
-      ],
+      include: [{ model: VehicleService, as: "services" }],
     });
 
     if (!vehicle) {
@@ -42,6 +61,22 @@ exports.getVehicleWithServices = async (req, res) => {
     }
 
     res.json(vehicle);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// 🔹 New: Get all vehicle services
+exports.getAllVehicleServices = async (req, res) => {
+  try {
+    const services = await VehicleService.findAll({
+      order: [["date", "DESC"]],
+      include: [
+        { model: Vehicle, as: "vehicle" },
+        { model: ServiceShop, as: "serviceShop" },
+      ],
+    });
+    res.json(services);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

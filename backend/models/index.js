@@ -12,7 +12,7 @@ const sequelize = new Sequelize(
 
 const db = {};
 
-// Load all models in this directory
+// Load all models
 fs.readdirSync(__dirname)
   .filter((file) => file !== "index.js")
   .forEach((file) => {
@@ -23,41 +23,132 @@ fs.readdirSync(__dirname)
     db[model.name] = model;
   });
 
-// Vehicle -> VehicleService
-if (db.VehicleService) {
-  db.Vehicle.hasMany(db.VehicleService, { foreignKey: "vehicleId", as: "services" });
-  db.VehicleService.belongsTo(db.Vehicle, { foreignKey: "vehicleId", as: "vehicle" });
+/* ================= VEHICLE RELATIONS ================= */
+
+// Vehicle ↔ VehicleService
+if (db.Vehicle && db.VehicleService) {
+  db.Vehicle.hasMany(db.VehicleService, {
+    foreignKey: "vehicleId",
+    as: "services",
+  });
+
+  db.VehicleService.belongsTo(db.Vehicle, {
+    foreignKey: "vehicleId",
+    as: "vehicle",
+  });
 }
 
-// Vehicle -> VehicleFuel
-if (db.VehicleFuel) {
-  db.Vehicle.hasMany(db.VehicleFuel, { foreignKey: "vehicleId", as: "vehicleFuels" });
-  db.VehicleFuel.belongsTo(db.Vehicle, { foreignKey: "vehicleId", as: "vehicle" });
+// Vehicle ↔ VehicleFuel
+if (db.Vehicle && db.VehicleFuel) {
+  db.Vehicle.hasMany(db.VehicleFuel, {
+    foreignKey: "vehicleId",
+    as: "vehicleFuels",
+  });
+
+  db.VehicleFuel.belongsTo(db.Vehicle, {
+    foreignKey: "vehicleId",
+    as: "vehicle",
+  });
 }
 
-// Bunk -> VehicleFuel
+/* ================= SERVICE SHOP RELATIONS ================= */
+
+// ServiceShop ↔ VehicleService
+if (db.ServiceShop && db.VehicleService) {
+  db.ServiceShop.hasMany(db.VehicleService, {
+    foreignKey: "serviceShopId",
+    as: "services",
+  });
+
+  db.VehicleService.belongsTo(db.ServiceShop, {
+    foreignKey: "serviceShopId",
+    as: "serviceShop",
+  });
+}
+
+/* ================= BUNK & FUEL RELATIONS ================= */
+
+// Bunk ↔ VehicleFuel
 if (db.Bunk && db.VehicleFuel) {
-  db.Bunk.hasMany(db.VehicleFuel, { foreignKey: "bunkId", as: "bunkFuels" });
-  db.VehicleFuel.belongsTo(db.Bunk, { foreignKey: "bunkId", as: "bunk" });
+  db.Bunk.hasMany(db.VehicleFuel, {
+    foreignKey: "bunkId",
+    as: "bunkFuels",
+  });
+
+  db.VehicleFuel.belongsTo(db.Bunk, {
+    foreignKey: "bunkId",
+    as: "bunk",
+  });
 }
 
-// Bunk -> BunkStatement
+// Bunk ↔ BunkStatement
 if (db.Bunk && db.BunkStatement) {
-  db.Bunk.hasMany(db.BunkStatement, { foreignKey: "bunkId", as: "bunkStatements" });
-  db.BunkStatement.belongsTo(db.Bunk, { foreignKey: "bunkId", as: "bunk" });
+  db.Bunk.hasMany(db.BunkStatement, {
+    foreignKey: "bunkId",
+    as: "bunkStatements",
+  });
+
+  db.BunkStatement.belongsTo(db.Bunk, {
+    foreignKey: "bunkId",
+    as: "bunk",
+  });
 }
 
-// Vehicle -> BunkStatement
+// Vehicle ↔ BunkStatement
 if (db.Vehicle && db.BunkStatement) {
-  db.Vehicle.hasMany(db.BunkStatement, { foreignKey: "vehicleId", as: "vehicleStatements" });
-  db.BunkStatement.belongsTo(db.Vehicle, { foreignKey: "vehicleId", as: "vehicle" });
+  db.Vehicle.hasMany(db.BunkStatement, {
+    foreignKey: "vehicleId",
+    as: "vehicleStatements",
+  });
+
+  db.BunkStatement.belongsTo(db.Vehicle, {
+    foreignKey: "vehicleId",
+    as: "vehicle",
+  });
 }
 
-// VehicleFuel -> BunkStatement
+// VehicleFuel ↔ BunkStatement
 if (db.VehicleFuel && db.BunkStatement) {
-  db.VehicleFuel.hasMany(db.BunkStatement, { foreignKey: "fuelId", as: "fuelStatements" });
-  db.BunkStatement.belongsTo(db.VehicleFuel, { foreignKey: "fuelId", as: "fuel" });
+  db.VehicleFuel.hasMany(db.BunkStatement, {
+    foreignKey: "fuelId",
+    as: "fuelStatements",
+  });
+
+  db.BunkStatement.belongsTo(db.VehicleFuel, {
+    foreignKey: "fuelId",
+    as: "fuel",
+  });
 }
+
+/* ================= BANK RELATIONS ================= */
+
+// BankTable ↔ FuelStatement
+if (db.BankTable && db.FuelStatement) {
+  db.BankTable.hasMany(db.FuelStatement, {
+    foreignKey: "bank_id",
+    as: "fuelStatements",
+  });
+
+  db.FuelStatement.belongsTo(db.BankTable, {
+    foreignKey: "bank_id",
+    as: "bank",
+  });
+}
+
+// Bunk ↔ FuelStatement
+if (db.Bunk && db.FuelStatement) {
+  db.Bunk.hasMany(db.FuelStatement, {
+    foreignKey: "bunk_id",
+    as: "fuelStatements",
+  });
+
+  db.FuelStatement.belongsTo(db.Bunk, {
+    foreignKey: "bunk_id",
+    as: "bunk",
+  });
+}
+
+/* ================= EXPORT ================= */
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;

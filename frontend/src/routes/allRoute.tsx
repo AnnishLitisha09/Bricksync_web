@@ -8,10 +8,7 @@ import AddVehicle from "../screens/pages/Vehicles/AddVehicle";
 import ViewVehicle from "../screens/pages/Vehicles/viewVehicle";
 import FuelPage from "../screens/pages/Vehicles/Fuel/FuelPage";
 import ShopPage from "../screens/pages/shops/ShopPage";
-import BunkList from "../screens/pages/shops/bunkPage";
 import AddFuelPage from "../screens/pages/Vehicles/Fuel/AddFuelPage";
-import BunkPage from "../screens/pages/shops/bunkPage";
-import AddBunkPage from "../screens/pages/shops/AddBunkPage";
 import Banks from "../screens/pages/banks/banks";
 import TransactionsPage from "../screens/pages/banks/TransactionsPage";
 import LandingPage from "../screens/pages/landing/LandingPage";
@@ -20,6 +17,13 @@ import ResetPassword from "../screens/auth/ResetPassword";
 import ForgotPassword from "../screens/auth/ForgotPassword";
 import Staff from "../screens/pages/staff/staff";
 import AddDriverPage from "../screens/pages/staff/AddDriverPage";
+import ServiceShopPage from "../screens/pages/shops/services/ServiceShopPage";
+import BunkPage from "../screens/pages/shops/bunks/bunkPage";
+import AddBunkPage from "../screens/pages/shops/bunks/AddBunkPage";
+import AddServiceShopPage from "../screens/pages/shops/services/AddServiceShopPage";
+import ServicePage from "../screens/pages/Vehicles/service/ServicePage";
+import AddServicePage from "../screens/pages/Vehicles/service/AddServicePage";
+import ServiceHistoryPage from "../screens/pages/shops/services/ServiceHistoryPage";
 
 
 const privateRoutes = [
@@ -56,6 +60,10 @@ const privateRoutes = [
     element: <FuelPage />,
   },
   {
+    path: "/shop/services/history",
+    element: <ServiceHistoryPage />,
+  },
+  {
     path: "/vehicles/fuel/add",
     element: <AddFuelPage />,
   },
@@ -65,7 +73,7 @@ const privateRoutes = [
   },
   {
     path: "/shop/bunks",
-    element: <BunkList />,
+    element: <BunkPage />,
   },
   {
     path: "/driver/add",
@@ -90,6 +98,10 @@ const privateRoutes = [
     element: <BunkPage />,
   },
   {
+    path: "/shop/services",
+    element: <ServiceShopPage />,
+  },
+  {
     path: "/transactions",
     element: <TransactionsPage transactions={[]} />,
   },
@@ -97,6 +109,18 @@ const privateRoutes = [
   {
     path: "/shop/bunks/add",
     element: <AddBunkPage />,
+  },
+  {
+    path: "/shop/services/add",
+    element: <AddServiceShopPage />,
+  },
+  {
+    path: "/vehicles/services",
+    element: <ServicePage />,
+  },
+  {
+    path: "/vehicles/services/add",
+    element: <AddServicePage />,
   },
 ];
 

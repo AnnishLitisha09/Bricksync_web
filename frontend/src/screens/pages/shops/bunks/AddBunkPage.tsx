@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useBunkStore } from "../../../store/useBunkStore";
+import { useBunkStore } from "../../../../store/useBunkStore";
 
 export default function AddBunkPage() {
   const navigate = useNavigate();
