@@ -23,6 +23,7 @@ import AddBunkPage from "../screens/pages/shops/bunks/AddBunkPage";
 import AddServiceShopPage from "../screens/pages/shops/services/AddServiceShopPage";
 import ServicePage from "../screens/pages/Vehicles/service/ServicePage";
 import AddServicePage from "../screens/pages/Vehicles/service/AddServicePage";
+import ServiceHistoryPage from "../screens/pages/shops/services/ServiceHistoryPage";
 
 
 const privateRoutes = [
@@ -57,6 +58,10 @@ const privateRoutes = [
   {
     path: "/vehicles/fuel",
     element: <FuelPage />,
+  },
+  {
+    path: "/shop/services/history",
+    element: <ServiceHistoryPage />,
   },
   {
     path: "/vehicles/fuel/add",

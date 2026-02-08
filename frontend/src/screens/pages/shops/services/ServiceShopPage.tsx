@@ -88,11 +88,10 @@ export default function ServiceShopPage() {
                   setAmountFilter(f.value as AmountFilter);
                   setShowFilter(false);
                 }}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-orange-50 ${
-                  amountFilter === f.value
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-orange-50 ${amountFilter === f.value
                     ? "bg-orange-100 text-orange-600 font-semibold"
                     : ""
-                }`}
+                  }`}
               >
                 {f.label}
               </button>
@@ -106,7 +105,8 @@ export default function ServiceShopPage() {
         {filteredShops.map((s) => (
           <div
             key={s.id}
-            className="flex flex-col md:flex-row gap-5 bg-gray-50 rounded-2xl p-4 shadow-sm hover:shadow-md transition"
+            onClick={() => navigate(`/shop/services/history?shopId=${s.id}&shopName=${encodeURIComponent(s.shop_name)}`)}
+            className="flex flex-col md:flex-row gap-5 bg-gray-50 rounded-2xl p-4 shadow-sm hover:shadow-md transition cursor-pointer border border-transparent hover:border-orange-300"
           >
             <div className="w-full md:w-40 h-32 flex items-center justify-center bg-white rounded-xl border">
               <Wrench size={40} className="text-orange-500" />
