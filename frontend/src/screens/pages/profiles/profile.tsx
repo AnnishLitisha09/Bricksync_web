@@ -1,27 +1,19 @@
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  Calendar,
-  CameraIcon,
-  CheckCircle,
-  Fingerprint,
-  Mail,
-  Save,
-  ShieldCheck,
-  Smartphone,
-  Upload,
-  User,
-  Wallet
-} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { BASE_URL, FILE_BASE_URL } from "../../../api/base";
+import { useUserStore } from "../../../store/useUserStore";
 import {
   getProfile,
-  updateAadhaarImage,
-  updateDrivingLicenceBack,
-  updateDrivingLicenceImage,
   updateProfileImage,
+  updateAadhaarImage,
+  updateDrivingLicenceImage,
+  updateDrivingLicenceBack,
 } from "../../../api/user";
-import { useUserStore } from "../../../store/useUserStore";
+import { FILE_BASE_URL, BASE_URL } from "../../../api/base";
+import { 
+  Camera, User, Mail, Phone, Wallet, ShieldCheck, 
+  Fingerprint, CreditCard, Calendar, Upload, Save, 
+  CheckCircle, BadgeCheck, CameraIcon, Smartphone
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ProfilePage() {
   const { user, setUser } = useUserStore();
@@ -156,7 +148,13 @@ export default function ProfilePage() {
                   </div>
                   <span className="text-lg font-black text-slate-900">₹{user?.amount?.toLocaleString()}</span>
                 </div>
-                
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-800 text-white rounded-xl"><BadgeCheck size={18}/></div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">User ID</p>
+                  </div>
+                  <span className="text-xs font-black text-slate-900"># {user?.userid}</span>
+                </div>
               </div>
             </div>
             

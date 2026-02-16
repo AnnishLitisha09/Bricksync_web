@@ -119,7 +119,7 @@ export default function VehicleList() {
           </button>
 
           {showFilter && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl z-30 p-2 animate-in slide-in-from-top-2">
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl z-20 p-2 animate-in slide-in-from-top-2">
               {["Active", "Inactive"].map((status) => (
                 <button
                   key={status}

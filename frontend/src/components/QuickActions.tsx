@@ -80,7 +80,7 @@ const QuickActions: React.FC = () => {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
+        <div className="fixed inset-0 flex items-center justify-center z-10">
           {/* Blurred backdrop */}
           <div
             className="absolute inset-0 bg-white/20 backdrop-blur-md"

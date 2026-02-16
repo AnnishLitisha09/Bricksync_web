@@ -41,7 +41,7 @@ const HeroWithNavbar: React.FC = () => {
         <div className="w-full bg-white overflow-hidden">
             {/* ================= NAVBAR ================= */}
             <header
-                className={`w-full fixed top-0 left-0 z-50 transition-transform duration-300 ${showNavbar ? "translate-y-0" : "-translate-y-full"
+                className={`w-full fixed top-0 left-0 z-10 transition-transform duration-300 ${showNavbar ? "translate-y-0" : "-translate-y-full"
                     }`}
             >
                 <div className="flex items-center px-4 sm:px-6 md:px-20 py-4 bg-white shadow-md">

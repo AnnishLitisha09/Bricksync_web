@@ -268,7 +268,7 @@ export default function ViewVehicle() {
                 </div>
 
                 {/* MOBILE FLOATING ACTION BAR */}
-                <div className="fixed bottom-6 left-6 right-6 md:hidden z-50">
+                <div className="fixed bottom-6 left-6 right-6 md:hidden z-10">
                     {isEdit ? (
                         <div className="flex gap-3 bg-gray-900/90 backdrop-blur-2xl p-3 rounded-[2rem] border border-white/20 shadow-2xl animate-in slide-in-from-bottom-10">
                             <button onClick={handleCancel} className="w-14 h-14 flex items-center justify-center rounded-full bg-white/10 text-white">

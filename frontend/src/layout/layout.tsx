@@ -29,7 +29,7 @@ const Layout = () => {
         <div 
           className={`
             /* Mobile: Fixed overlay */
-            fixed inset-y-0 left-0 z-50 w-64 bg-white
+            fixed inset-y-0 left-0 z-10 w-64 bg-white
             /* Desktop: Relative (pushes content) */
             lg:relative lg:z-0 lg:block
           `}
@@ -46,7 +46,7 @@ const Layout = () => {
       </div>
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/30 z-40 lg:hidden" 
+          className="fixed inset-0 bg-black/30 z-20 lg:hidden" 
           onClick={() => setIsOpen(false)}
         />
       )}

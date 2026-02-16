@@ -119,7 +119,7 @@ export default function Sidebar({ className }: { className?: string }) {
   return (
     <>
       <aside
-        className={`relative z-10 w-64 bg-white flex flex-col gap-5 px-4 py-6 rounded-2xl ${className}`}
+        className={`relative w-64 bg-white flex flex-col gap-5 px-4 py-6 rounded-2xl ${className}`}
       >
         {isOpen && (
           <div
@@ -239,7 +239,7 @@ export default function Sidebar({ className }: { className?: string }) {
 
       {/* LOGOUT MODAL */}
       {showLogout && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-[1000px] flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
             <h2 className="text-lg font-semibold text-gray-800">
               Confirm Logout
