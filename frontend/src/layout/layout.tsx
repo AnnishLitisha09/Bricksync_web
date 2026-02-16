@@ -23,17 +23,36 @@ const Layout = () => {
   }, [setIsOpen]);
 
   return (
-    <div className="grid grid-cols-12 gap-20 h-screen bg-gray-100 p-3">
-      {isOpen && <Sidebar className="col-span-2 h-full shadow-md" />}
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
 
-      <div className={`${isOpen ? "col-span-10" : "col-span-12"} flex flex-col h-[calc(100vh-28px)] gap-4`}>
+     {isOpen && (
+        <div 
+          className={`
+            /* Mobile: Fixed overlay */
+            fixed inset-y-0 left-0 z-50 w-64 bg-white
+            /* Desktop: Relative (pushes content) */
+            lg:relative lg:z-0 lg:block
+          `}
+        >
+          <Sidebar className="h-full shadow-md" />
+        </div>
+      )}
+
+      <div className="flex-1 flex flex-col min-w-0">
         <Topbar />
-        <main className="flex-1 overflow-y-auto p-6 py-0">
+        <main className="flex-1 overflow-y-auto p-4">
           <Outlet />
-
         </main>
       </div>
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/30 z-40 lg:hidden" 
+          onClick={() => setIsOpen(false)}
+        />
+      )}
     </div>
+
+
   );
 };
 
