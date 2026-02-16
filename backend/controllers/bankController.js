@@ -3,14 +3,32 @@ const { BankTable } = require("../models");
 /* ===================== CREATE ===================== */
 exports.createBank = async (req, res) => {
   try {
-    const { name, accountNumber, holderName, amount, Gpay } = req.body;
+    const {
+      name,
+      accountNumber,
+      holderName,
+      amount,
+      bankTransfer,
+      phonepe,
+      gpay,
+    } = req.body;
+
+    // Validation
+    if (!name || !accountNumber || !holderName) {
+      return res.status(400).json({
+        success: false,
+        message: "name, accountNumber and holderName are required",
+      });
+    }
 
     const bank = await BankTable.create({
       name,
       accountNumber,
       holderName,
-      amount,
-      Gpay,
+      amount: amount || 0,
+      bankTransfer: !!bankTransfer,
+      phonepe: !!phonepe,
+      gpay: !!gpay,
     });
 
     return res.status(201).json({
@@ -34,7 +52,10 @@ exports.getAllBanks = async (req, res) => {
       order: [["createdAt", "DESC"]],
     });
 
-    return res.json(banks);
+    return res.json({
+      success: true,
+      data: banks,
+    });
   } catch (error) {
     console.error("GET ALL BANKS ERROR:", error);
     return res.status(500).json({
@@ -47,9 +68,7 @@ exports.getAllBanks = async (req, res) => {
 /* ===================== GET BY ID ===================== */
 exports.getBankById = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const bank = await BankTable.findByPk(id);
+    const bank = await BankTable.findByPk(req.params.id);
 
     if (!bank) {
       return res.status(404).json({
@@ -58,7 +77,10 @@ exports.getBankById = async (req, res) => {
       });
     }
 
-    return res.json(bank);
+    return res.json({
+      success: true,
+      data: bank,
+    });
   } catch (error) {
     console.error("GET BANK BY ID ERROR:", error);
     return res.status(500).json({
@@ -71,9 +93,8 @@ exports.getBankById = async (req, res) => {
 /* ===================== UPDATE ===================== */
 exports.updateBank = async (req, res) => {
   try {
-    const { id } = req.params;
+    const bank = await BankTable.findByPk(req.params.id);
 
-    const bank = await BankTable.findByPk(id);
     if (!bank) {
       return res.status(404).json({
         success: false,
@@ -100,9 +121,8 @@ exports.updateBank = async (req, res) => {
 /* ===================== DELETE ===================== */
 exports.deleteBank = async (req, res) => {
   try {
-    const { id } = req.params;
+    const bank = await BankTable.findByPk(req.params.id);
 
-    const bank = await BankTable.findByPk(id);
     if (!bank) {
       return res.status(404).json({
         success: false,

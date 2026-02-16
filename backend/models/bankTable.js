@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
       },
 
       accountNumber: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         allowNull: false,
       },
 
@@ -25,19 +25,28 @@ module.exports = (sequelize, DataTypes) => {
 
       amount: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        defaultValue: 0,
       },
 
-      Gpay: {
+      bankTransfer: {
         type: DataTypes.BOOLEAN,
-        allowNull: true,
-        default: false,
+        defaultValue: false,
+      },
+
+      phonepe: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+
+      gpay: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
       },
     },
     {
       tableName: "bank_details",
       timestamps: true,
-    },
+    }
   );
 
   return BankTable;
