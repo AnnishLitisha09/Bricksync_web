@@ -1,12 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { useVehicleStore } from "../../../../store/useVehicleStore";
 import { useServiceShopStore } from "../../../../store/useServiceShopStore";
 import { BASE_URL, getAuthHeader } from "../../../../api/base";
+import { 
+  ArrowLeft, 
+  Wrench, 
+  Truck, 
+  Store, 
+  FileText, 
+  IndianRupee, 
+  Calendar, 
+  Navigation2,
+  Save,
+  Loader2,
+  Info
+} from "lucide-react";
 
-const inputClass =
-  "w-full mt-1 rounded-lg border border-gray-300 px-3 py-2 text-sm " +
-  "focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500";
+const labelClass = "text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 mb-1 block";
+const inputClass = 
+  "w-full bg-gray-50 border-2 border-transparent rounded-2xl px-4 py-3 text-sm font-bold " +
+  "focus:bg-white focus:ring-0 focus:border-orange-500 transition-all outline-none text-slate-700";
 
 export default function AddServicePage() {
   const navigate = useNavigate();
@@ -15,15 +30,18 @@ export default function AddServicePage() {
 
   const [form, setForm] = useState({
     vehicleId: "",
-    serviceShopId: "", // keep as string for select value
+    serviceShopId: "",
     topic: "",
     description: "",
-    date: "",
+    date: new Date().toISOString().split("T")[0],
     amount: "",
     kilometer: "",
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
 
   useEffect(() => {
     fetchVehicles();
@@ -41,198 +59,176 @@ export default function AddServicePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Required fields validation
     if (!form.vehicleId || !form.topic || !form.date || !form.amount || !form.kilometer) {
       alert("Please fill all required fields");
       return;
     }
 
-    const vehicleIdNum = Number(form.vehicleId);
-    const serviceShopIdNum = form.serviceShopId ? Number(form.serviceShopId) : null;
-    const amountNum = Number(form.amount);
     const kilometerNum = Number(form.kilometer);
-
-    // Validate number conversions
-    if (isNaN(amountNum) || amountNum <= 0) {
-      setErrorMsg("Amount must be a valid positive number");
-      return;
-    }
-    if (isNaN(kilometerNum) || kilometerNum <= 0) {
-      setErrorMsg("Kilometer must be a valid positive number");
-      return;
-    }
-
-    const selectedVehicle = vehicles.find(v => v.id === vehicleIdNum);
+    const selectedVehicle = vehicles.find(v => v.id === Number(form.vehicleId));
+    
     if (selectedVehicle && kilometerNum <= selectedVehicle.kilometer) {
-      setErrorMsg(`Kilometer must be greater than current reading (${selectedVehicle.kilometer})`);
+      setErrorMsg(`Reading must be > ${selectedVehicle.kilometer} km`);
       return;
     }
 
-    // Generate a random serviceId
-    const serviceId = Math.floor(Math.random() * 1000000);
-
+    setIsSubmitting(true);
     const payload = {
-      vehicleId: vehicleIdNum,
-      serviceId,
-      serviceShopId: serviceShopIdNum,
-      topic: form.topic,
-      description: form.description || "",
-      date: form.date,
-      amount: amountNum,
+      ...form,
+      vehicleId: Number(form.vehicleId),
+      serviceShopId: form.serviceShopId ? Number(form.serviceShopId) : null,
+      amount: Number(form.amount),
       kilometer: kilometerNum,
+      serviceId: Math.floor(Math.random() * 1000000), // Internal logic as per your snippet
     };
-
-    console.log("Submitting Service Data:", payload);
 
     try {
       const res = await fetch(`${BASE_URL}/vehicle-services`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeader(),
-        },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
-      console.log("Response:", data);
-
       if (!res.ok) {
+        const data = await res.json();
         alert(data.message || "Failed to add service");
         return;
       }
-
       navigate("/vehicles/services");
     } catch (err) {
       console.error(err);
       alert("Something went wrong");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Add Vehicle Service</h1>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-3xl mx-auto p-4"
+    >
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-8">
         <button
           onClick={() => navigate(-1)}
-          className="text-sm text-gray-600 hover:text-orange-500"
+          className="p-2 bg-white rounded-xl shadow-sm text-slate-400 hover:text-orange-600 transition-colors"
         >
-          ← Back
+          <ArrowLeft size={20} />
         </button>
+        <div className="text-center">
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">
+            ADD <span className="text-orange-600 uppercase">Service</span>
+          </h1>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Maintenance Entry</p>
+        </div>
+        <div className="w-10" />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* VEHICLE + SHOP */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="text-sm font-medium text-gray-700">Vehicle</label>
-            <select
-              name="vehicleId"
-              value={form.vehicleId}
-              onChange={handleChange}
-              className={inputClass}
-            >
-              <option value="">Select Vehicle</option>
-              {vehicles.map(v => (
-                <option key={v.id} value={v.id}>
-                  {v.vehicleNumber} ({v.vehicleName})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700">Service Shop (Optional)</label>
-            {shopsLoading ? (
-              <p className="text-sm text-gray-500 mt-2">Loading shops...</p>
-            ) : (
-              <select
-                name="serviceShopId"
-                value={form.serviceShopId}
-                onChange={handleChange}
-                className={inputClass}
-              >
-                <option value="">Select Shop</option>
-                {shops.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.shop_name} — {s.owner}
-                  </option>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* VEHICLE & SHOP SELECTION */}
+        <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-1">
+              <label className={labelClass}><Truck size={12} className="inline mr-1" /> Vehicle</label>
+              <select name="vehicleId" value={form.vehicleId} onChange={handleChange} className={inputClass}>
+                <option value="">Select Vehicle</option>
+                {vehicles.map(v => (
+                  <option key={v.id} value={v.id}>{v.vehicleNumber} ({v.vehicleName})</option>
                 ))}
               </select>
-            )}
+            </div>
+            <div className="space-y-1">
+              <label className={labelClass}><Store size={12} className="inline mr-1" /> Service Shop</label>
+              <select name="serviceShopId" value={form.serviceShopId} onChange={handleChange} className={inputClass} disabled={shopsLoading}>
+                <option value="">Select Shop (Optional)</option>
+                {shops.map(s => (
+                  <option key={s.id} value={s.id}>{s.shop_name} — {s.owner}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
-        {/* TOPIC + DESCRIPTION */}
-        <div className="grid grid-cols-1 gap-6">
-          <div>
-            <label className="text-sm font-medium text-gray-700">Service Topic</label>
+        {/* SERVICE DETAILS */}
+        <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100 space-y-6">
+          <div className="space-y-1">
+            <label className={labelClass}><Wrench size={12} className="inline mr-1" /> Service Topic</label>
             <input
               type="text"
               name="topic"
               value={form.topic}
               onChange={handleChange}
-              placeholder="Eg: Engine Oil Change"
+              placeholder="e.g. Engine Oil Change"
               className={inputClass}
             />
           </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700">Description</label>
+          <div className="space-y-1">
+            <label className={labelClass}><FileText size={12} className="inline mr-1" /> Description</label>
             <textarea
               name="description"
               value={form.description}
               onChange={handleChange}
-              placeholder="Details about the service"
-              className={inputClass}
+              placeholder="Detailed notes on work done..."
+              className={`${inputClass} min-h-[100px] resize-none py-4`}
             />
           </div>
         </div>
 
-        {/* DATE + AMOUNT + KM */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <label className="text-sm font-medium text-gray-700">Service Date</label>
-            <input type="date" name="date" value={form.date} onChange={handleChange} className={inputClass} />
+        {/* LOGISTICS & COST */}
+        <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-1">
+              <label className={labelClass}><Calendar size={12} className="inline mr-1" /> Date</label>
+              <input type="date" name="date" max={today} value={form.date} onChange={handleChange} className={inputClass} />
+            </div>
+            <div className="space-y-1">
+              <label className={labelClass}><IndianRupee size={12} className="inline mr-1" /> Cost</label>
+              <input type="number" name="amount" value={form.amount} onChange={handleChange} placeholder="0" className={inputClass} />
+            </div>
+            <div className="space-y-1">
+              <label className={labelClass}><Navigation2 size={12} className="inline mr-1" /> Odometer</label>
+              <input 
+                type="number" 
+                name="kilometer" 
+                value={form.kilometer} 
+                onChange={handleChange} 
+                placeholder="KM" 
+                className={`${inputClass} ${errorMsg ? "border-red-200 bg-red-50 focus:border-red-500" : ""}`}
+              />
+            </div>
           </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700">Amount (₹)</label>
-            <input
-              type="number"
-              name="amount"
-              value={form.amount}
-              onChange={handleChange}
-              placeholder="Eg: 2500"
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700">Kilometer Reading</label>
-            <input
-              type="number"
-              name="kilometer"
-              value={form.kilometer}
-              onChange={handleChange}
-              placeholder="Eg: 45000"
-              className={inputClass}
-            />
-            {errorMsg && <p className="text-red-500 text-sm mt-1">{errorMsg}</p>}
-          </div>
+          {errorMsg && (
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-[10px] font-black uppercase mt-4 flex items-center gap-1 ml-2">
+              <Info size={12} /> {errorMsg}
+            </motion.p>
+          )}
         </div>
 
         {/* ACTIONS */}
-        <div className="flex justify-end gap-4 pt-6 border-t">
-          <button type="button" onClick={() => navigate(-1)} className="px-5 py-2 border rounded-lg text-sm hover:bg-gray-50">
+        <div className="flex flex-col md:flex-row gap-4 pt-4">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="flex-1 py-4 rounded-2xl font-black text-slate-400 bg-white border border-gray-100 hover:bg-gray-50 transition-colors uppercase tracking-widest text-xs"
+          >
             Cancel
           </button>
-
-          <button type="submit" className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600">
-            Save Service Record
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex-[2] bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-slate-200 hover:bg-orange-600 transition-all active:scale-95 flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (
+              <>
+                <Save size={18} />
+                Save Service Record
+              </>
+            )}
           </button>
         </div>
       </form>
-    </div>
+    </motion.div>
   );
 }
