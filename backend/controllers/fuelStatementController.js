@@ -1,31 +1,52 @@
 const { sequelize, BankTable, Bunk, FuelStatement } = require("../models");
 
+
+// ✅ CREATE
 exports.createFuelStatement = async (req, res) => {
-  const { bunk_id, bank_id, amount } = req.body;
+  const { bunk_id, bank_id, amount, payment_mode, description } = req.body;
 
   const transaction = await sequelize.transaction();
 
   try {
+    // Basic validation
+    if (!payment_mode) {
+      throw new Error("Payment mode is required");
+    }
+
     const bank = await BankTable.findByPk(bank_id, { transaction });
     if (!bank) throw new Error("Bank not found");
 
-    if (bank.amount < amount) throw new Error("Insufficient bank balance");
+    if (bank.amount < amount)
+      throw new Error("Insufficient bank balance");
 
     const bunk = await Bunk.findByPk(bunk_id, { transaction });
     if (!bunk) throw new Error("Bunk not found");
 
-    if (bunk.amount < amount) throw new Error("Insufficient bunk balance");
+    if (bunk.amount < amount)
+      throw new Error("Insufficient bunk balance");
 
     // Deduct from bank
-    await bank.update({ amount: bank.amount - amount }, { transaction });
+    await bank.update(
+      { amount: bank.amount - amount },
+      { transaction }
+    );
 
     // Deduct from bunk
-    await bunk.update({ amount: bunk.amount - amount }, { transaction });
+    await bunk.update(
+      { amount: bunk.amount - amount },
+      { transaction }
+    );
 
     // Insert fuel statement
     const fuelStatement = await FuelStatement.create(
-      { bunk_id, bank_id, amount },
-      { transaction },
+      {
+        bunk_id,
+        bank_id,
+        amount,
+        payment_mode,
+        description,
+      },
+      { transaction }
     );
 
     await transaction.commit();
@@ -35,6 +56,7 @@ exports.createFuelStatement = async (req, res) => {
       message: "Fuel statement created successfully",
       data: fuelStatement,
     });
+
   } catch (error) {
     await transaction.rollback();
 
@@ -45,6 +67,8 @@ exports.createFuelStatement = async (req, res) => {
   }
 };
 
+
+// ✅ GET ALL
 exports.getAllFuelStatements = async (req, res) => {
   try {
     const data = await FuelStatement.findAll({
@@ -59,8 +83,10 @@ exports.getAllFuelStatements = async (req, res) => {
       success: true,
       data,
     });
+
   } catch (error) {
     console.error("GET ALL FUEL STATEMENT ERROR:", error);
+
     return res.status(500).json({
       success: false,
       message: "Failed to fetch fuel statement records",
@@ -68,6 +94,8 @@ exports.getAllFuelStatements = async (req, res) => {
   }
 };
 
+
+// ✅ GET BY ID
 exports.getFuelStatementById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -90,8 +118,10 @@ exports.getFuelStatementById = async (req, res) => {
       success: true,
       data,
     });
+
   } catch (error) {
     console.error("GET FUEL STATEMENT BY ID ERROR:", error);
+
     return res.status(500).json({
       success: false,
       message: "Failed to fetch fuel statement",
@@ -99,12 +129,15 @@ exports.getFuelStatementById = async (req, res) => {
   }
 };
 
+
+// ✅ DELETE
 exports.deleteFuelStatement = async (req, res) => {
   const { id } = req.params;
   const transaction = await sequelize.transaction();
 
   try {
     const fuelStatement = await FuelStatement.findByPk(id, { transaction });
+
     if (!fuelStatement) {
       throw new Error("Fuel statement not found");
     }
@@ -119,10 +152,17 @@ exports.deleteFuelStatement = async (req, res) => {
     }
 
     // Refund amounts
-    await bank.increment("amount", { by: amount, transaction });
-    await bunk.increment("amount", { by: amount, transaction });
+    await bank.increment("amount", {
+      by: amount,
+      transaction,
+    });
 
-    // Delete fuel statement
+    await bunk.increment("amount", {
+      by: amount,
+      transaction,
+    });
+
+    // Delete record
     await fuelStatement.destroy({ transaction });
 
     await transaction.commit();
@@ -131,6 +171,7 @@ exports.deleteFuelStatement = async (req, res) => {
       success: true,
       message: "Fuel statement deleted and balance reverted successfully",
     });
+
   } catch (error) {
     await transaction.rollback();
 

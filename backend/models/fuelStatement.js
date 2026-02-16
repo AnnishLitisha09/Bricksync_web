@@ -1,3 +1,4 @@
+// models/fuelStatement.js
 module.exports = (sequelize, DataTypes) => {
   const FuelStatement = sequelize.define(
     "FuelStatement",
@@ -30,11 +31,21 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
+
+      payment_mode: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+
+      description: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
     },
     {
       tableName: "fuel_statement",
       timestamps: true,
-    },
+    }
   );
 
   FuelStatement.associate = (models) => {
