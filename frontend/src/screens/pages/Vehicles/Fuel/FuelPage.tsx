@@ -1,13 +1,19 @@
-import { useEffect, useState, useMemo } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  AlertCircle, ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  Droplets,
+  Filter,
+  Loader2,
+  Plus,
+  Search
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { BASE_URL, getAuthHeader } from "../../../../api/base";
 import { useFuelStore } from "../../../../store/useFuelStore";
 import { useVehicleStore } from "../../../../store/useVehicleStore";
-import { 
-  Search, Filter, Plus, Calendar, Droplets, CreditCard, 
-  ChevronRight, AlertCircle, ChevronLeft, Loader2 
-} from "lucide-react";
-import { BASE_URL, getAuthHeader } from "../../../../api/base";
 
 // --- Types ---
 interface ConfirmModalState {

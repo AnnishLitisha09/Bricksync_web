@@ -1,8 +1,8 @@
-import { useEffect, useState, useRef } from "react";
+import { AlertCircle, ArrowRight, Calendar, Car, Check, Gauge, Plus, Search, Sliders } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useVehicleStore, type Vehicle } from "../../../store/useVehicleStore";
 import { FILE_BASE_URL } from "../../../api/base";
-import { Sliders, Check, Eye, Search, Plus, Calendar, Gauge, AlertCircle, ArrowRight, Car } from "lucide-react";
+import { useVehicleStore, type Vehicle } from "../../../store/useVehicleStore";
 import { encryptId } from "../../../utils/functions";
 
 // --- Logic Helpers ---

@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ArrowLeft, Edit, Save, X, Camera, FileText, CheckCircle2, AlertCircle, Zap, MapPin, ShieldCheck } from "lucide-react";
-import { useEffect, useRef, useState, useMemo } from "react";
+import { AlertCircle, ArrowLeft, Camera, Edit, FileText, MapPin, Save, ShieldCheck, X, Zap } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 import { FILE_BASE_URL } from "../../../api/base";
 import Input from "../../../components/InputBox";
 import { useVehicleStore, type Vehicle } from "../../../store/useVehicleStore";
 import { decryptId } from "../../../utils/functions";
-import toast from "react-hot-toast";
 
 type DocKey = "vehicleImage" | "rcImage" | "insuranceImage" | "pollutionImage" | "speedImage";
 

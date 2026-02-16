@@ -1,21 +1,20 @@
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowUpRight,
+  ChevronRight,
+  Filter,
+  Hammer,
+  MapPin,
+  Phone,
+  Plus,
+  Search,
+  Settings,
+  User,
+  Wrench,
+  X
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Filter, 
-  Plus, 
-  Search, 
-  Phone, 
-  MapPin, 
-  Wrench, 
-  ChevronRight,
-  User,
-  X,
-  Hammer,
-  ArrowUpRight,
-  Settings,
-  ShieldCheck
-} from "lucide-react";
 import { useServiceShopStore } from "../../../../store/useServiceShopStore";
 
 type AmountFilter = "ALL" | "10000" | "20000" | "50000";

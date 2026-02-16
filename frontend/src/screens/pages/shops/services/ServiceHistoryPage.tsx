@@ -1,17 +1,15 @@
-import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Gauge, 
-  Wrench, 
-  Car, 
-  TrendingUp, 
-  History, 
+import { motion } from "framer-motion";
+import {
+  ArrowLeft,
+  Car,
   FileText,
-  Plus
+  Gauge,
+  History,
+  Plus,
+  TrendingUp
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { BASE_URL, getAuthHeader } from "../../../../api/base";
 
 export default function ServiceHistoryPage() {

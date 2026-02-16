@@ -1,11 +1,24 @@
-import { useEffect, useState, useMemo } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ArrowLeft, Fuel, Car, TrendingUp, History, Droplets,
-  Plus, AlertCircle, CheckCircle2, ReceiptText, Building2,
-  Wallet, LayoutList, X, CreditCard, Landmark, Smartphone, Loader2
+import { AnimatePresence, motion } from "framer-motion";
+import {
+    ArrowLeft,
+    Building2,
+    CheckCircle2,
+    CreditCard,
+    Droplets,
+    Fuel,
+    History,
+    Landmark,
+    LayoutList,
+    Loader2,
+    Plus,
+    ReceiptText,
+    Smartphone,
+    TrendingUp,
+    Wallet,
+    X
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { BASE_URL, getAuthHeader } from "../../../../api/base";
 import { useBankStore } from "../../../../store/bankStore";
 

@@ -1,18 +1,17 @@
+import {
+  Calendar,
+  ChevronRight,
+  CreditCard,
+  Filter,
+  MapPin,
+  Plus,
+  Search,
+  Wrench
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useVehicleServiceStore } from "../../../../store/useVehicleServiceStore";
 import { useVehicleStore } from "../../../../store/useVehicleStore";
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  Calendar, 
-  Wrench, 
-  CreditCard, 
-  ChevronRight, 
-  MapPin, 
-  Tag 
-} from "lucide-react";
 
 export default function ServicePage() {
   const navigate = useNavigate();
