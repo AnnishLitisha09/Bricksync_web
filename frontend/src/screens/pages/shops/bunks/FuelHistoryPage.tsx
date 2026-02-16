@@ -13,6 +13,7 @@ import {
     Plus,
     ReceiptText,
     Smartphone,
+    StickyNote,
     TrendingUp,
     Wallet,
     X
@@ -43,6 +44,7 @@ interface Transaction {
   isVerified?: boolean;
   vehicle?: Vehicle;
   bank?: { name: string; holderName: string };
+  notes?: string;
 }
 
 export default function FuelHistoryPage() {
@@ -66,7 +68,8 @@ export default function FuelHistoryPage() {
   const [paymentForm, setPaymentForm] = useState({
     amount: "",
     bankId: "",
-    mode: "Bank Transfer"
+    mode: "",
+    notes: "" // Added Description/Notes field
   });
   
   const [summary, setSummary] = useState({
@@ -75,6 +78,7 @@ export default function FuelHistoryPage() {
     outstanding: 0
   });
 
+  // Find the bank object based on the current selection
   const selectedBankData = useMemo(() => 
     banks.find(b => b.id.toString() === paymentForm.bankId), 
   [paymentForm.bankId, banks]);
@@ -84,12 +88,17 @@ export default function FuelHistoryPage() {
     if (bunkId) fetchData();
   }, [bunkId]);
 
+  // Handle logic for Payment Mode when a bank is selected
   useEffect(() => {
     if (selectedBankData) {
-      setPaymentForm(prev => ({
-        ...prev,
-        mode: selectedBankData.Gpay ? "GPay / UPI" : "Bank Transfer"
-      }));
+      // Auto-select the first available mode
+      if (selectedBankData.gpay) setPaymentForm(prev => ({ ...prev, mode: "GPay / UPI" }));
+      else if (selectedBankData.phonepe) setPaymentForm(prev => ({ ...prev, mode: "PhonePe" }));
+      else if (selectedBankData.bankTransfer) setPaymentForm(prev => ({ ...prev, mode: "Bank Transfer" }));
+      else setPaymentForm(prev => ({ ...prev, mode: "" }));
+    } else {
+      // Reset if no bank selected
+      setPaymentForm(prev => ({ ...prev, mode: "", notes: "" }));
     }
   }, [selectedBankData]);
 
@@ -130,66 +139,33 @@ export default function FuelHistoryPage() {
     }
   };
 
-  /**
-   * UPDATED: Integrated with POST /fuel-statements/
-   */
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // 1. Log the local state before starting the request
-    console.log("🚀 Starting Payment Submission...", {
-      bunkId: bunkId,
-      bankId: paymentForm.bankId,
-      amount: paymentForm.amount,
-      mode: paymentForm.mode
-    });
-
-    if (!paymentForm.bankId || !paymentForm.amount) {
-      console.warn("⚠️ Missing required fields: bankId or amount");
-      return;
-    }
+    if (!paymentForm.bankId || !paymentForm.amount || !paymentForm.mode) return;
 
     try {
       setIsSubmitting(true);
-      
       const payload = {
         bunk_id: Number(bunkId),
         bank_id: Number(paymentForm.bankId),
-        amount: Number(paymentForm.amount)
+        amount: Number(paymentForm.amount),
+        mode: paymentForm.mode,
+        notes: paymentForm.notes // Send description to backend
       };
-
-      console.log("📤 Sending Payload to API:", payload);
 
       const response = await fetch(`${BASE_URL}/fuel-statements/`, {
         method: 'POST',
-        headers: {
-          ...getAuthHeader(),
-          'Content-Type': 'application/json'
-        },
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      // 2. Check for HTTP errors (4xx or 5xx)
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("❌ Server Error Response:", {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorData
-        });
-        throw new Error(errorData.message || `Server responded with ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log("✅ Payment Success Result:", result);
+      if (!response.ok) throw new Error("Payment failed");
 
       setIsModalOpen(false);
-      setPaymentForm({ amount: "", bankId: "", mode: "Bank Transfer" });
+      setPaymentForm({ amount: "", bankId: "", mode: "", notes: "" });
       fetchData(); 
     } catch (err: any) {
-      // 3. Log the final error detail
-      console.error("🔴 Submission Failed:", err.message);
-      alert(`Failed to process payment: ${err.message}`);
+      alert(`Failed: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -313,21 +289,21 @@ export default function FuelHistoryPage() {
                             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Payment Mode</label>
                             <div className="relative">
                                 <select 
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800 appearance-none focus:ring-2 ring-emerald-500/20 outline-none transition-all"
+                                    disabled={!paymentForm.bankId}
+                                    required
+                                    className={`w-full border rounded-2xl px-5 py-4 font-black text-slate-800 appearance-none focus:ring-2 ring-emerald-500/20 outline-none transition-all ${!paymentForm.bankId ? 'bg-slate-100 border-slate-200 cursor-not-allowed text-slate-400' : 'bg-slate-50 border-slate-100'}`}
                                     value={paymentForm.mode}
                                     onChange={(e) => setPaymentForm({...paymentForm, mode: e.target.value})}
                                 >
-                                    {selectedBankData?.Gpay ? (
-                                        <option value="GPay / UPI">GPay / UPI</option>
-                                    ) : (
-                                        <>
-                                            <option value="Bank Transfer">Bank Transfer</option>
-                                            <option value="Cash">Cash</option>
-                                            <option value="Cheque">Cheque</option>
-                                        </>
-                                    )}
+                                    {!paymentForm.bankId && <option value="">Select Bank First</option>}
+                                    {selectedBankData?.gpay && <option value="GPay / UPI">GPay / UPI</option>}
+                                    {selectedBankData?.phonepe && <option value="PhonePe">PhonePe</option>}
+                                    {selectedBankData?.bankTransfer && <option value="Bank Transfer">Bank Transfer</option>}
                                 </select>
-                                {selectedBankData?.Gpay ? <Smartphone className="absolute right-5 top-1/2 -translate-y-1/2 text-blue-500" size={18} /> : <CreditCard className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />}
+                                {paymentForm.mode.includes("GPay") || paymentForm.mode === "PhonePe" ? 
+                                    <Smartphone className="absolute right-5 top-1/2 -translate-y-1/2 text-blue-500" size={18} /> : 
+                                    <CreditCard className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                                }
                             </div>
                         </div>
 
@@ -340,10 +316,25 @@ export default function FuelHistoryPage() {
                         </div>
                     </div>
 
+                    {/* NEW DESCRIPTION FIELD */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Description / Notes</label>
+                        <div className="relative">
+                            <textarea 
+                                rows={2}
+                                placeholder="Enter transaction details..." 
+                                value={paymentForm.notes} 
+                                onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})} 
+                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800 focus:ring-2 ring-emerald-500/20 outline-none transition-all resize-none" 
+                            />
+                            <StickyNote className="absolute right-5 top-5 text-slate-300" size={18} />
+                        </div>
+                    </div>
+
                     <button 
                         type="submit" 
-                        disabled={isSubmitting}
-                        className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                        disabled={isSubmitting || !paymentForm.bankId || !paymentForm.mode}
+                        className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
                         {isSubmitting ? "Processing..." : "Confirm Payment"}
@@ -397,18 +388,25 @@ function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
                 <span className="text-2xl font-black text-emerald-700 leading-none">{date.getDate()}</span>
                 <span className="text-[10px] font-black uppercase text-emerald-600 mt-1">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>
             </div>
-            <div className="flex-1 flex items-center justify-between p-4">
-                <div className="flex items-center gap-4">
-                    <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl"><Landmark size={24} /></div>
-                    <div>
-                        <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Clearance</h3>
-                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{st.bank?.name}</p>
+            <div className="flex-1 flex flex-col justify-center p-4">
+                <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-4">
+                        <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl"><Landmark size={24} /></div>
+                        <div>
+                            <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Clearance</h3>
+                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{st.bank?.name}</p>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-[8px] font-black text-emerald-600 uppercase mb-1">Amount</p>
+                        <span className="text-xl font-black text-emerald-700">₹{st.amount.toLocaleString()}</span>
                     </div>
                 </div>
-                <div className="text-right">
-                    <p className="text-[8px] font-black text-emerald-600 uppercase mb-1">Amount</p>
-                    <span className="text-xl font-black text-emerald-700">₹{st.amount.toLocaleString()}</span>
-                </div>
+                {st.notes && (
+                    <div className="mt-3 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl">
+                        <p className="text-[10px] font-bold text-slate-400 italic">"{st.notes}"</p>
+                    </div>
+                )}
             </div>
             <div className="w-full md:w-56 p-4 rounded-[1.5rem] bg-emerald-900 text-white shadow-xl shadow-emerald-100">
                 <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Confirmed</p>

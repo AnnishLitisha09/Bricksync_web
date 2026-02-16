@@ -7,7 +7,9 @@ interface Bank {
     accountNumber: string;
     holderName: string;
     amount: number;
-    Gpay: boolean;
+    bankTransfer: boolean;
+    phonepe: boolean;
+    gpay: boolean; // Match API response key
 }
 
 interface BankState {
@@ -18,7 +20,7 @@ interface BankState {
 }
 
 export const useBankStore = create<BankState>((set) => ({
-    banks: [],
+    banks: [], // Initialize as empty array
     loading: false,
     error: null,
     fetchBanks: async () => {
@@ -32,10 +34,15 @@ export const useBankStore = create<BankState>((set) => ({
                 }
             });
             if (!response.ok) throw new Error('Failed to fetch banks');
-            const data = await response.json();
-            set({ banks: data, loading: false, error: null });
+            
+            const result = await response.json();
+            
+            // Extract the array from result.data
+            const bankList = Array.isArray(result.data) ? result.data : [];
+            
+            set({ banks: bankList, loading: false, error: null });
         } catch (error: any) {
-            set({ error: error.message, loading: false });
+            set({ error: error.message, loading: false, banks: [] });
         }
     },
 }));
