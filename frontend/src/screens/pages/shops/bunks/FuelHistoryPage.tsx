@@ -44,7 +44,8 @@ interface Transaction {
   isVerified?: boolean;
   vehicle?: Vehicle;
   bank?: { name: string; holderName: string };
-  notes?: string;
+  description?: string; 
+  payment_mode?: string; 
 }
 
 export default function FuelHistoryPage() {
@@ -63,13 +64,12 @@ export default function FuelHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [paymentForm, setPaymentForm] = useState({
     amount: "",
     bankId: "",
-    mode: "",
-    notes: "" // Added Description/Notes field
+    payment_mode: "", 
+    description: ""   
   });
   
   const [summary, setSummary] = useState({
@@ -78,7 +78,6 @@ export default function FuelHistoryPage() {
     outstanding: 0
   });
 
-  // Find the bank object based on the current selection
   const selectedBankData = useMemo(() => 
     banks.find(b => b.id.toString() === paymentForm.bankId), 
   [paymentForm.bankId, banks]);
@@ -88,17 +87,16 @@ export default function FuelHistoryPage() {
     if (bunkId) fetchData();
   }, [bunkId]);
 
-  // Handle logic for Payment Mode when a bank is selected
   useEffect(() => {
     if (selectedBankData) {
-      // Auto-select the first available mode
-      if (selectedBankData.gpay) setPaymentForm(prev => ({ ...prev, mode: "GPay / UPI" }));
-      else if (selectedBankData.phonepe) setPaymentForm(prev => ({ ...prev, mode: "PhonePe" }));
-      else if (selectedBankData.bankTransfer) setPaymentForm(prev => ({ ...prev, mode: "Bank Transfer" }));
-      else setPaymentForm(prev => ({ ...prev, mode: "" }));
+      if (selectedBankData.gpay || selectedBankData.phonepe) 
+        setPaymentForm(prev => ({ ...prev, payment_mode: "UPI" }));
+      else if (selectedBankData.bankTransfer) 
+        setPaymentForm(prev => ({ ...prev, payment_mode: "Bank Transfer" }));
+      else 
+        setPaymentForm(prev => ({ ...prev, payment_mode: "" }));
     } else {
-      // Reset if no bank selected
-      setPaymentForm(prev => ({ ...prev, mode: "", notes: "" }));
+      setPaymentForm(prev => ({ ...prev, payment_mode: "", description: "" }));
     }
   }, [selectedBankData]);
 
@@ -119,7 +117,13 @@ export default function FuelHistoryPage() {
       
       const filteredStatements: Transaction[] = (statementData.data || [])
         .filter((s: any) => s.bunk_id === Number(bunkId))
-        .map((item: any) => ({ ...item, type: 'statement', sortDate: new Date(item.createdAt || item.date) }));
+        .map((item: any) => ({ 
+          ...item, 
+          type: 'statement', 
+          sortDate: new Date(item.createdAt || item.date),
+          description: item.description,
+          payment_mode: item.payment_mode // Explicitly mapping from API
+        }));
       
       const fuelTotal = filteredLogs.reduce((acc, curr) => acc + Number(curr.amount), 0);
       const paidTotal = filteredStatements.reduce((acc, curr) => acc + Number(curr.amount), 0);
@@ -141,7 +145,7 @@ export default function FuelHistoryPage() {
 
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!paymentForm.bankId || !paymentForm.amount || !paymentForm.mode) return;
+    if (!paymentForm.bankId || !paymentForm.amount || !paymentForm.payment_mode) return;
 
     try {
       setIsSubmitting(true);
@@ -149,8 +153,8 @@ export default function FuelHistoryPage() {
         bunk_id: Number(bunkId),
         bank_id: Number(paymentForm.bankId),
         amount: Number(paymentForm.amount),
-        mode: paymentForm.mode,
-        notes: paymentForm.notes // Send description to backend
+        payment_mode: paymentForm.payment_mode,
+        description: paymentForm.description
       };
 
       const response = await fetch(`${BASE_URL}/fuel-statements/`, {
@@ -162,7 +166,7 @@ export default function FuelHistoryPage() {
       if (!response.ok) throw new Error("Payment failed");
 
       setIsModalOpen(false);
-      setPaymentForm({ amount: "", bankId: "", mode: "", notes: "" });
+      setPaymentForm({ amount: "", bankId: "", payment_mode: "", description: "" });
       fetchData(); 
     } catch (err: any) {
       alert(`Failed: ${err.message}`);
@@ -191,7 +195,7 @@ export default function FuelHistoryPage() {
         </div>
       </div>
 
-      {/* STATS CARDS */}
+      {/* SUMMARY STATS */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 relative bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center gap-6 overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
@@ -216,7 +220,7 @@ export default function FuelHistoryPage() {
         </div>
       </div>
 
-      {/* TABS & LISTING */}
+      {/* NAVIGATION TABS */}
       <div className="flex gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl w-fit shadow-sm overflow-x-auto">
         {(['all', 'logs', 'statements'] as TabType[]).map((tab) => (
           <button key={tab} onClick={() => setActiveTab(tab)} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? (tab === 'all' ? 'bg-blue-600 text-white' : tab === 'logs' ? 'bg-slate-900 text-white' : 'bg-orange-600 text-white') : 'text-slate-400 hover:text-slate-600'}`}>
@@ -252,7 +256,7 @@ export default function FuelHistoryPage() {
                 <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-emerald-50/30">
                     <div>
                         <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Add Payment</h2>
-                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-1">Select Source & Mode</p>
+                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-1">Record Settlement</p>
                     </div>
                     <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white rounded-full transition-colors text-slate-400"><X size={20}/></button>
                 </div>
@@ -261,7 +265,7 @@ export default function FuelHistoryPage() {
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Receiving Station</label>
                         <div className="relative">
-                            <select disabled className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800 appearance-none"><option>{bunkName}</option></select>
+                            <input disabled value={bunkName || ""} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800" />
                             <Building2 className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                         </div>
                     </div>
@@ -292,15 +296,14 @@ export default function FuelHistoryPage() {
                                     disabled={!paymentForm.bankId}
                                     required
                                     className={`w-full border rounded-2xl px-5 py-4 font-black text-slate-800 appearance-none focus:ring-2 ring-emerald-500/20 outline-none transition-all ${!paymentForm.bankId ? 'bg-slate-100 border-slate-200 cursor-not-allowed text-slate-400' : 'bg-slate-50 border-slate-100'}`}
-                                    value={paymentForm.mode}
-                                    onChange={(e) => setPaymentForm({...paymentForm, mode: e.target.value})}
+                                    value={paymentForm.payment_mode}
+                                    onChange={(e) => setPaymentForm({...paymentForm, payment_mode: e.target.value})}
                                 >
                                     {!paymentForm.bankId && <option value="">Select Bank First</option>}
-                                    {selectedBankData?.gpay && <option value="GPay / UPI">GPay / UPI</option>}
-                                    {selectedBankData?.phonepe && <option value="PhonePe">PhonePe</option>}
+                                    {(selectedBankData?.gpay || selectedBankData?.phonepe) && <option value="UPI">UPI</option>}
                                     {selectedBankData?.bankTransfer && <option value="Bank Transfer">Bank Transfer</option>}
                                 </select>
-                                {paymentForm.mode.includes("GPay") || paymentForm.mode === "PhonePe" ? 
+                                {paymentForm.payment_mode === "UPI" ? 
                                     <Smartphone className="absolute right-5 top-1/2 -translate-y-1/2 text-blue-500" size={18} /> : 
                                     <CreditCard className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                                 }
@@ -316,15 +319,14 @@ export default function FuelHistoryPage() {
                         </div>
                     </div>
 
-                    {/* NEW DESCRIPTION FIELD */}
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Description / Notes</label>
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Description</label>
                         <div className="relative">
                             <textarea 
                                 rows={2}
                                 placeholder="Enter transaction details..." 
-                                value={paymentForm.notes} 
-                                onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})} 
+                                value={paymentForm.description} 
+                                onChange={(e) => setPaymentForm({...paymentForm, description: e.target.value})} 
                                 className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800 focus:ring-2 ring-emerald-500/20 outline-none transition-all resize-none" 
                             />
                             <StickyNote className="absolute right-5 top-5 text-slate-300" size={18} />
@@ -333,7 +335,7 @@ export default function FuelHistoryPage() {
 
                     <button 
                         type="submit" 
-                        disabled={isSubmitting || !paymentForm.bankId || !paymentForm.mode}
+                        disabled={isSubmitting || !paymentForm.bankId || !paymentForm.payment_mode}
                         className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
@@ -394,7 +396,14 @@ function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
                         <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl"><Landmark size={24} /></div>
                         <div>
                             <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Clearance</h3>
-                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{st.bank?.name}</p>
+                            <div className="flex items-center gap-2">
+                                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{st.bank?.name}</p>
+                                <div className="w-1 h-1 bg-emerald-300 rounded-full" />
+                                {/* PAYMENT MODE DISPLAYED HERE */}
+                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[8px] font-black uppercase rounded-md border border-emerald-100">
+                                    {st.payment_mode || 'N/A'}
+                                </span>
+                            </div>
                         </div>
                     </div>
                     <div className="text-right">
@@ -402,9 +411,9 @@ function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
                         <span className="text-xl font-black text-emerald-700">₹{st.amount.toLocaleString()}</span>
                     </div>
                 </div>
-                {st.notes && (
+                {st.description && (
                     <div className="mt-3 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl">
-                        <p className="text-[10px] font-bold text-slate-400 italic">"{st.notes}"</p>
+                        <p className="text-[10px] font-bold text-slate-400 italic">"{st.description}"</p>
                     </div>
                 )}
             </div>

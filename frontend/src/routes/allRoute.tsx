@@ -17,6 +17,8 @@ import ResetPassword from "../screens/auth/ResetPassword";
 import ForgotPassword from "../screens/auth/ForgotPassword";
 import Staff from "../screens/pages/staff/staff";
 import AddDriverPage from "../screens/pages/staff/AddDriverPage";
+// --- IMPORT THE NEW VIEW DETAIL COMPONENT ---
+import ViewStaffDetail from "../screens/pages/staff/ViewStaffDetail"; 
 import ServiceShopPage from "../screens/pages/shops/services/ServiceShopPage";
 import BunkPage from "../screens/pages/shops/bunks/bunkPage";
 import AddBunkPage from "../screens/pages/shops/bunks/AddBunkPage";
@@ -48,10 +50,11 @@ const privateRoutes = [
     path: "/view-vehicle/:hashId",
     element: <ViewVehicle />,
   },
-  // {
-  //   path: "/driver/view/:hashId",
-  //   element: <ViewDriver />
-  // },
+  // --- ADDED THIS ROUTE TO MATCH YOUR NAVIGATE CALL ---
+  {
+    path: "/driver/view/:id",
+    element: <ViewStaffDetail />
+  },
   {
     path: "/profile",
     element: <ProfilePage />,
@@ -92,16 +95,6 @@ const privateRoutes = [
     path: "/staff",
     element: <Staff />,
   },
-
-  {
-    path: "*",
-    element: <NotFound />,
-  },
-
-  {
-    path: "/shop/bunks",
-    element: <BunkPage />,
-  },
   {
     path: "/shop/services",
     element: <ServiceShopPage />,
@@ -110,7 +103,6 @@ const privateRoutes = [
     path: "/transactions",
     element: <TransactionsPage transactions={[]} />,
   },
-
   {
     path: "/shop/bunks/add",
     element: <AddBunkPage />,
@@ -126,6 +118,10 @@ const privateRoutes = [
   {
     path: "/vehicles/services/add",
     element: <AddServicePage />,
+  },
+  {
+    path: "*",
+    element: <NotFound />,
   },
 ];
 
