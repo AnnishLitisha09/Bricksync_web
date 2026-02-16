@@ -29,6 +29,7 @@ app.use("/api/driver", require("./routes/driver"));
 app.use("/api/banks", require("./routes/bankRouters"));
 app.use("/api/fuel-statements", require("./routes/fuelStatementRouters"));
 app.use("/api/service-shops", require("./routes/serviceShopRouters"));
+app.use("/api/contact", require("./routes/contactRoutes"));
 
 // Default route
 app.get("/", (req, res) => {
