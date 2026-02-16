@@ -24,6 +24,7 @@ import AddServiceShopPage from "../screens/pages/shops/services/AddServiceShopPa
 import ServicePage from "../screens/pages/Vehicles/service/ServicePage";
 import AddServicePage from "../screens/pages/Vehicles/service/AddServicePage";
 import ServiceHistoryPage from "../screens/pages/shops/services/ServiceHistoryPage";
+import FuelHistoryPage from "../screens/pages/shops/bunks/FuelHistoryPage";
 
 
 const privateRoutes = [
@@ -62,6 +63,10 @@ const privateRoutes = [
   {
     path: "/shop/services/history",
     element: <ServiceHistoryPage />,
+  },
+  {
+    path: "/shop/bunks/history",
+    element: <FuelHistoryPage />,
   },
   {
     path: "/vehicles/fuel/add",

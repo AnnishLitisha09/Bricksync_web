@@ -10,7 +10,6 @@ import {
   Fuel, 
   ChevronRight,
   User,
-  X,
   CreditCard,
   ArrowUpRight,
   ExternalLink,
@@ -161,7 +160,8 @@ export default function BunkPage() {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
                         transition={{ delay: idx * 0.05 }}
-                        className="group relative bg-white rounded-[3rem] p-2 pr-8 shadow-sm border border-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all overflow-hidden"
+                        onClick={() => navigate(`/shop/bunks/history?bunkId=${b.id}&bunkName=${encodeURIComponent(b.bunkName)}`)}
+                        className="group relative bg-white rounded-[3rem] p-2 pr-8 shadow-sm border border-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all overflow-hidden cursor-pointer"
                     >
                         {/* Decorative background glow for low credit */}
                         {isLowCredit && <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl rounded-full -mr-16 -mt-16" />}
@@ -213,9 +213,9 @@ export default function BunkPage() {
                                                 </span>
                                             </div>
                                         </div>
-                                        <button className="hidden sm:flex p-4 bg-orange-50 rounded-2xl text-orange-600 hover:bg-orange-600 hover:text-white transition-all shadow-sm">
+                                        <div className="hidden sm:flex p-4 bg-orange-50 rounded-2xl text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-sm">
                                             <ArrowUpRight size={20} />
-                                        </button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -242,9 +242,9 @@ export default function BunkPage() {
                                 <button className="p-3 text-slate-300 hover:text-orange-500 transition-colors">
                                     <Info size={20} />
                                 </button>
-                                <button className="p-3 text-slate-300 hover:text-orange-500 transition-colors">
+                                <div className="p-3 text-slate-300 group-hover:text-orange-500 transition-colors">
                                     <ChevronRight size={24} />
-                                </button>
+                                </div>
                             </div>
                         </div>
                     </motion.div>
