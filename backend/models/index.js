@@ -12,7 +12,8 @@ const sequelize = new Sequelize(
 
 const db = {};
 
-// Load all models
+/* ================= LOAD MODELS ================= */
+
 fs.readdirSync(__dirname)
   .filter((file) => file !== "index.js")
   .forEach((file) => {
@@ -23,9 +24,16 @@ fs.readdirSync(__dirname)
     db[model.name] = model;
   });
 
+/* ================= RUN MODEL ASSOCIATIONS ================= */
+
+Object.keys(db).forEach((modelName) => {
+  if (db[modelName].associate) {
+    db[modelName].associate(db);
+  }
+});
+
 /* ================= VEHICLE RELATIONS ================= */
 
-// Vehicle ↔ VehicleService
 if (db.Vehicle && db.VehicleService) {
   db.Vehicle.hasMany(db.VehicleService, {
     foreignKey: "vehicleId",
@@ -38,7 +46,6 @@ if (db.Vehicle && db.VehicleService) {
   });
 }
 
-// Vehicle ↔ VehicleFuel
 if (db.Vehicle && db.VehicleFuel) {
   db.Vehicle.hasMany(db.VehicleFuel, {
     foreignKey: "vehicleId",
@@ -51,9 +58,8 @@ if (db.Vehicle && db.VehicleFuel) {
   });
 }
 
-/* ================= SERVICE SHOP RELATIONS ================= */
+/* ================= SERVICE SHOP ================= */
 
-// ServiceShop ↔ VehicleService
 if (db.ServiceShop && db.VehicleService) {
   db.ServiceShop.hasMany(db.VehicleService, {
     foreignKey: "serviceShopId",
@@ -66,22 +72,20 @@ if (db.ServiceShop && db.VehicleService) {
   });
 }
 
-/* ================= BUNK & FUEL RELATIONS ================= */
+/* ================= BUNK RELATIONS ================= */
 
-// Bunk ↔ VehicleFuel
 if (db.Bunk && db.VehicleFuel) {
   db.Bunk.hasMany(db.VehicleFuel, {
     foreignKey: "bunkId",
-    as: "bunkFuels",
+    as: "vehicleFuels",
   });
 
   db.VehicleFuel.belongsTo(db.Bunk, {
     foreignKey: "bunkId",
-    as: "bunk",
+    as: "fuelBunk",
   });
 }
 
-// Bunk ↔ BunkStatement
 if (db.Bunk && db.BunkStatement) {
   db.Bunk.hasMany(db.BunkStatement, {
     foreignKey: "bunkId",
@@ -90,52 +94,10 @@ if (db.Bunk && db.BunkStatement) {
 
   db.BunkStatement.belongsTo(db.Bunk, {
     foreignKey: "bunkId",
-    as: "bunk",
+    as: "statementBunk",
   });
 }
 
-// Vehicle ↔ BunkStatement
-if (db.Vehicle && db.BunkStatement) {
-  db.Vehicle.hasMany(db.BunkStatement, {
-    foreignKey: "vehicleId",
-    as: "vehicleStatements",
-  });
-
-  db.BunkStatement.belongsTo(db.Vehicle, {
-    foreignKey: "vehicleId",
-    as: "vehicle",
-  });
-}
-
-// VehicleFuel ↔ BunkStatement
-if (db.VehicleFuel && db.BunkStatement) {
-  db.VehicleFuel.hasMany(db.BunkStatement, {
-    foreignKey: "fuelId",
-    as: "fuelStatements",
-  });
-
-  db.BunkStatement.belongsTo(db.VehicleFuel, {
-    foreignKey: "fuelId",
-    as: "fuel",
-  });
-}
-
-/* ================= BANK RELATIONS ================= */
-
-// BankTable ↔ FuelStatement
-if (db.BankTable && db.FuelStatement) {
-  db.BankTable.hasMany(db.FuelStatement, {
-    foreignKey: "bank_id",
-    as: "fuelStatements",
-  });
-
-  db.FuelStatement.belongsTo(db.BankTable, {
-    foreignKey: "bank_id",
-    as: "bank",
-  });
-}
-
-// Bunk ↔ FuelStatement
 if (db.Bunk && db.FuelStatement) {
   db.Bunk.hasMany(db.FuelStatement, {
     foreignKey: "bunk_id",
@@ -144,7 +106,21 @@ if (db.Bunk && db.FuelStatement) {
 
   db.FuelStatement.belongsTo(db.Bunk, {
     foreignKey: "bunk_id",
-    as: "bunk",
+    as: "paymentBunk",
+  });
+}
+
+/* ================= BANK RELATIONS ================= */
+
+if (db.BankTable && db.FuelStatement) {
+  db.BankTable.hasMany(db.FuelStatement, {
+    foreignKey: "bank_id",
+    as: "fuelStatements",
+  });
+
+  db.FuelStatement.belongsTo(db.BankTable, {
+    foreignKey: "bank_id",
+    as: "fuelBank",
   });
 }
 

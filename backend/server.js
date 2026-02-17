@@ -7,17 +7,19 @@ const os = require("os");
 const app = express();
 const db = require("./models");
 
-// Middleware
+// ================= Middleware =================
 app.use(cors({
   origin: true,
   credentials: true
 }));
-app.use(express.json());
 
-// Static folder for uploaded images
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Static folder
 app.use("/images", express.static(path.join(__dirname, "images")));
 
-// Routes
+// ================= Routes =================
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/user", require("./routes/userRoutes"));
 app.use("/api/vehicles", require("./routes/vehicleRoutes"));
@@ -29,37 +31,39 @@ app.use("/api/driver", require("./routes/driver"));
 app.use("/api/banks", require("./routes/bankRouters"));
 app.use("/api/fuel-statements", require("./routes/fuelStatementRouters"));
 app.use("/api/service-shops", require("./routes/serviceShopRouters"));
+app.use("/api/service-statements", require("./routes/serviceStatementRoutes"));
 app.use("/api/contact", require("./routes/contactRoutes"));
 
-// Default route
-app.get("/", (req, res) => {
-  res.send("🚀 Backend is running on the network!");
+// Default
+app.get("/", (_, res) => {
+  res.send("🚀 Backend running");
 });
 
-// Function to get local network IP
+// ================= Server =================
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
   for (let name in interfaces) {
     for (let net of interfaces[name]) {
-      if (net.family === "IPv4" && !net.internal) {
+      if (net.family === "IPv4" && !net.internal)
         return net.address;
-      }
     }
   }
   return "0.0.0.0";
 }
 
-// Start server in network mode
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
-db.sequelize.sync().then(() => {
-  console.log("✅ Database connected");
+db.sequelize.authenticate()
+.then(() => {
+  console.log("✅ DB Connected");
 
-  const localIP = getLocalIP();
+  const ip = getLocalIP();
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🌍 Server running on network`);
-    console.log(`👉 Local:    http://localhost:${PORT}`);
-    console.log(`👉 Network:  http://${localIP}:${PORT}`);
+    console.log(`👉 Local: http://localhost:${PORT}`);
+    console.log(`👉 Network: http://${ip}:${PORT}`);
   });
+})
+.catch(err => {
+  console.error("❌ DB Connection Failed:", err);
 });

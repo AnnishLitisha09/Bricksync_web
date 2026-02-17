@@ -2,11 +2,7 @@ module.exports = (sequelize, DataTypes) => {
   const ServiceShop = sequelize.define(
     "ServiceShop",
     {
-      id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true,
-      },
+      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
 
       shop_name: {
         type: DataTypes.STRING,
