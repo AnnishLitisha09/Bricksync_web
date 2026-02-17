@@ -71,7 +71,12 @@ exports.getAllVehicleFuels = async (req, res) => {
 /* GET FUEL BY ID */
 exports.getVehicleFuelById = async (req, res) => {
   try {
-    const fuel = await VehicleFuel.findByPk(req.params.id);
+    const fuel = await VehicleFuel.findByPk(req.params.id, {
+      include: [
+        { model: Vehicle, as: "vehicle", attributes: ["id", "vehicleName", "vehicleNumber"] },
+        { model: Bunk, as: "fuelBunk", attributes: ["id", "bunkName"] },
+      ],
+    });
     if (!fuel) return res.status(404).json({ message: "Fuel record not found" });
     res.json(fuel);
   } catch (error) {
@@ -122,6 +127,28 @@ exports.searchByVehicleNumber = async (req, res) => {
   }
 };
 
+/* SEARCH BY BUNK ID */
+exports.searchByBunkId = async (req, res) => {
+  try {
+    const { bunkId } = req.query;
+    if (!bunkId) return res.status(400).json({ message: "bunkId query is required" });
+
+    const fuels = await VehicleFuel.findAll({
+      where: { bunkId },
+      include: [
+        { model: Vehicle, as: "vehicle", attributes: ["id", "vehicleName", "vehicleNumber"] },
+        { model: Bunk, as: "fuelBunk", attributes: ["id", "bunkName"] },
+      ],
+      order: [["date", "DESC"]],
+    });
+
+    res.json(fuels);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 /* GET FUELS BY DATE RANGE */
 exports.getFuelsByDateRange = async (req, res) => {
   try {
@@ -152,7 +179,6 @@ exports.deleteVehicleFuel = async (req, res) => {
     const fuel = await VehicleFuel.findByPk(req.params.id);
     if (!fuel) return res.status(404).json({ message: "Fuel record not found" });
 
-    // Optionally, reverse the vehicle kilometer or bunk amount if needed
     await fuel.destroy();
     res.json({ message: "Fuel record deleted successfully" });
   } catch (error) {

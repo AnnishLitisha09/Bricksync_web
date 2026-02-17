@@ -22,6 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { BASE_URL, getAuthHeader } from "../../../../api/base";
 import { useBankStore } from "../../../../store/bankStore";
+import { useFuelStore } from "../../../../store/fuel/useFuelStore"; // Assuming store path
 
 // --- TYPES & INTERFACES ---
 type TabType = 'all' | 'logs' | 'statements';
@@ -82,15 +83,9 @@ export default function FuelHistoryPage() {
     banks.find(b => b.id.toString() === paymentForm.bankId), 
   [paymentForm.bankId, banks]);
 
-  // Dynamically calculate available payment modes
   const availableModes = useMemo(() => {
     if (!selectedBankData) return [];
-    
-    // Check if the bank name is "Cash"
-    if (selectedBankData.name.toLowerCase() === 'cash') {
-      return ["CASH"];
-    }
-
+    if (selectedBankData.name.toLowerCase() === 'cash') return ["CASH"];
     const modes = [];
     if (selectedBankData.gpay) modes.push("GPAY");
     if (selectedBankData.phonepe) modes.push("PHONEPE");
@@ -103,7 +98,6 @@ export default function FuelHistoryPage() {
     if (bunkId) fetchData();
   }, [bunkId]);
 
-  // Auto-set the payment mode when bank or available modes change
   useEffect(() => {
     if (availableModes.length > 0) {
       setPaymentForm(prev => ({ ...prev, payment_mode: availableModes[0] }));
@@ -113,19 +107,28 @@ export default function FuelHistoryPage() {
   }, [availableModes]);
 
   const fetchData = async () => {
+    if (!bunkId) return;
     try {
       setLoading(true);
+      // TARGETED FETCH: Using your specific cURL endpoint for Bunk Search
       const [fuelRes, statementRes] = await Promise.all([
-        fetch(`${BASE_URL}/vehicle-fuels`, { headers: getAuthHeader() }),
+        fetch(`${BASE_URL}/vehicle-fuels/search/by-bunk-id?bunkId=${bunkId}`, { headers: getAuthHeader() }),
         fetch(`${BASE_URL}/fuel-statements/`, { headers: getAuthHeader() })
       ]);
 
       const fuelData = await fuelRes.json();
       const statementData = await statementRes.json();
 
-      const filteredLogs: Transaction[] = fuelData
-        .filter((item: any) => item.bunkId === Number(bunkId))
-        .map((item: any) => ({ ...item, type: 'fuel', sortDate: new Date(item.date) }));
+      // The search endpoint returns an array of fuels directly based on your cURL example
+      const logsArray = Array.isArray(fuelData) ? fuelData : (fuelData.fuels || []);
+
+      const filteredLogs: Transaction[] = logsArray.map((item: any) => ({ 
+        ...item, 
+        type: 'fuel', 
+        sortDate: new Date(item.date),
+        // Ensure vehicle data is mapped from the nested object in your cURL
+        vehicle: item.vehicle 
+      }));
       
       const filteredStatements: Transaction[] = (statementData.data || [])
         .filter((s: any) => s.bunk_id === Number(bunkId))
@@ -390,8 +393,8 @@ function FuelLogRow({ log, idx }: { log: Transaction; idx: number }) {
           </div>
           <div className="w-full md:w-56 p-4 rounded-[1.5rem] bg-slate-900 text-white">
              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Vehicle</p>
-             <p className="font-black text-sm uppercase truncate">{log.vehicle?.vehicleName}</p>
-             <span className="text-[10px] font-mono text-orange-400">{log.vehicle?.vehicleNumber}</span>
+             <p className="font-black text-sm uppercase truncate">{log.vehicle?.vehicleName || 'N/A'}</p>
+             <span className="text-[10px] font-mono text-orange-400">{log.vehicle?.vehicleNumber || 'N/A'}</span>
           </div>
         </motion.div>
     );

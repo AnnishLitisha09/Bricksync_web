@@ -30,6 +30,7 @@ interface FuelStore {
   currentPage: number;
   loading: boolean;
   getFuels: (page?: number) => Promise<void>;
+  getFuelsByBunk: (bunkId: number | string) => Promise<Fuel[]>; // New Method
   searchFuels: (vehicleNumber: string) => Promise<void>;
   createFuel: (payload: any) => Promise<void>;
   toggleFuelStatus: (fuelId: number) => Promise<void>;
@@ -47,10 +48,7 @@ export const useFuelStore = create<FuelStore>((set, get) => ({
     try {
       set({ loading: true });
       const res = await fetch(`${BASE_URL}/vehicle-fuels?page=${page}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeader(),
-        },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
       });
       const data = await res.json();
       set({ 
@@ -66,6 +64,21 @@ export const useFuelStore = create<FuelStore>((set, get) => ({
     }
   },
 
+  // Added logic to match your cURL requirement
+  getFuelsByBunk: async (bunkId: number | string) => {
+    try {
+      const res = await fetch(`${BASE_URL}/vehicle-fuels/search/by-bunk-id?bunkId=${bunkId}`, {
+        headers: getAuthHeader(),
+      });
+      const data = await res.json();
+      // Handle both array and object responses
+      return Array.isArray(data) ? data : (data.fuels || []);
+    } catch (error) {
+      console.error("Error fetching fuels by bunk:", error);
+      return [];
+    }
+  },
+
   searchFuels: async (vehicleNumber: string) => {
     if (!vehicleNumber.trim()) {
       await get().getFuels(1);
@@ -76,24 +89,13 @@ export const useFuelStore = create<FuelStore>((set, get) => ({
       const res = await fetch(
         `${BASE_URL}/vehicle-fuels/search/by-vehicle-number?vehicleNumber=${encodeURIComponent(vehicleNumber)}`, 
         {
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeader(),
-          },
+          headers: { "Content-Type": "application/json", ...getAuthHeader() },
         }
       );
       const data = await res.json();
       const results = Array.isArray(data) ? data : (data.fuels || []);
-      
-      set({ 
-        fuels: results, 
-        totalRecords: results.length,
-        totalPages: 1, 
-        currentPage: 1,
-        loading: false 
-      });
+      set({ fuels: results, totalRecords: results.length, totalPages: 1, currentPage: 1, loading: false });
     } catch (error) {
-      console.error("Search error:", error);
       set({ loading: false, fuels: [] });
     }
   },
@@ -108,7 +110,6 @@ export const useFuelStore = create<FuelStore>((set, get) => ({
       });
       await get().getFuels(get().currentPage);
     } catch (error) {
-      console.error("Error creating fuel:", error);
       set({ loading: false });
     }
   },
@@ -119,11 +120,9 @@ export const useFuelStore = create<FuelStore>((set, get) => ({
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...getAuthHeader() },
       });
-      if (res.ok) {
-        await get().getFuels(get().currentPage);
-      }
+      if (res.ok) await get().getFuels(get().currentPage);
     } catch (error) {
-      console.error("Error toggling fuel status:", error);
+      console.error(error);
     }
   },
 
@@ -132,21 +131,16 @@ export const useFuelStore = create<FuelStore>((set, get) => ({
       set({ loading: true });
       const res = await fetch(`${BASE_URL}/vehicle-fuels/${fuelId}`, {
         method: "DELETE",
-        headers: {
-          ...getAuthHeader(),
-        },
+        headers: getAuthHeader(),
       });
-
       if (res.ok) {
         const { fuels, currentPage } = get();
-        // If it was the last item on the page, go back one page
         const newPage = fuels.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage;
         await get().getFuels(newPage);
       } else {
         set({ loading: false });
       }
     } catch (error) {
-      console.error("Error deleting fuel:", error);
       set({ loading: false });
     }
   },

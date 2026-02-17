@@ -5,7 +5,6 @@ const BankTable = db.BankTable;
 const Bunk = db.Bunk;
 const sequelize = db.sequelize;
 
-
 /* ================= CREATE ================= */
 
 exports.createFuelStatement = async (req, res) => {
@@ -14,60 +13,37 @@ exports.createFuelStatement = async (req, res) => {
   try {
     const { bunk_id, bank_id, amount, payment_mode, description } = req.body;
 
-    // 🔹 Get Bank
     const bank = await BankTable.findByPk(bank_id, { transaction: t });
+    if (!bank) throw new Error("Bank not found");
 
-    if (!bank) {
-      await t.rollback();
-      return res.status(404).json({
-        success: false,
-        message: "Bank not found",
-      });
-    }
+    const bunk = await Bunk.findByPk(bunk_id, { transaction: t });
+    if (!bunk) throw new Error("Bunk not found");
 
-    // 🔹 Check Funds
-    if (bank.amount < amount) {
-      await t.rollback();
-      return res.status(400).json({
-        success: false,
-        message: "Insufficient bank amount",
-      });
-    }
+    if (bank.amount < amount) throw new Error("Insufficient bank amount");
+    if (bunk.amount < amount) throw new Error("Insufficient bunk amount");
 
-    // 🔹 Deduct
+    // Deduct amounts
     bank.amount -= amount;
     await bank.save({ transaction: t });
 
-    // 🔹 Create Statement
+    bunk.amount -= amount;
+    await bunk.save({ transaction: t });
+
+    // Create Fuel Statement
     const record = await FuelStatement.create(
-      {
-        bunk_id,
-        bank_id,
-        amount,
-        payment_mode,
-        description,
-      },
+      { bunk_id, bank_id, amount, payment_mode, description },
       { transaction: t }
     );
 
     await t.commit();
 
-    res.status(201).json({
-      success: true,
-      data: record,
-    });
+    res.status(201).json({ success: true, data: record });
 
   } catch (err) {
     await t.rollback();
-    console.error(err);
-
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    res.status(400).json({ success: false, message: err.message });
   }
 };
-
 
 /* ================= GET ALL ================= */
 
@@ -83,7 +59,7 @@ exports.getAllFuelStatements = async (req, res) => {
         {
           model: Bunk,
           as: "bunk",
-          attributes: ["id", "bunkName"],
+          attributes: ["id", "bunkName", "amount"],
         },
       ],
       order: [["createdAt", "DESC"]],
@@ -104,7 +80,6 @@ exports.getAllFuelStatements = async (req, res) => {
     });
   }
 };
-
 
 /* ================= GET BY ID ================= */
 
@@ -136,7 +111,6 @@ exports.getFuelStatementById = async (req, res) => {
   }
 };
 
-
 /* ================= DELETE ================= */
 /* Refund money back */
 
@@ -144,43 +118,22 @@ exports.deleteFuelStatement = async (req, res) => {
   const t = await sequelize.transaction();
 
   try {
-    const record = await FuelStatement.findByPk(req.params.id, {
-      transaction: t,
-    });
+    const record = await FuelStatement.findByPk(req.params.id, { transaction: t });
+    if (!record) throw new Error("Record not found");
 
-    if (!record) {
-      await t.rollback();
-      return res.status(404).json({
-        success: false,
-        message: "Record not found",
-      });
-    }
+    const bank = await BankTable.findByPk(record.bank_id, { transaction: t });
+    if (bank) { bank.amount += record.amount; await bank.save({ transaction: t }); }
 
-    // 🔹 Refund
-    const bank = await BankTable.findByPk(record.bank_id, {
-      transaction: t,
-    });
-
-    if (bank) {
-      bank.amount += record.amount;
-      await bank.save({ transaction: t });
-    }
+    const bunk = await Bunk.findByPk(record.bunk_id, { transaction: t });
+    if (bunk) { bunk.amount += record.amount; await bunk.save({ transaction: t }); }
 
     await record.destroy({ transaction: t });
-
     await t.commit();
 
-    res.json({
-      success: true,
-      message: "Deleted & amount refunded",
-    });
+    res.json({ success: true, message: "Deleted & refunded to bank and bunk" });
 
   } catch (err) {
     await t.rollback();
-
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    res.status(400).json({ success: false, message: err.message });
   }
 };
