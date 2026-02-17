@@ -6,6 +6,9 @@ const {
   getAllVehicleFuels,
   getVehicleFuelById,
   verifyFuel,
+  searchByVehicleNumber,
+  getFuelsByDateRange,
+  deleteVehicleFuel,
 } = require("../controllers/vehicleFuelController");
 
 // 🔐 Protect all routes
@@ -13,7 +16,14 @@ router.use(authMiddleware);
 
 // CRUD
 router.post("/", createVehicleFuel);
-router.get("/", getAllVehicleFuels);       // supports ?page=1, ?page=2 etc.
+router.get("/", getAllVehicleFuels);       // supports pagination ?page=1
+router.delete("/:id", deleteVehicleFuel);  // DELETE fuel
+
+// 🔹 SEARCH ROUTES (static routes must come before dynamic :id routes)
+router.get("/search/by-vehicle-number", searchByVehicleNumber); // ?vehicleNumber=XYZ
+router.get("/search/by-date-range", getFuelsByDateRange);       // ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+
+// Dynamic routes
 router.get("/:id", getVehicleFuelById);
 router.patch("/:id/verify", verifyFuel);
 

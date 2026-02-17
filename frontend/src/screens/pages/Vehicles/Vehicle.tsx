@@ -2,8 +2,8 @@ import { AlertCircle, ArrowRight, Calendar, Car, Check, Gauge, Plus, Search, Sli
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FILE_BASE_URL } from "../../../api/base";
-import { useVehicleStore, type Vehicle } from "../../../store/vechicle/useVehicleStore";
 import { encryptId } from "../../../utils/functions";
+import { useVehicleStore, type Vehicle } from "../../../store/vechicle/useVehicleStore";
 
 // --- Logic Helpers ---
 const getStatus = (vehicle: Vehicle) => {

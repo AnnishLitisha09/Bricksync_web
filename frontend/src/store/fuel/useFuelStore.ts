@@ -17,7 +17,7 @@ export interface Fuel {
     vehicleName: string;
     vehicleNumber: string;
   };
-  fuelBunk: { // Updated to match API key
+  fuelBunk: {
     id: number;
     bunkName: string;
   };
@@ -30,8 +30,10 @@ interface FuelStore {
   currentPage: number;
   loading: boolean;
   getFuels: (page?: number) => Promise<void>;
+  searchFuels: (vehicleNumber: string) => Promise<void>;
   createFuel: (payload: any) => Promise<void>;
   toggleFuelStatus: (fuelId: number) => Promise<void>;
+  deleteFuel: (fuelId: number) => Promise<void>;
 }
 
 export const useFuelStore = create<FuelStore>((set, get) => ({
@@ -51,17 +53,47 @@ export const useFuelStore = create<FuelStore>((set, get) => ({
         },
       });
       const data = await res.json();
-
-      // Data is now { totalRecords, currentPage, totalPages, fuels: [] }
       set({ 
         fuels: data.fuels || [], 
-        totalRecords: data.totalRecords,
-        totalPages: data.totalPages,
-        currentPage: data.currentPage,
+        totalRecords: data.totalRecords || 0,
+        totalPages: data.totalPages || 1,
+        currentPage: data.currentPage || 1,
         loading: false 
       });
     } catch (error) {
       console.error("Error fetching fuels:", error);
+      set({ loading: false, fuels: [] });
+    }
+  },
+
+  searchFuels: async (vehicleNumber: string) => {
+    if (!vehicleNumber.trim()) {
+      await get().getFuels(1);
+      return;
+    }
+    try {
+      set({ loading: true });
+      const res = await fetch(
+        `${BASE_URL}/vehicle-fuels/search/by-vehicle-number?vehicleNumber=${encodeURIComponent(vehicleNumber)}`, 
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeader(),
+          },
+        }
+      );
+      const data = await res.json();
+      const results = Array.isArray(data) ? data : (data.fuels || []);
+      
+      set({ 
+        fuels: results, 
+        totalRecords: results.length,
+        totalPages: 1, 
+        currentPage: 1,
+        loading: false 
+      });
+    } catch (error) {
+      console.error("Search error:", error);
       set({ loading: false, fuels: [] });
     }
   },
@@ -88,11 +120,34 @@ export const useFuelStore = create<FuelStore>((set, get) => ({
         headers: { "Content-Type": "application/json", ...getAuthHeader() },
       });
       if (res.ok) {
-        // Refresh current page to get updated status
         await get().getFuels(get().currentPage);
       }
     } catch (error) {
       console.error("Error toggling fuel status:", error);
+    }
+  },
+
+  deleteFuel: async (fuelId: number) => {
+    try {
+      set({ loading: true });
+      const res = await fetch(`${BASE_URL}/vehicle-fuels/${fuelId}`, {
+        method: "DELETE",
+        headers: {
+          ...getAuthHeader(),
+        },
+      });
+
+      if (res.ok) {
+        const { fuels, currentPage } = get();
+        // If it was the last item on the page, go back one page
+        const newPage = fuels.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage;
+        await get().getFuels(newPage);
+      } else {
+        set({ loading: false });
+      }
+    } catch (error) {
+      console.error("Error deleting fuel:", error);
+      set({ loading: false });
     }
   },
 }));
