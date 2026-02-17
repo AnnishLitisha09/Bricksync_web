@@ -3,7 +3,6 @@ module.exports = (sequelize, DataTypes) => {
     "Vehicle",
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-
       vehicleName: { type: DataTypes.STRING, allowNull: false },
       vehicleNumber: { type: DataTypes.STRING, allowNull: false, unique: true },
 
@@ -25,6 +24,20 @@ module.exports = (sequelize, DataTypes) => {
     {
       tableName: "vehicles",
       timestamps: true,
+      hooks: {
+        beforeSave: (vehicle) => {
+          const today = new Date();
+          if (
+            (vehicle.insurance && new Date(vehicle.insurance) <= today) ||
+            (vehicle.pollution && new Date(vehicle.pollution) <= today) ||
+            (vehicle.rcDate && new Date(vehicle.rcDate) <= today)
+          ) {
+            vehicle.isActive = false;
+          } else {
+            vehicle.isActive = true;
+          }
+        },
+      },
     }
   );
 
