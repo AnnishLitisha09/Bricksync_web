@@ -17,7 +17,6 @@ import AddFuelPage from "../screens/pages/Vehicles/Fuel/AddFuelPage";
 import FuelPage from "../screens/pages/Vehicles/Fuel/FuelPage";
 import VehicleList from "../screens/pages/Vehicles/Vehicle";
 import ViewVehicle from "../screens/pages/Vehicles/viewVehicle";
-// --- IMPORT THE NEW VIEW DETAIL COMPONENT ---
 import ContactPage from "../screens/pages/ContactPage";
 import AddBunkPage from "../screens/pages/shops/bunks/AddBunkPage";
 import BunkPage from "../screens/pages/shops/bunks/bunkPage";
@@ -29,6 +28,10 @@ import ViewStaffDetail from "../screens/pages/staff/ViewStaffDetail";
 import AddServicePage from "../screens/pages/Vehicles/service/AddServicePage";
 import ServicePage from "../screens/pages/Vehicles/service/ServicePage";
 
+// --- MATERIAL SHOP IMPORTS ---
+import MaterialManagement from "../screens/pages/shops/material/MaterialManagement"; // This is your ShopLedgerPage
+import AddShopPage from "../screens/pages/shops/material/AddShopPage";
+import MaterialHistoryPage from "../screens/pages/shops/material/MaterialHistoryPage"; 
 
 const privateRoutes = [
   {
@@ -51,7 +54,6 @@ const privateRoutes = [
     path: "/view-vehicle/:hashId",
     element: <ViewVehicle />,
   },
-  // --- ADDED THIS ROUTE TO MATCH YOUR NAVIGATE CALL ---
   {
     path: "/driver/view/:id",
     element: <ViewStaffDetail />
@@ -65,25 +67,49 @@ const privateRoutes = [
     element: <FuelPage />,
   },
   {
-    path: "/shop/services/history",
-    element: <ServiceHistoryPage />,
+    path: "/vehicles/fuel/add",
+    element: <AddFuelPage />,
+  },
+  // --- BUNK ROUTES ---
+  {
+    path: "/shop/bunks",
+    element: <BunkPage />,
+  },
+  {
+    path: "/shop/bunks/add",
+    element: <AddBunkPage />,
   },
   {
     path: "/shop/bunks/history",
     element: <FuelHistoryPage />,
   },
+  // --- SERVICE SHOP ROUTES ---
   {
-    path: "/vehicles/fuel/add",
-    element: <AddFuelPage />,
+    path: "/shop/services",
+    element: <ServiceShopPage />,
   },
   {
-    path: "/shop",
-    element: <ShopPage />,
+    path: "/shop/services/add",
+    element: <AddServiceShopPage />,
   },
   {
-    path: "/shop/bunks",
-    element: <BunkPage />,
+    path: "/shop/services/history",
+    element: <ServiceHistoryPage />,
   },
+  // --- MATERIAL SHOP LEDGER ROUTES ---
+  {
+    path: "/shop/materials",
+    element: <MaterialManagement />, // Main Listing
+  },
+  {
+    path: "/shop/ledger/add", // Matches the 'Register Merchant' button
+    element: <AddShopPage />,
+  },
+  {
+    path: "/shop/ledger/history", // Matches the Card click navigation
+    element: <MaterialHistoryPage />,
+  },
+  // --- STAFF & OTHERS ---
   {
     path: "/driver/add",
     element: <AddDriverPage />,
@@ -97,20 +123,12 @@ const privateRoutes = [
     element: <Staff />,
   },
   {
-    path: "/shop/services",
-    element: <ServiceShopPage />,
+    path: "/shop",
+    element: <ShopPage />,
   },
   {
     path: "/transactions",
     element: <TransactionsPage transactions={[]} />,
-  },
-  {
-    path: "/shop/bunks/add",
-    element: <AddBunkPage />,
-  },
-  {
-    path: "/shop/services/add",
-    element: <AddServiceShopPage />,
   },
   {
     path: "/vehicles/services",
@@ -120,7 +138,7 @@ const privateRoutes = [
     path: "/vehicles/services/add",
     element: <AddServicePage />,
   },
-    {
+  {
     path: "/contact",
     element: <ContactPage />,
   },

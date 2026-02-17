@@ -86,6 +86,7 @@ const menu: MenuItem[] = [
     children: [
       { name: "Bunks", path: "/shop/bunks" },
       { name: "Services", path: "/shop/services" },
+      { name: "Material", path: "/shop/materials" },
     ],
   },
   {
