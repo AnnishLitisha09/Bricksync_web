@@ -20,13 +20,54 @@ exports.getProfile = async (req, res) => {
         "drivingLicenceBackUrl",
         "drivingLicenceValidity",
         "userRole",
-        "staffRole", // ✅ Added
+        "staffRole",
       ],
     });
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
     res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+/* 🔹 ADMIN UPDATE USER (NEW) */
+exports.adminUpdateUser = async (req, res) => {
+  try {
+    const { userid } = req.params;
+
+    const updates = {
+      name: req.body.name,
+      email: req.body.email,
+      phoneNumber: req.body.phoneNumber,
+      amount: req.body.amount,
+      userRole: req.body.userRole,
+      staffRole: req.body.staffRole,
+    };
+
+    // remove undefined fields
+    Object.keys(updates).forEach(
+      (key) => updates[key] === undefined && delete updates[key]
+    );
+
+    const [updated] = await User.update(updates, {
+      where: { userid, isDeleted: false },
+    });
+
+    if (!updated)
+      return res.status(404).json({ message: "User not found" });
+
+    const user = await User.findByPk(userid, {
+      attributes: { exclude: ["password"] },
+    });
+
+    res.json({
+      message: "User updated by admin",
+      user,
+    });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -96,7 +137,7 @@ exports.updateDrivingLicenceImage = async (req, res) => {
 };
 
 
-/* 🔹 Update Driving Licence Back + Validity */
+/* 🔹 Update Driving Licence Back */
 exports.updateDrivingLicenceBack = async (req, res) => {
   try {
     if (!req.file && !req.body.validityDate)
@@ -162,20 +203,7 @@ exports.getDriversOnly = async (req, res) => {
         isDeleted: false,
         userRole: 2,
       },
-      attributes: [
-        "userid",
-        "name",
-        "email",
-        "phoneNumber",
-        "amount",
-        "imageUrl",
-        "aadharUrl",
-        "drivingLicenceUrl",
-        "drivingLicenceBackUrl",
-        "drivingLicenceValidity",
-        "userRole",
-        "staffRole", // ✅ Added
-      ],
+      attributes: { exclude: ["password"] },
     });
 
     res.json(drivers);

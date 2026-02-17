@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+
 const verifyToken = require("../middleware/authMiddleware");
 const upload = require("../middleware/upload");
 
@@ -12,12 +13,20 @@ const {
   getDriversOnly,
   getAllUsers,
   deleteUser,
+  adminUpdateUser, // ✅ NEW
 } = require("../controllers/userController");
+
+
+/* ================= PROFILE ================= */
 
 router.get("/profile", verifyToken, getProfile);
 
+
 // Get only drivers
 router.get("/drivers", verifyToken, getDriversOnly);
+
+
+/* ================= SELF UPLOADS ================= */
 
 // Profile Image
 router.put(
@@ -51,10 +60,21 @@ router.put(
   updateDrivingLicenceBack
 );
 
-// All Users
+
+/* ================= ADMIN ================= */
+
+// Get All Users
 router.get("/", verifyToken, getAllUsers);
+
+// ⭐ Admin Update User
+router.put(
+  "/admin/update/:userid",
+  verifyToken,
+  adminUpdateUser
+);
 
 // Soft Delete
 router.delete("/:userid", verifyToken, deleteUser);
+
 
 module.exports = router;
