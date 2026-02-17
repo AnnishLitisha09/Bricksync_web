@@ -34,6 +34,8 @@ app.use("/api/service-shops", require("./routes/serviceShopRouters"));
 app.use("/api/service-statements", require("./routes/serviceStatementRoutes"));
 app.use("/api/contact", require("./routes/contactRoutes"));
 app.use("/api/attendance", require("./routes/attendanceRoutes"));
+app.use("/wallet", require("./routes/walletRoutes"));
+
 
 
 // Default
