@@ -17,6 +17,30 @@ import { useFuelStore } from "../../../../store/useFuelStore";
 import { useVehicleStore } from "../../../../store/useVehicleStore";
 
 // --- Types ---
+
+// Define the Fuel interface strictly matching your API response
+interface Fuel {
+  fuelId: number;
+  vehicleId: number;
+  bunkId: number;
+  volume: number;
+  amount: number;
+  date: string;
+  kilometer: number;
+  isVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+  vehicle: {
+    id: number;
+    vehicleName: string;
+    vehicleNumber: string;
+  };
+  fuelBunk: {
+    id: number;
+    bunkName: string;
+  };
+}
+
 interface ConfirmModalState {
   show: boolean;
   fuelId: number | null;
@@ -32,7 +56,12 @@ interface FilterProps {
 
 export default function FuelPage() {
   const navigate = useNavigate();
-  const { fuels, getFuels, loading } = useFuelStore();
+  // Cast fuels as the local Fuel interface to bypass outdated store types
+  const { fuels, getFuels, loading } = useFuelStore() as unknown as { 
+    fuels: Fuel[], 
+    getFuels: () => void, 
+    loading: boolean 
+  };
   const { vehicles, fetchVehicles } = useVehicleStore();
 
   const [showFilter, setShowFilter] = useState(false);
@@ -42,7 +71,7 @@ export default function FuelPage() {
   
   const [filters, setFilters] = useState({
     vehicleId: "",
-    status: "", // "verified" | "not_verified"
+    status: "", 
     startDate: "",
     endDate: "",
   });
@@ -82,7 +111,6 @@ export default function FuelPage() {
       if (search) match = fuel.vehicle?.vehicleNumber.toLowerCase().includes(search.toLowerCase());
       if (filters.vehicleId) match = match && fuel.vehicle?.id === Number(filters.vehicleId);
       
-      // Sync with API boolean 'isVerified'
       if (filters.status) {
         const isFuelVerified = fuel.isVerified === true;
         match = match && (filters.status === "verified" ? isFuelVerified : !isFuelVerified);
@@ -225,11 +253,10 @@ export default function FuelPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {currentData.map((fuel) => (
+                  {currentData.map((fuel: Fuel) => (
                     <tr key={fuel.fuelId} className="group hover:bg-orange-50/30 transition-colors">
                       <td className="px-8 py-5">
                         <div className="font-black text-slate-800 text-sm uppercase">{fuel.vehicle?.vehicleNumber}</div>
-                        {/* FIX: Changed bunk to fuelBunk */}
                         <div className="text-[11px] text-slate-400 font-bold">{fuel.fuelBunk?.bunkName || "N/A"}</div>
                       </td>
                       <td className="px-6 py-5"><span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-black italic">{fuel.volume} L</span></td>
@@ -253,7 +280,7 @@ export default function FuelPage() {
 
             {/* MOBILE VIEW */}
             <div className="md:hidden divide-y divide-gray-100">
-              {currentData.map((fuel, idx) => (
+              {currentData.map((fuel: Fuel, idx) => (
                 <motion.div 
                   key={fuel.fuelId}
                   initial={{ opacity: 0, x: -20 }}
@@ -264,11 +291,10 @@ export default function FuelPage() {
                   <div className="flex justify-between items-start">
                     <div className="flex gap-3">
                       <div className="w-10 h-10 rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 font-black text-xs uppercase">
-                        {fuel.vehicle?.vehicleNumber.slice(-2)}
+                        {fuel.vehicle?.vehicleNumber?.slice(-2) || "??"}
                       </div>
                       <div>
                         <h3 className="text-sm font-black text-slate-800 uppercase leading-none">{fuel.vehicle?.vehicleNumber}</h3>
-                        {/* FIX: Changed bunk to fuelBunk */}
                         <p className="text-[10px] text-slate-400 font-bold mt-1.5 uppercase tracking-tighter">{fuel.fuelBunk?.bunkName || "N/A"}</p>
                       </div>
                     </div>
