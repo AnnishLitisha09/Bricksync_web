@@ -55,7 +55,7 @@ const menu: MenuItem[] = [
     path: "/customers",
     children: [
       { name: "View Customers", path: "/customers/view" },
-      { name: "Add Customer", path: "/customers/add" },
+      { name: "Contact", path: "/contact" },
       { name: "Edit Customer", path: "/customers/edit" },
     ],
   },

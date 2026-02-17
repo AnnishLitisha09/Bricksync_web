@@ -27,6 +27,8 @@ import ServicePage from "../screens/pages/Vehicles/service/ServicePage";
 import AddServicePage from "../screens/pages/Vehicles/service/AddServicePage";
 import ServiceHistoryPage from "../screens/pages/shops/services/ServiceHistoryPage";
 import FuelHistoryPage from "../screens/pages/shops/bunks/FuelHistoryPage";
+import Contact from "../screens/pages/landing/Contact";
+import ContactPage from "../screens/pages/ContactPage";
 
 
 const privateRoutes = [
@@ -118,6 +120,10 @@ const privateRoutes = [
   {
     path: "/vehicles/services/add",
     element: <AddServicePage />,
+  },
+    {
+    path: "/contact",
+    element: <ContactPage />,
   },
   {
     path: "*",
