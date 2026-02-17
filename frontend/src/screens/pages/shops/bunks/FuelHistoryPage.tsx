@@ -1,116 +1,53 @@
 import { AnimatePresence, motion } from "framer-motion";
-import {
-    ArrowLeft,
-    Building2,
+import { 
+    ArrowLeft, 
+    Droplets, 
+    Fuel, 
+    Landmark, 
+    LayoutList, 
+    Plus, 
+    TrendingUp, 
+    Wallet, 
+    Search,
+    Filter,
     CheckCircle2,
-    CreditCard,
-    Droplets,
-    Fuel,
-    History,
-    Landmark,
-    LayoutList,
-    Loader2,
-    Plus,
-    ReceiptText,
-    Smartphone,
-    StickyNote,
-    TrendingUp,
-    Wallet,
-    X
+    AlertCircle,
+    Download // New Icon
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { pdf } from "@react-pdf/renderer"; // New Import
 import { BASE_URL, getAuthHeader } from "../../../../api/base";
 import { useBankStore } from "../../../../store/bankStore";
+import AddPaymentModal from "./AddPaymentModal";
+import { FuelStatementPDF } from "./FuelStatementPDF"; // Import the template below
 
-// --- TYPES & INTERFACES ---
 type TabType = 'all' | 'logs' | 'statements';
-
-interface Vehicle {
-  vehicleName: string;
-  vehicleNumber: string;
-}
-
 interface Transaction {
-  id?: number;
-  fuelId?: number;
-  amount: number;
-  date?: string;
-  createdAt?: string;
-  type: 'fuel' | 'statement';
-  sortDate: Date;
-  volume?: number;
-  kilometer?: number;
-  isVerified?: boolean;
-  vehicle?: Vehicle;
-  bank?: { name: string; holderName: string };
-  description?: string; 
-  payment_mode?: string; 
+  id?: number; amount: number; type: 'fuel' | 'statement'; sortDate: Date;
+  volume?: number; isVerified?: boolean; vehicle?: { vehicleName: string; vehicleNumber: string };
+  bank?: { name: string; holderName: string }; description?: string; payment_mode?: string; 
 }
 
 export default function FuelHistoryPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  
   const bunkId = searchParams.get("bunkId");
-  const bunkName = searchParams.get("bunkName");
+  const bunkName = searchParams.get("bunkName") || "Station";
 
   const { banks, fetchBanks } = useBankStore();
-
   const [fuelLogs, setFuelLogs] = useState<Transaction[]>([]);
   const [statements, setStatements] = useState<Transaction[]>([]);
   const [combinedTimeline, setCombinedTimeline] = useState<Transaction[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [paymentForm, setPaymentForm] = useState({
-    amount: "",
-    bankId: "",
-    payment_mode: "", 
-    description: ""   
-  });
-  
-  const [summary, setSummary] = useState({
-    totalFuel: 0,
-    totalPaid: 0,
-    outstanding: 0
-  });
-
-  const selectedBankData = useMemo(() => 
-    banks.find(b => b.id.toString() === paymentForm.bankId), 
-  [paymentForm.bankId, banks]);
-
-  // Dynamically calculate available payment modes
-  const availableModes = useMemo(() => {
-    if (!selectedBankData) return [];
-    
-    // Check if the bank name is "Cash"
-    if (selectedBankData.name.toLowerCase() === 'cash') {
-      return ["CASH"];
-    }
-
-    const modes = [];
-    if (selectedBankData.gpay) modes.push("GPAY");
-    if (selectedBankData.phonepe) modes.push("PHONEPE");
-    if (selectedBankData.bankTransfer) modes.push("BANK TRANSFER");
-    return modes;
-  }, [selectedBankData]);
+  const [summary, setSummary] = useState({ totalFuel: 0, totalPaid: 0, outstanding: 0 });
 
   useEffect(() => {
     fetchBanks();
     if (bunkId) fetchData();
   }, [bunkId]);
-
-  // Auto-set the payment mode when bank or available modes change
-  useEffect(() => {
-    if (availableModes.length > 0) {
-      setPaymentForm(prev => ({ ...prev, payment_mode: availableModes[0] }));
-    } else {
-      setPaymentForm(prev => ({ ...prev, payment_mode: "" }));
-    }
-  }, [availableModes]);
 
   const fetchData = async () => {
     try {
@@ -123,328 +60,302 @@ export default function FuelHistoryPage() {
       const fuelData = await fuelRes.json();
       const statementData = await statementRes.json();
 
-      const filteredLogs: Transaction[] = fuelData
-        .filter((item: any) => item.bunkId === Number(bunkId))
+      const filteredLogs = fuelData.filter((item: any) => item.bunkId === Number(bunkId))
         .map((item: any) => ({ ...item, type: 'fuel', sortDate: new Date(item.date) }));
       
-      const filteredStatements: Transaction[] = (statementData.data || [])
-        .filter((s: any) => s.bunk_id === Number(bunkId))
-        .map((item: any) => ({ 
-          ...item, 
-          type: 'statement', 
-          sortDate: new Date(item.createdAt || item.date),
-          description: item.description,
-          payment_mode: item.payment_mode 
-        }));
+      const filteredStatements = (statementData.data || []).filter((s: any) => s.bunk_id === Number(bunkId))
+        .map((item: any) => ({ ...item, type: 'statement', sortDate: new Date(item.createdAt || item.date) }));
       
-      const fuelTotal = filteredLogs.reduce((acc, curr) => acc + Number(curr.amount), 0);
-      const paidTotal = filteredStatements.reduce((acc, curr) => acc + Number(curr.amount), 0);
+      const fuelTotal = filteredLogs.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0);
+      const paidTotal = filteredStatements.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0);
 
-      const combined = [...filteredLogs, ...filteredStatements].sort((a, b) => 
-        b.sortDate.getTime() - a.sortDate.getTime()
-      );
+      const combined = [...filteredLogs, ...filteredStatements].sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime());
 
-      setFuelLogs(filteredLogs.sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime()));
-      setStatements(filteredStatements.sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime()));
+      setFuelLogs(filteredLogs.sort((a: any, b: any) => b.sortDate.getTime() - a.sortDate.getTime()));
+      setStatements(filteredStatements.sort((a: any, b: any) => b.sortDate.getTime() - a.sortDate.getTime()));
       setCombinedTimeline(combined);
       setSummary({ totalFuel: fuelTotal, totalPaid: paidTotal, outstanding: fuelTotal - paidTotal });
-    } catch (err) {
-      console.error("Fetch error", err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error("Fetch error", err); } finally { setLoading(false); }
   };
 
-  const handlePaymentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!paymentForm.bankId || !paymentForm.amount || !paymentForm.payment_mode) return;
-
-    try {
-      setIsSubmitting(true);
-      const payload = {
+  const handlePaymentSubmit = async (formData: any) => {
+    const response = await fetch(`${BASE_URL}/fuel-statements/`, {
+      method: 'POST',
+      headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         bunk_id: Number(bunkId),
-        bank_id: Number(paymentForm.bankId),
-        amount: Number(paymentForm.amount),
-        payment_mode: paymentForm.payment_mode,
-        description: paymentForm.description
-      };
-
-      const response = await fetch(`${BASE_URL}/fuel-statements/`, {
-        method: 'POST',
-        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) throw new Error("Payment failed");
-
-      setIsModalOpen(false);
-      setPaymentForm({ amount: "", bankId: "", payment_mode: "", description: "" });
-      fetchData(); 
-    } catch (err: any) {
-      alert(`Failed: ${err.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
+        bank_id: Number(formData.bankId),
+        amount: Number(formData.amount),
+        payment_mode: formData.payment_mode,
+        description: formData.description
+      })
+    });
+    if (!response.ok) throw new Error("Payment failed");
+    fetchData();
   };
+
+  // PDF Generation Trigger
+  const downloadPDF = async () => {
+    const doc = <FuelStatementPDF 
+      transactions={currentData} 
+      summary={summary} 
+      bunkName={bunkName} 
+    />;
+    const blob = await pdf(doc).toBlob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${bunkName.replace(/\s+/g, '_')}_Statement.pdf`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const currentData = activeTab === 'all' ? combinedTimeline : activeTab === 'logs' ? fuelLogs : statements;
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-gray-50/50 p-4 md:p-8 space-y-8 max-w-7xl mx-auto">
-      
-      {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <button onClick={() => navigate(-1)} className="group flex items-center gap-3 text-slate-400 hover:text-orange-600 transition-all font-black uppercase tracking-[0.2em] text-[10px]">
-          <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 group-hover:bg-orange-50 transition-all"><ArrowLeft size={16} /></div>
-          Back to Network
-        </button>
-
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      className="min-h-screen bg-[#F8FAFC] p-4 md:p-10 space-y-8 max-w-7xl mx-auto"
+    >
+      {/* NAVIGATION & ACTIONS */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <button 
+            onClick={() => navigate(-1)} 
+            className="group flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-all font-black text-[10px] tracking-[0.2em]"
+          >
+            <ArrowLeft size={14} strokeWidth={3} className="group-hover:-translate-x-1 transition-transform" />
+            STATION DIRECTORY
+          </button>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">{bunkName}</h2>
+        </div>
+        
         <div className="flex items-center gap-3">
-          <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100">
-            <Wallet size={16} /> Record Payment
+          <button 
+            onClick={() => setIsModalOpen(true)} 
+            className="flex items-center gap-2 px-6 py-3.5 bg-white border-2 border-slate-100 text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm active:scale-95"
+          >
+            <Wallet size={16} strokeWidth={2.5} /> Record Payment
           </button>
-          <button onClick={() => navigate("/vehicles/fuel/add")} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-orange-600 transition-all shadow-xl shadow-slate-200">
-            <Plus size={16} /> New Fuel Entry
+          <button 
+            onClick={() => navigate("/vehicles/fuel/add")} 
+            className="flex items-center gap-2 px-6 py-3.5 bg-slate-950 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-600 hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-slate-200"
+          >
+            <Plus size={16} strokeWidth={2.5} /> New Entry
           </button>
         </div>
       </div>
 
-      {/* SUMMARY STATS */}
+      {/* STATS OVERVIEW */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 relative bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center gap-6 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
-          <div className="relative z-10 p-5 bg-orange-50 rounded-3xl text-orange-600"><Fuel size={40} strokeWidth={2.5} /></div>
-          <div className="relative z-10 flex-1">
-            <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] mb-1">Filling Station</p>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">{bunkName}</h1>
-            <div className="flex items-center gap-4 mt-2">
-                <p className="text-slate-400 font-bold text-xs">Total Fuel: <span className="text-slate-900">₹{summary.totalFuel.toLocaleString()}</span></p>
-                <div className="w-1 h-1 bg-slate-300 rounded-full" />
-                <p className="text-slate-400 font-bold text-xs">Paid: <span className="text-emerald-600">₹{summary.totalPaid.toLocaleString()}</span></p>
+        <div className="lg:col-span-3 bg-white rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 relative overflow-hidden flex flex-col md:flex-row md:items-center gap-10">
+            <div className="h-24 w-24 flex-shrink-0 bg-slate-950 rounded-[2rem] flex items-center justify-center text-white shadow-xl shadow-slate-200">
+                <Fuel size={40} strokeWidth={2} />
             </div>
-          </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-12 flex-grow">
+                <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Fuel Used</p>
+                    <p className="text-3xl font-black text-slate-900 tracking-tight">₹{summary.totalFuel.toLocaleString()}</p>
+                </div>
+                <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Settled</p>
+                    <p className="text-3xl font-black text-emerald-600 tracking-tight">₹{summary.totalPaid.toLocaleString()}</p>
+                </div>
+                <div className="hidden md:block">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Visits</p>
+                    <p className="text-3xl font-black text-slate-900 tracking-tight">{fuelLogs.length}</p>
+                </div>
+            </div>
         </div>
-        <div className="bg-orange-600 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
-          <div className="absolute -bottom-4 -right-4 text-white/10 group-hover:scale-110 transition-transform"><TrendingUp size={120} /></div>
-          <div className="relative z-10">
-            <p className="text-[10px] font-black text-orange-100 uppercase tracking-[0.2em] opacity-80 mb-2">Net Outstanding</p>
-            <p className="text-4xl font-black tabular-nums">₹{summary.outstanding.toLocaleString()}</p>
-            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-lg text-[9px] font-black uppercase tracking-widest">Live Balance</div>
+
+        <div className="bg-orange-600 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-orange-200 relative overflow-hidden group">
+          <TrendingUp size={160} className="absolute -bottom-10 -right-10 text-white/10 group-hover:scale-110 transition-transform duration-700" />
+          <p className="text-[10px] font-black text-orange-100 uppercase tracking-[0.2em] mb-2">Balance Due</p>
+          <p className="text-5xl font-black tabular-nums tracking-tighter">₹{summary.outstanding.toLocaleString()}</p>
+          <div className="mt-8 flex items-center gap-3 bg-white/10 w-fit px-4 py-2 rounded-xl backdrop-blur-md border border-white/10">
+            <AlertCircle size={14} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Awaiting Settlement</span>
           </div>
         </div>
       </div>
 
-      {/* NAVIGATION TABS */}
-      <div className="flex gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl w-fit shadow-sm overflow-x-auto">
-        {(['all', 'logs', 'statements'] as TabType[]).map((tab) => (
-          <button key={tab} onClick={() => setActiveTab(tab)} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? (tab === 'all' ? 'bg-blue-600 text-white' : tab === 'logs' ? 'bg-slate-900 text-white' : 'bg-orange-600 text-white') : 'text-slate-400 hover:text-slate-600'}`}>
-            {tab === 'all' && <LayoutList size={14} />}
-            {tab === 'logs' && <History size={14} />}
-            {tab === 'statements' && <ReceiptText size={14} />}
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      <AnimatePresence mode="wait">
-        {loading ? (
-           <div key="loading" className="space-y-4">
-              {[1,2,3].map(i => <div key={i} className="h-32 bg-white/40 animate-pulse rounded-[2rem] border border-white" />)}
-           </div>
-        ) : (
-          <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 gap-4">
-            {activeTab === 'all' && combinedTimeline.map((item, idx) => item.type === 'fuel' ? <FuelLogRow key={idx} log={item} idx={idx} /> : <StatementRow key={idx} st={item} idx={idx} />)}
-            {activeTab === 'logs' && fuelLogs.map((log, idx) => <FuelLogRow key={idx} log={log} idx={idx} />)}
-            {activeTab === 'statements' && statements.map((st, idx) => <StatementRow key={idx} st={st} idx={idx} />)}
-            {(activeTab === 'all' ? combinedTimeline : activeTab === 'logs' ? fuelLogs : statements).length === 0 && <EmptyState icon={<LayoutList size={40}/>} label="No Transactions Found" />}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* --- ADD PAYMENT MODAL --- */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden">
-                <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-emerald-50/30">
-                    <div>
-                        <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Add Payment</h2>
-                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-1">Record Settlement</p>
-                    </div>
-                    <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white rounded-full transition-colors text-slate-400"><X size={20}/></button>
+      {/* DATA SECTION */}
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl w-fit shadow-sm">
+                {(['all', 'logs', 'statements'] as TabType[]).map((tab) => (
+                    <button 
+                        key={tab} 
+                        onClick={() => setActiveTab(tab)} 
+                        className={`px-7 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-slate-950 text-white shadow-lg shadow-slate-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+                    >
+                        {tab}
+                    </button>
+                ))}
+            </div>
+            
+            <div className="flex items-center gap-3">
+                <div className="relative group">
+                    <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
+                    <input 
+                        type="text" 
+                        placeholder="SEARCH..." 
+                        className="bg-white border-2 border-slate-100 rounded-2xl py-3.5 pl-12 pr-6 text-[10px] font-black uppercase tracking-widest outline-none focus:border-slate-900 transition-all w-full md:w-60 shadow-sm"
+                    />
                 </div>
                 
-                <form className="p-8 space-y-6" onSubmit={handlePaymentSubmit}>
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Receiving Station</label>
-                        <div className="relative">
-                            <input disabled value={bunkName || ""} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800" />
-                            <Building2 className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                        </div>
-                    </div>
+                {/* PDF DOWNLOAD BUTTON */}
+                <button 
+                  onClick={downloadPDF}
+                  className="flex items-center gap-2 p-3.5 bg-white border-2 border-slate-100 rounded-2xl text-slate-900 hover:border-orange-500 hover:text-orange-600 transition-all shadow-sm"
+                  title="Download as PDF"
+                >
+                    <Download size={20} strokeWidth={2.5} />
+                </button>
 
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Source Bank Account</label>
-                        <div className="relative">
-                            <select 
-                                required
-                                value={paymentForm.bankId}
-                                onChange={(e) => setPaymentForm({...paymentForm, bankId: e.target.value})}
-                                className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 font-black text-slate-800 focus:ring-2 ring-emerald-500/20 outline-none appearance-none transition-all"
-                            >
-                                <option value="">Select a Bank...</option>
-                                {banks.map(bank => (
-                                    <option key={bank.id} value={bank.id}>{bank.name} - {bank.holderName}</option>
-                                ))}
-                            </select>
-                            <Landmark className="absolute right-5 top-1/2 -translate-y-1/2 text-emerald-500" size={18} />
-                        </div>
-                    </div>
+                <button className="p-3.5 bg-white border-2 border-slate-100 rounded-2xl text-slate-900 hover:border-slate-900 transition-all shadow-sm">
+                    <Filter size={20} strokeWidth={2.5} />
+                </button>
+            </div>
+        </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Payment Mode</label>
-                            <div className="relative">
-                                <select 
-                                    disabled={!paymentForm.bankId || availableModes.length === 0}
-                                    required
-                                    className={`w-full border rounded-2xl px-5 py-4 font-black text-slate-800 appearance-none focus:ring-2 ring-emerald-500/20 outline-none transition-all ${(!paymentForm.bankId || availableModes.length === 0) ? 'bg-slate-100 border-slate-200 cursor-not-allowed text-slate-400' : 'bg-slate-50 border-slate-100'}`}
-                                    value={paymentForm.payment_mode}
-                                    onChange={(e) => setPaymentForm({...paymentForm, payment_mode: e.target.value})}
-                                >
-                                    {!paymentForm.bankId && <option value="">Select Bank First</option>}
-                                    {availableModes.map(mode => (
-                                        <option key={mode} value={mode}>{mode}</option>
-                                    ))}
-                                </select>
-                                {paymentForm.payment_mode === "CASH" ? (
-                                    <Wallet className="absolute right-5 top-1/2 -translate-y-1/2 text-orange-500" size={18} />
-                                ) : ["GPAY", "PHONEPE"].includes(paymentForm.payment_mode) ? (
-                                    <Smartphone className="absolute right-5 top-1/2 -translate-y-1/2 text-blue-500" size={18} />
-                                ) : (
-                                    <CreditCard className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                                )}
-                            </div>
-                        </div>
+        {/* MODERN TABLE */}
+        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.02)] overflow-hidden">
+            <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="bg-slate-50/50 border-b border-slate-100">
+                            <th className="px-10 py-7 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Date & Status</th>
+                            <th className="px-10 py-7 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Identity</th>
+                            <th className="px-10 py-7 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Quantities</th>
+                            <th className="px-10 py-7 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 text-right">Value (INR)</th>
+                            <th className="pr-10"></th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                        <AnimatePresence mode="popLayout">
+                            {loading ? (
+                                <TableLoader />
+                            ) : currentData.length > 0 ? (
+                                currentData.map((tx, idx) => (
+                                    <motion.tr 
+                                        key={idx}
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: idx * 0.03 }}
+                                        className="group hover:bg-slate-50/80 transition-all relative cursor-pointer"
+                                    >
+                                        <td className="px-10 py-8 relative">
+                                            <div className={`absolute left-0 top-1/4 bottom-1/4 w-1 rounded-r-full transition-all group-hover:top-0 group-hover:bottom-0 ${tx.type === 'fuel' ? 'bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]'}`} />
+                                            <div className="flex items-center gap-6">
+                                                <div className="text-center min-w-[40px]">
+                                                    <p className="text-xl font-black text-slate-900 leading-none">{tx.sortDate.getDate()}</p>
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mt-1">{tx.sortDate.toLocaleDateString('en-IN', { month: 'short' })}</p>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`text-[8px] font-black uppercase px-2.5 py-1 rounded-lg ${tx.type === 'fuel' ? 'bg-orange-50 text-orange-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                            {tx.type}
+                                                        </span>
+                                                        {tx.type === 'fuel' && (
+                                                            tx.isVerified ? 
+                                                            <CheckCircle2 size={12} className="text-emerald-500" /> : 
+                                                            <AlertCircle size={12} className="text-red-400 animate-pulse" />
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-400 font-bold tracking-widest">{tx.sortDate.toLocaleDateString('en-IN', { year: 'numeric' })}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-10 py-8">
+                                            {tx.type === 'fuel' ? (
+                                                <div className="space-y-1">
+                                                    <p className="text-sm font-black text-slate-800 uppercase tracking-tighter">{tx.vehicle?.vehicleName}</p>
+                                                    <p className="text-[10px] font-mono font-bold text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md w-fit">
+                                                        {tx.vehicle?.vehicleNumber}
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <Landmark size={14} className="text-slate-400" strokeWidth={3} />
+                                                        <p className="text-sm font-black text-slate-800 uppercase tracking-tighter">{tx.bank?.name}</p>
+                                                    </div>
+                                                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-[0.15em]">{tx.payment_mode}</p>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-10 py-8">
+                                            {tx.type === 'fuel' ? (
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-blue-50 rounded-xl"><Droplets size={14} className="text-blue-500" strokeWidth={3} /></div>
+                                                    <div>
+                                                        <p className="text-sm font-mono font-black text-slate-900">{tx.volume}</p>
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">LITRES</p>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p className="text-[11px] text-slate-500 font-bold italic leading-relaxed max-w-[200px] line-clamp-2 uppercase tracking-tighter">
+                                                    {tx.description || "Bunk Settlement"}
+                                                </p>
+                                            )}
+                                        </td>
+                                        <td className="px-10 py-8 text-right">
+                                            <div className="space-y-0.5">
+                                                <p className={`text-xl font-mono font-black tracking-tighter ${tx.type === 'fuel' ? 'text-slate-900' : 'text-emerald-600'}`}>
+                                                    {tx.type === 'statement' ? '-' : ''}₹{tx.amount.toLocaleString('en-IN')}
+                                                </p>
+                                            </div>
+                                        </td>
+                                      
+                                    </motion.tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={5} className="py-32 text-center">
+                                        <div className="flex flex-col items-center gap-6">
+                                            <div className="p-8 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200">
+                                                <LayoutList size={48} className="text-slate-200" strokeWidth={1} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="font-black uppercase tracking-[0.3em] text-xs text-slate-900 underline underline-offset-8 decoration-orange-500">History is Empty</p>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No activity recorded for this period</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </AnimatePresence>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+      </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Amount</label>
-                            <div className="relative">
-                                <input type="number" required placeholder="0.00" value={paymentForm.amount} onChange={(e) => setPaymentForm({...paymentForm, amount: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800 focus:ring-2 ring-emerald-500/20 outline-none transition-all" />
-                                <span className="absolute right-5 top-1/2 -translate-y-1/2 font-black text-emerald-600">₹</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Description</label>
-                        <div className="relative">
-                            <textarea 
-                                rows={2}
-                                placeholder="Enter transaction details..." 
-                                value={paymentForm.description} 
-                                onChange={(e) => setPaymentForm({...paymentForm, description: e.target.value})} 
-                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800 focus:ring-2 ring-emerald-500/20 outline-none transition-all resize-none" 
-                            />
-                            <StickyNote className="absolute right-5 top-5 text-slate-300" size={18} />
-                        </div>
-                    </div>
-
-                    <button 
-                        type="submit" 
-                        disabled={isSubmitting || !paymentForm.bankId || !paymentForm.payment_mode}
-                        className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
-                        {isSubmitting ? "Processing..." : "Confirm Payment"}
-                    </button>
-                </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <AddPaymentModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSubmit={handlePaymentSubmit} 
+        banks={banks} 
+        bunkName={bunkName} 
+      />
     </motion.div>
   );
 }
 
-// --- SUB-COMPONENTS ---
-function FuelLogRow({ log, idx }: { log: Transaction; idx: number }) {
-    const date = log.sortDate;
+function TableLoader() {
     return (
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className={`group bg-white p-2 pr-6 rounded-[2rem] shadow-sm border transition-all flex flex-col md:flex-row items-center gap-6 ${!log.isVerified ? 'border-red-100 bg-red-50/10' : 'border-slate-100 hover:shadow-xl'}`}>
-          <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-slate-50 border border-slate-100 flex flex-col items-center justify-center">
-              <span className="text-[10px] font-black text-slate-400 uppercase mb-1">{date.getFullYear()}</span>
-              <span className="text-2xl font-black text-slate-800 leading-none">{date.getDate()}</span>
-              <span className="text-[10px] font-black uppercase text-orange-600 mt-1">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>
-          </div>
-          <div className="flex-1 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-orange-50 text-orange-600 rounded-2xl"><Droplets size={24} /></div>
-              <div>
-                <h3 className="text-xl font-black text-slate-800">{log.volume} Litres</h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{log.isVerified ? "Verified" : "Pending"}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="text-right"><p className="text-[8px] font-black text-slate-400 uppercase mb-1">Expense</p><span className="text-xl font-black text-slate-900">₹{log.amount.toLocaleString()}</span></div>
-            </div>
-          </div>
-          <div className="w-full md:w-56 p-4 rounded-[1.5rem] bg-slate-900 text-white">
-             <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Vehicle</p>
-             <p className="font-black text-sm uppercase truncate">{log.vehicle?.vehicleName}</p>
-             <span className="text-[10px] font-mono text-orange-400">{log.vehicle?.vehicleNumber}</span>
-          </div>
-        </motion.div>
-    );
-}
-
-function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
-    const date = st.sortDate;
-    return (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="bg-white p-2 pr-6 rounded-[2rem] shadow-sm border border-emerald-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6">
-            <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-emerald-50 border border-emerald-100 flex flex-col items-center justify-center">
-                <span className="text-[10px] font-black text-emerald-600/50 uppercase mb-1">PAID</span>
-                <span className="text-2xl font-black text-emerald-700 leading-none">{date.getDate()}</span>
-                <span className="text-[10px] font-black uppercase text-emerald-600 mt-1">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>
-            </div>
-            <div className="flex-1 flex flex-col justify-center p-4">
-                <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-4">
-                        <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl"><Landmark size={24} /></div>
-                        <div>
-                            <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Clearance</h3>
-                            <div className="flex items-center gap-2">
-                                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{st.bank?.name}</p>
-                                <div className="w-1 h-1 bg-emerald-300 rounded-full" />
-                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[8px] font-black uppercase rounded-md border border-emerald-100">
-                                    {st.payment_mode || 'N/A'}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="text-right">
-                        <p className="text-[8px] font-black text-emerald-600 uppercase mb-1">Amount</p>
-                        <span className="text-xl font-black text-emerald-700">₹{st.amount.toLocaleString()}</span>
-                    </div>
-                </div>
-                {st.description && (
-                    <div className="mt-3 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl">
-                        <p className="text-[10px] font-bold text-slate-400 italic">"{st.description}"</p>
-                    </div>
-                )}
-            </div>
-            <div className="w-full md:w-56 p-4 rounded-[1.5rem] bg-emerald-900 text-white shadow-xl shadow-emerald-100">
-                <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Confirmed</p>
-                <p className="font-black text-[10px] uppercase truncate">{st.bank?.holderName}</p>
-            </div>
-        </motion.div>
-    );
-}
-
-function EmptyState({ icon, label }: { icon: React.ReactNode; label: string }) {
-    return (
-        <div className="text-center py-24 bg-white rounded-[3rem] border-4 border-dashed border-slate-100">
-            <div className="flex justify-center text-slate-200 mb-4">{icon}</div>
-            <h3 className="text-slate-800 font-black uppercase tracking-tighter">{label}</h3>
-        </div>
+        <>
+            {[1, 2, 3, 4, 5].map((i) => (
+                <tr key={i} className="animate-pulse">
+                    <td className="px-10 py-10"><div className="h-14 w-40 bg-slate-100 rounded-2xl" /></td>
+                    <td className="px-10 py-10"><div className="h-14 w-48 bg-slate-100 rounded-2xl" /></td>
+                    <td className="px-10 py-10"><div className="h-14 w-28 bg-slate-100 rounded-2xl" /></td>
+                    <td className="px-10 py-10 text-right"><div className="h-14 w-24 bg-slate-100 rounded-2xl ml-auto" /></td>
+                    <td></td>
+                </tr>
+            ))}
+        </>
     );
 }
