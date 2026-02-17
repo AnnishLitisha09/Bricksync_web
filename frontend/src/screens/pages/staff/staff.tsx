@@ -2,20 +2,22 @@ import {
   ArrowRight,
   Filter,
   IndianRupee,
+  KeyRound,
   Mail,
   MoreVertical,
   Phone,
   Plus,
   Search,
   ShieldCheck,
-  User
+  Trash2,
+  User,
+  X
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL, FILE_BASE_URL, getAuthHeader } from "../../../api/base";
 import { useDriverStore, type DriverType } from "../../../store/driverStore";
 
-// Adding a local extension if your DriverType is missing the database _id
 interface InternalDriver extends DriverType {
   _id: string;
 }
@@ -27,6 +29,9 @@ const Staff: React.FC = () => {
   const [search, setSearch] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [filter, setFilter] = useState<AmountFilter>("All");
+  
+  // Track which driver card has the action menu open
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   const drivers = useDriverStore((state) => state.drivers);
   const setDrivers = useDriverStore((state) => state.setDrivers);
@@ -36,7 +41,6 @@ const Staff: React.FC = () => {
     try {
       const res = await fetch(`${BASE_URL}/user/drivers`, { headers: getAuthHeader() });
       const data = await res.json();
-      // Cast to InternalDriver[] if the backend definitely sends _id
       setDrivers(data as InternalDriver[]);
     } catch (error) {
       console.error("Error fetching drivers", error);
@@ -45,8 +49,34 @@ const Staff: React.FC = () => {
     }
   };
 
+  const handleDeleteUser = async (driverId: string | number) => {
+    if (!window.confirm("Are you sure you want to delete this driver? This action cannot be undone.")) return;
+    
+    try {
+      const res = await fetch(`${BASE_URL}/user/${driverId}`, {
+        method: 'DELETE',
+        headers: getAuthHeader()
+      });
+
+      if (res.ok) {
+        // Filter out the deleted driver from the store
+        const updatedDrivers = (drivers as InternalDriver[]).filter(d => d.userid !== driverId);
+        setDrivers(updatedDrivers);
+        setActiveMenu(null);
+      } else {
+        alert("Failed to delete user. Please try again.");
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+    }
+  };
+
   useEffect(() => {
     fetchDrivers();
+    // Close menu on click outside
+    const closeMenu = () => setActiveMenu(null);
+    window.addEventListener("click", closeMenu);
+    return () => window.removeEventListener("click", closeMenu);
   }, []);
 
   const filteredDrivers = useMemo(() => {
@@ -128,7 +158,7 @@ const Staff: React.FC = () => {
           {filteredDrivers.map((driver) => (
             <div
               key={driver._id}
-              className="group bg-white rounded-[2.5rem] border border-slate-100 p-8 hover:border-indigo-100 hover:shadow-2xl hover:shadow-indigo-50/50 transition-all duration-500 flex flex-col"
+              className="group bg-white rounded-[2.5rem] border border-slate-100 p-8 hover:border-indigo-100 hover:shadow-2xl hover:shadow-indigo-50/50 transition-all duration-500 flex flex-col relative"
             >
               <div className="flex items-start justify-between mb-8">
                 <div className="relative">
@@ -145,9 +175,41 @@ const Staff: React.FC = () => {
                   )}
                   <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full"></div>
                 </div>
-                <button className="text-slate-300 hover:text-slate-600 transition-colors p-2">
-                  <MoreVertical size={24} />
-                </button>
+                
+                {/* Actions Dropdown */}
+                <div className="relative">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenu(activeMenu === driver._id ? null : driver._id);
+                    }}
+                    className="text-slate-300 hover:text-slate-600 transition-colors p-2 rounded-xl hover:bg-slate-50"
+                  >
+                    <MoreVertical size={24} />
+                  </button>
+
+                  {activeMenu === driver._id && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-in fade-in zoom-in duration-200">
+                      <div className="p-2 space-y-1">
+                        <button 
+                          onClick={() => navigate(`/driver/change-password/${driver.userid}`)}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-colors"
+                        >
+                          <KeyRound size={18} />
+                          Change Password
+                        </button>
+                        <hr className="border-slate-50 mx-2" />
+                        <button 
+                          onClick={() => handleDeleteUser(driver.userid)}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                        >
+                          <Trash2 size={18} />
+                          Delete User
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-1 mb-8">
@@ -184,7 +246,7 @@ const Staff: React.FC = () => {
                     Call
                   </a>
                   <button
-                    onClick={() => navigate(`/driver/view/${driver.userid}`)} // Use userid here
+                    onClick={() => navigate(`/driver/view/${driver.userid}`)}
                     className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:bg-indigo-600 transition-all shadow-lg"
                   >
                     <ArrowRight size={20} />
@@ -196,6 +258,7 @@ const Staff: React.FC = () => {
         </div>
       )}
 
+      {/* Empty State */}
       {!loading && filteredDrivers.length === 0 && (
         <div className="flex flex-col items-center justify-center py-32 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100">
           <div className="p-6 bg-white rounded-full shadow-sm mb-6">

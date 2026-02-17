@@ -1,5 +1,5 @@
 import React from "react";
-import { Mail, Phone, ShieldCheck, User } from "lucide-react";
+import { Mail, Phone, ShieldCheck, User, Wallet } from "lucide-react";
 
 interface DriverInfoCardProps {
   staff: {
@@ -29,13 +29,13 @@ const DriverInfoCard: React.FC<DriverInfoCardProps> = ({ staff, fileBaseUrl }) =
         )}
       </div>
 
-      {/* Wallet Balance */}
+      {/* Wallet Balance (Redundant but good for UI symmetry) */}
       <div className="mt-6">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-          Available Balance
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1">
+          <Wallet size={10} /> Account Balance
         </p>
         <h2 className="text-3xl font-black text-indigo-600">
-          ₹{staff.amount.toLocaleString()}
+          ₹{staff.amount?.toLocaleString() || 0}
         </h2>
       </div>
 
@@ -49,29 +49,28 @@ const DriverInfoCard: React.FC<DriverInfoCardProps> = ({ staff, fileBaseUrl }) =
         <InfoRow 
           icon={<Phone size={16} />} 
           label="Phone Number" 
-          value={staff.phoneNumber} 
+          value={staff.phoneNumber || "N/A"} 
         />
         <InfoRow 
           icon={<ShieldCheck size={16} />} 
           label="DL Expiry" 
-          value={staff.drivingLicenceValidity || "N/A"} 
+          value={staff.drivingLicenceValidity || "Not Specified"} 
         />
       </div>
     </div>
   );
 };
 
-// Internal Helper for rows
 const InfoRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
   <div className="flex items-center gap-4 p-3.5 bg-slate-50/50 rounded-2xl border border-transparent hover:border-slate-100 transition-all group">
     <div className="text-slate-400 bg-white p-2 rounded-lg shadow-sm group-hover:text-indigo-600 transition-colors">
       {icon}
     </div>
-    <div>
+    <div className="overflow-hidden">
       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
         {label}
       </p>
-      <p className="font-bold text-slate-700 text-sm">{value}</p>
+      <p className="font-bold text-slate-700 text-sm truncate">{value}</p>
     </div>
   </div>
 );

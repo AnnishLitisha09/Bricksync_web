@@ -22,7 +22,7 @@ import DriverInfoCard from "../../../components/staff/DriverInfoCard";
 import WeeklyAttendance from "../../../components/staff/WeeklyAttendance";
 import { useBankStore } from "../../../store/bankStore";
 
-// --- TYPES ---
+// FULLY UPDATED INTERFACE
 interface APIUser {
   userid: number;
   name: string;
@@ -30,7 +30,12 @@ interface APIUser {
   phoneNumber: string;
   amount: number; 
   imageUrl: string | null;
+  aadharUrl: string | null;
+  drivingLicenceUrl: string | null;
+  drivingLicenceBackUrl: string | null;
   drivingLicenceValidity: string | null;
+  userRole: number;
+  createdAt: string;
 }
 
 interface Transaction {
@@ -45,9 +50,6 @@ interface Transaction {
   bank?: {
     name: string;
     accountNumber: string;
-    gpay: boolean;
-    phonepe: boolean;
-    bankTransfer: boolean;
   };
 }
 
@@ -131,6 +133,8 @@ const ViewStaffDetail: React.FC = () => {
 
   const handleTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.bankId) return toast.error("Please select a bank");
+
     setModalLoading(true);
     try {
       const payload = {
@@ -153,6 +157,7 @@ const ViewStaffDetail: React.FC = () => {
       if (res.ok) {
         toast.success(`${mode} recorded successfully`);
         setIsModalOpen(false);
+        setFormData(prev => ({ ...prev, amount: "", description: "" }));
         fetchData();
       }
     } catch (err) {
@@ -162,7 +167,7 @@ const ViewStaffDetail: React.FC = () => {
     }
   };
 
-  if (loading) return (
+  if (loading || !staff) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50/50">
       <Loader2 className="animate-spin text-indigo-600" size={40} />
     </div>
@@ -172,7 +177,7 @@ const ViewStaffDetail: React.FC = () => {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-gray-50/50 p-4 md:p-10 space-y-10 font-sans text-slate-900 max-w-7xl mx-auto">
       <Toaster position="top-right" />
 
-      {/* HEADER SECTION */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
           <button onClick={() => navigate(-1)} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-colors">
@@ -180,33 +185,30 @@ const ViewStaffDetail: React.FC = () => {
           </button>
           <div>
             <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase italic">
-              {staff?.name}
+              {staff.name}
             </h1>
-            <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.3em]">Staff Code: {staff?.userid}</p>
+            <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.3em]">Staff ID: {staff.userid}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-[11px] hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200">
-            <Plus size={18} /> Manage Ledger
-          </button>
-        </div>
+        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-[11px] hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200">
+          <Plus size={18} /> Manage Ledger
+        </button>
       </div>
 
-      {/* BENTO SUMMARY STATS */}
+      {/* OVERVIEW CARDS */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 relative bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center gap-6 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
           <div className="relative z-10 p-5 bg-indigo-50 rounded-3xl text-indigo-600">
              <User size={40} strokeWidth={2.5} />
           </div>
           <div className="relative z-10 flex-1">
-            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] mb-1">Employee Overview</p>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{staff?.name}</h2>
+            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] mb-1">Onboarding Details</p>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{staff.name}</h2>
             <div className="flex items-center gap-4 mt-2">
-              <p className="text-slate-400 font-bold text-xs">Joined: <span className="text-slate-900">May 2024</span></p>
+              <p className="text-slate-400 font-bold text-xs">Joined: <span className="text-slate-900">{new Date(staff.createdAt).toLocaleDateString()}</span></p>
               <div className="w-1 h-1 bg-slate-300 rounded-full" />
-              <p className="text-slate-400 font-bold text-xs">Total Earnings: <span className="text-indigo-600">₹{staff?.amount.toLocaleString()}</span></p>
+              <p className="text-slate-400 font-bold text-xs">Wallet: <span className="text-indigo-600 font-black">₹{staff.amount?.toLocaleString()}</span></p>
             </div>
           </div>
         </div>
@@ -214,29 +216,38 @@ const ViewStaffDetail: React.FC = () => {
         <div className="bg-rose-500 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
           <div className="absolute -bottom-4 -right-4 text-white/10 group-hover:scale-110 transition-transform"><HandCoins size={120} /></div>
           <div className="relative z-10">
-            <p className="text-[10px] font-black text-rose-100 uppercase tracking-[0.2em] opacity-80 mb-2">Advance Due</p>
+            <p className="text-[10px] font-black text-rose-100 uppercase tracking-[0.2em] opacity-80 mb-2">Total Advance</p>
             <p className="text-4xl font-black tabular-nums">₹{remainingAdvance.toLocaleString()}</p>
-            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-lg text-[9px] font-black uppercase tracking-widest italic">Action Required</div>
+            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-lg text-[9px] font-black uppercase tracking-widest italic">Liability</div>
           </div>
         </div>
       </div>
 
+      {/* PROFILE & ATTENDANCE */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-4"><DriverInfoCard staff={staff!} fileBaseUrl={FILE_BASE_URL} /></div>
-        <div className="lg:col-span-8"><WeeklyAttendance userId={id!} /></div>
+        <div className="lg:col-span-4">
+            <DriverInfoCard staff={staff} fileBaseUrl={FILE_BASE_URL} />
+        </div>
+        <div className="lg:col-span-8">
+            <WeeklyAttendance userId={id!} />
+        </div>
       </div>
 
-      {/* LEDGER SECTION */}
+      {/* TRANSACTIONS */}
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
              <div className="p-3 bg-white border border-slate-100 rounded-xl shadow-sm"><History size={20} className="text-indigo-500" /></div>
-             <h3 className="text-xl font-black uppercase tracking-tight italic">Transaction Timeline</h3>
+             <h3 className="text-xl font-black uppercase tracking-tight italic">Transaction Flow</h3>
           </div>
           
-          <div className="flex gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl w-fit shadow-sm overflow-x-auto">
+          <div className="flex gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl w-fit shadow-sm">
             {(['all', 'salary', 'advance'] as const).map((tab) => (
-              <button key={tab} onClick={() => setFilter(tab)} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filter === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
+              <button 
+                key={tab} 
+                onClick={() => setFilter(tab)} 
+                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filter === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+              >
                 {tab}
               </button>
             ))}
@@ -251,7 +262,7 @@ const ViewStaffDetail: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                className="group relative bg-white rounded-[2rem] p-6 border border-slate-100 hover:border-indigo-200 transition-all hover:shadow-xl hover:shadow-indigo-500/5"
+                className="group bg-white rounded-[2rem] p-6 border border-slate-100 hover:border-indigo-200 transition-all shadow-sm"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                   <div className="flex items-center gap-5">
@@ -261,13 +272,12 @@ const ViewStaffDetail: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.category}</span>
-                        <div className="w-1 h-1 bg-slate-200 rounded-full" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">{t.paymentType}</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500 px-2 py-0.5 bg-indigo-50 rounded-md">{t.paymentType}</span>
                       </div>
-                      <h4 className="text-lg font-black text-slate-900 tracking-tight mt-0.5 uppercase italic">{t.description}</h4>
+                      <h4 className="text-lg font-black text-slate-900 mt-0.5 uppercase italic">{t.description}</h4>
                       <p className="text-xs font-bold text-slate-400 flex items-center gap-1.5 mt-1 uppercase">
                          <CalendarDays size={12} /> {new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                         <span className="ml-2 px-2 py-0.5 bg-slate-50 rounded text-[10px]">{t.bank?.name || 'Cash'}</span>
+                         <span className="ml-2 text-[10px] text-slate-300">• {t.bank?.name || 'Cash'}</span>
                       </p>
                     </div>
                   </div>
@@ -275,12 +285,16 @@ const ViewStaffDetail: React.FC = () => {
                     <p className={`text-2xl font-black tabular-nums ${t.type === 'received' ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {t.type === 'received' ? '+' : '-'} ₹{t.amount.toLocaleString()}
                     </p>
-                    {t.bank?.accountNumber && <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">A/C: {t.bank.accountNumber}</p>}
                   </div>
                 </div>
               </motion.div>
             ))}
           </AnimatePresence>
+          {filteredTransactions.length === 0 && (
+            <div className="text-center py-20 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100">
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No records found</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -299,34 +313,30 @@ const ViewStaffDetail: React.FC = () => {
               </div>
 
               <form className="p-10 space-y-6" onSubmit={handleTransaction}>
-                {/* Mode Toggler */}
-                <div className="flex p-1.5 bg-slate-100 rounded-[2rem] mb-4">
+                <div className="flex p-1.5 bg-slate-100 rounded-[2rem]">
                   {(['salary', 'advance'] as const).map((m) => (
                     <button key={m} type="button" onClick={() => setMode(m)} className={`flex-1 py-3.5 rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest transition-all ${mode === m ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500'}`}>
-                       {m === 'salary' ? <Banknote size={16} className="inline mr-2" /> : <HandCoins size={16} className="inline mr-2" />} {m}
+                       {m}
                     </button>
                   ))}
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Select Bank Account</label>
-                  <div className="relative">
-                    <select required value={formData.bankId} onChange={(e) => setFormData({ ...formData, bankId: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4.5 font-black text-slate-800 appearance-none outline-none focus:ring-2 ring-indigo-500/20">
-                      <option value="">Choose Bank...</option>
-                      {banks.map(bank => <option key={bank.id} value={bank.id}>{bank.name} - {bank.holderName}</option>)}
-                    </select>
-                    <Landmark className="absolute right-6 top-1/2 -translate-y-1/2 text-indigo-500" size={20} />
-                  </div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Account Select</label>
+                  <select required value={formData.bankId} onChange={(e) => setFormData({ ...formData, bankId: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4 font-black text-slate-800 outline-none focus:ring-2 ring-indigo-500/20">
+                    <option value="">Select Account...</option>
+                    {banks.map(bank => <option key={bank.id} value={bank.id}>{bank.name} - {bank.holderName}</option>)}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Amount (₹)</label>
-                    <input type="number" required placeholder="0.00" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4.5 font-black text-slate-800" />
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Amount (₹)</label>
+                    <input type="number" required placeholder="0" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4 font-black text-slate-800" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Payment Method</label>
-                    <select value={formData.paymentType} onChange={(e) => setFormData({ ...formData, paymentType: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4.5 font-black text-slate-800 appearance-none">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Mode</label>
+                    <select value={formData.paymentType} onChange={(e) => setFormData({ ...formData, paymentType: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4 font-black text-slate-800">
                       {availableModes.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                   </div>
@@ -334,19 +344,19 @@ const ViewStaffDetail: React.FC = () => {
 
                 {mode === 'advance' && (
                    <div className="grid grid-cols-2 gap-4">
-                      <button type="button" onClick={() => setFormData({...formData, type: 'received'})} className={`py-4 rounded-3xl font-black text-[10px] uppercase border-2 transition-all ${formData.type === 'received' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'text-slate-400 border-slate-100'}`}>Give Advance</button>
-                      <button type="button" onClick={() => setFormData({...formData, type: 'sent'})} className={`py-4 rounded-3xl font-black text-[10px] uppercase border-2 transition-all ${formData.type === 'sent' ? 'border-rose-500 bg-rose-50 text-rose-600' : 'text-slate-400 border-slate-100'}`}>Recover Advance</button>
+                      <button type="button" onClick={() => setFormData({...formData, type: 'received'})} className={`py-4 rounded-3xl font-black text-[10px] uppercase border-2 transition-all ${formData.type === 'received' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'text-slate-400 border-slate-100'}`}>Give</button>
+                      <button type="button" onClick={() => setFormData({...formData, type: 'sent'})} className={`py-4 rounded-3xl font-black text-[10px] uppercase border-2 transition-all ${formData.type === 'sent' ? 'border-rose-500 bg-rose-50 text-rose-600' : 'text-slate-400 border-slate-100'}`}>Recover</button>
                    </div>
                 )}
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Notes / Description</label>
-                  <input type="text" required placeholder="Description..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4.5 font-black text-slate-800" />
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Notes</label>
+                  <input type="text" required placeholder="Entry description..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4 font-black text-slate-800" />
                 </div>
 
-                <button type="submit" disabled={modalLoading} className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] hover:bg-indigo-600 shadow-xl shadow-slate-200 transition-all flex items-center justify-center gap-3">
+                <button type="submit" disabled={modalLoading} className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest hover:bg-indigo-600 transition-all flex items-center justify-center gap-3">
                   {modalLoading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} 
-                  Confirm {mode} Entry
+                  Confirm Entry
                 </button>
               </form>
             </motion.div>
