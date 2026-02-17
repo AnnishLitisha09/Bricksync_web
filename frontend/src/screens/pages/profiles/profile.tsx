@@ -1,19 +1,28 @@
-import { useEffect, useRef, useState } from "react";
-import { useUserStore } from "../../../store/useUserStore";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  BadgeCheck,
+  Calendar,
+  CameraIcon,
+  CheckCircle,
+  Fingerprint,
+  Mail,
+  Save,
+  ShieldCheck,
+  Smartphone,
+  Upload,
+  User,
+  Wallet
+} from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { BASE_URL, FILE_BASE_URL } from "../../../api/base";
 import {
   getProfile,
-  updateProfileImage,
   updateAadhaarImage,
-  updateDrivingLicenceImage,
   updateDrivingLicenceBack,
+  updateDrivingLicenceImage,
+  updateProfileImage,
 } from "../../../api/user";
-import { FILE_BASE_URL, BASE_URL } from "../../../api/base";
-import { 
-  Camera, User, Mail, Phone, Wallet, ShieldCheck, 
-  Fingerprint, CreditCard, Calendar, Upload, Save, 
-  CheckCircle, BadgeCheck, CameraIcon, Smartphone
-} from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useUserStore } from "../../../store/useUserStore";
 
 export default function ProfilePage() {
   const { user, setUser } = useUserStore();
@@ -71,7 +80,7 @@ export default function ProfilePage() {
   const handleSaveField = async (field: "name" | "email" | "phoneNumber") => {
     if (!user) return;
     const value = editedFields[field];
-    if (value === user[field]) return;
+    if (value === user[field as keyof typeof user]) return;
     setLoading(true);
     try {
       const formData = new FormData();
@@ -92,7 +101,6 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20 font-sans">
-      {/* --- HERO BANNER --- */}
       <div className="h-64 bg-slate-900 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/40 to-purple-600/40" />
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:20px_20px]" />
@@ -101,14 +109,12 @@ export default function ProfilePage() {
       <div className="max-w-6xl mx-auto px-4 -mt-32 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* --- LEFT COLUMN: IDENTITY CARD --- */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }}
             className="lg:col-span-4 space-y-6"
           >
             <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/60 p-8 border border-slate-100 backdrop-blur-sm relative overflow-hidden">
-              {/* Profile Image Wrap */}
               <div className="relative w-48 h-48 mx-auto group">
                 <div className="absolute inset-0 bg-indigo-500 rounded-[2.5rem] rotate-6 group-hover:rotate-12 transition-transform duration-500" />
                 <div className="relative w-full h-full rounded-[2.5rem] overflow-hidden ring-4 ring-white shadow-xl bg-slate-100">
@@ -158,13 +164,16 @@ export default function ProfilePage() {
               </div>
             </div>
             
-            <input ref={profileRef} type="file" hidden accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0], updateProfileImage)} />
+            <input 
+              ref={profileRef} 
+              type="file" 
+              hidden 
+              accept="image/*" 
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileUpload(e.target.files?.[0], updateProfileImage)} 
+            />
           </motion.div>
 
-          {/* --- RIGHT COLUMN: FORMS & DOCUMENTS --- */}
           <div className="lg:col-span-8 space-y-8">
-            
-            {/* PERSONAL DETAILS CARD */}
             <motion.div 
               initial={{ opacity: 0, x: 20 }} 
               animate={{ opacity: 1, x: 0 }}
@@ -204,7 +213,6 @@ export default function ProfilePage() {
               </div>
             </motion.div>
 
-            {/* DOCUMENT VAULT CARD */}
             <motion.div 
               initial={{ opacity: 0, x: 20 }} 
               animate={{ opacity: 1, x: 0 }}
@@ -222,16 +230,16 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <DocCard 
                   title="Aadhaar Verification" img={user?.aadharUrl} inputRef={aadhaarRef} 
-                  onUpload={(e) => handleFileUpload(e.target.files?.[0], updateAadhaarImage)} 
+                  onUpload={(e: React.ChangeEvent<HTMLInputElement>) => handleFileUpload(e.target.files?.[0], updateAadhaarImage)} 
                 />
                 <DocCard 
                   title="Licence Front" img={user?.drivingLicenceUrl} inputRef={licenceRef} 
-                  onUpload={(e) => handleFileUpload(e.target.files?.[0], updateDrivingLicenceImage)} 
+                  onUpload={(e: React.ChangeEvent<HTMLInputElement>) => handleFileUpload(e.target.files?.[0], updateDrivingLicenceImage)} 
                 />
                 <div className="md:col-span-2">
                   <DocCard 
                     title="Licence Back (Verification)" img={user?.drivingLicenceBackUrl} inputRef={licenceBackRef} 
-                    onUpload={(e) => handleLicenceBackUpload(e.target.files?.[0])}
+                    onUpload={(e: React.ChangeEvent<HTMLInputElement>) => handleLicenceBackUpload(e.target.files?.[0])}
                     date={validityDate} setDate={setValidityDate}
                     isBack
                   />
@@ -248,8 +256,17 @@ export default function ProfilePage() {
 
 /* --- REUSABLE COMPONENTS --- */
 
-function LuxuryInput({ label, value, original, onChange, onSave, icon }: any) {
-  const isChanged = value !== original;
+interface LuxuryInputProps {
+  label: string;
+  value: string;
+  original: string | null | undefined;
+  onChange: (val: string) => void;
+  onSave: () => void;
+  icon: React.ReactNode;
+}
+
+function LuxuryInput({ label, value, original, onChange, onSave, icon }: LuxuryInputProps) {
+  const isChanged = value !== (original || "");
   return (
     <div className="space-y-2 group">
       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1 group-focus-within:text-indigo-600 transition-colors">{label}</label>
@@ -257,7 +274,7 @@ function LuxuryInput({ label, value, original, onChange, onSave, icon }: any) {
         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-400 transition-colors">{icon}</div>
         <input 
           value={value} 
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
           className={`w-full py-4 pl-12 pr-12 rounded-2xl font-bold text-sm outline-none transition-all ${isChanged ? 'bg-white border-2 border-indigo-500 shadow-lg shadow-indigo-100' : 'bg-slate-50 border border-slate-100 focus:bg-white focus:border-indigo-200'}`}
         />
         <AnimatePresence>
@@ -276,7 +293,17 @@ function LuxuryInput({ label, value, original, onChange, onSave, icon }: any) {
   );
 }
 
-function DocCard({ title, img, inputRef, onUpload, date, setDate, isBack }: any) {
+interface DocCardProps {
+  title: string;
+  img: string | null | undefined; // FIXED: Added null support
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  date?: string;
+  setDate?: (val: string) => void;
+  isBack?: boolean;
+}
+
+function DocCard({ title, img, inputRef, onUpload, date, setDate, isBack }: DocCardProps) {
   return (
     <div className="bg-slate-50 rounded-[2.2rem] p-6 border border-slate-100 hover:border-indigo-200 transition-all duration-300 group">
       <div className="flex items-center justify-between mb-4">
@@ -299,14 +326,14 @@ function DocCard({ title, img, inputRef, onUpload, date, setDate, isBack }: any)
 
       <input ref={inputRef} type="file" hidden accept="image/*" onChange={onUpload} />
 
-      {isBack && (
+      {isBack && setDate && (
         <div className="mt-4 space-y-2">
           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Expiry Date</label>
           <div className="relative">
             <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="date" value={date} 
-              onChange={(e) => setDate(e.target.value)} 
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDate(e.target.value)} 
               className="w-full bg-white border border-slate-200 rounded-xl py-2 pl-9 pr-4 text-xs font-black focus:border-indigo-400 outline-none" 
             />
           </div>

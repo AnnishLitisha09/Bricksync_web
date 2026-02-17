@@ -1,16 +1,29 @@
-import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { 
-  ChevronLeft, ChevronRight, Calendar, User, Mail, Phone, 
-  CreditCard, ShieldCheck, Clock, ArrowUpRight, ArrowDownLeft,
-  FileText, Download, IndianRupee, MapPin
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  ChevronLeft, ChevronRight,
+  Clock,
+  CreditCard,
+  FileText,
+  IndianRupee,
+  Mail, Phone,
+  ShieldCheck,
+  User
 } from "lucide-react";
+import React, { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+
+interface AttendanceRecord {
+  day: string;
+  fn: boolean;
+  an: boolean;
+}
 
 const ViewStaffDetail: React.FC = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // --- Mock Data (Mirroring your AddDriverPage schema) ---
+  // --- Mock Data ---
   const driver = {
     name: "Rahul Kumar",
     email: "rahul.k@logistics.com",
@@ -32,9 +45,9 @@ const ViewStaffDetail: React.FC = () => {
   ];
 
   // --- Attendance State ---
-  const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
+  const [currentWeekOffset, setCurrentWeekOffset] = useState<number>(0);
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-  const [attendance, setAttendance] = useState(
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>(
     days.map((day) => ({ day, fn: false, an: false }))
   );
 
@@ -44,8 +57,19 @@ const ViewStaffDetail: React.FC = () => {
     setAttendance(updated);
   };
 
+  // Helper to format the date range display
+  const getWeekRange = (offset: number) => {
+    const start = new Date();
+    start.setDate(start.getDate() - start.getDay() + 1 + (offset * 7));
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    return `${start.toLocaleDateString('en-US', options)} - ${end.toLocaleDateString('en-US', options)}`;
+  };
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-10 space-y-8">
+    <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-10 space-y-8 font-sans">
       
       {/* 1. TOP NAVIGATION & ACTIONS */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -128,7 +152,6 @@ const ViewStaffDetail: React.FC = () => {
                 <h3 className="text-xl font-black text-slate-800 tracking-tight">Weekly Attendance</h3>
               </div>
               
-              {/* Week Switcher */}
               <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
                 <button 
                    onClick={() => setCurrentWeekOffset(o => o - 1)}
@@ -136,8 +159,10 @@ const ViewStaffDetail: React.FC = () => {
                 >
                   <ChevronLeft size={18} />
                 </button>
-                <div className="px-4 text-center">
-                  <span className="text-[10px] font-black text-slate-400 uppercase block">Feb 16 - Feb 22</span>
+                <div className="px-4 text-center min-w-[120px]">
+                  <span className="text-[10px] font-black text-slate-400 uppercase block">
+                    {getWeekRange(currentWeekOffset)}
+                  </span>
                 </div>
                 <button 
                   onClick={() => setCurrentWeekOffset(o => o + 1)}
@@ -244,7 +269,13 @@ const ViewStaffDetail: React.FC = () => {
 
 /* --- SHARED UI COMPONENTS --- */
 
-const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) => (
+interface InfoRowProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}
+
+const InfoRow: React.FC<InfoRowProps> = ({ icon, label, value }) => (
   <div className="flex items-center gap-4 p-3 rounded-2xl hover:bg-slate-50 transition-colors group">
     <div className="text-slate-300 group-hover:text-indigo-500 transition-colors">{icon}</div>
     <div>
@@ -254,7 +285,12 @@ const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string,
   </div>
 );
 
-const AttendanceCheckbox = ({ checked, onChange }: { checked: boolean, onChange: () => void }) => (
+interface AttendanceCheckboxProps {
+  checked: boolean;
+  onChange: () => void;
+}
+
+const AttendanceCheckbox: React.FC<AttendanceCheckboxProps> = ({ checked, onChange }) => (
   <div 
     onClick={onChange}
     className={`mx-auto w-6 h-6 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-center ${
@@ -265,7 +301,12 @@ const AttendanceCheckbox = ({ checked, onChange }: { checked: boolean, onChange:
   </div>
 );
 
-const StatusBadge = ({ fn, an }: { fn: boolean, an: boolean }) => {
+interface StatusBadgeProps {
+  fn: boolean;
+  an: boolean;
+}
+
+const StatusBadge: React.FC<StatusBadgeProps> = ({ fn, an }) => {
   if (fn && an) return <span className="text-[9px] font-black uppercase px-2 py-1 rounded-md text-emerald-600 bg-emerald-50">Full Day</span>;
   if (fn || an) return <span className="text-[9px] font-black uppercase px-2 py-1 rounded-md text-amber-600 bg-amber-50">Half Day</span>;
   return <span className="text-[9px] font-black uppercase px-2 py-1 rounded-md text-slate-300 bg-slate-100">Absent</span>;

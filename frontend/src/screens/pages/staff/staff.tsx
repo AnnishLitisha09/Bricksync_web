@@ -1,29 +1,43 @@
-import React, { useEffect, useState, useMemo } from "react";
-import { 
-  Mail, Search, Plus, Phone, User, IndianRupee, 
-  MoreVertical, Filter, ShieldCheck, ArrowRight 
+import {
+  ArrowRight,
+  Filter,
+  IndianRupee,
+  Mail,
+  MoreVertical,
+  Phone,
+  Plus,
+  Search,
+  ShieldCheck,
+  User
 } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { BASE_URL, FILE_BASE_URL, getAuthHeader } from "../../../api/base";
 import { useDriverStore, type DriverType } from "../../../store/driverStore";
-import { useNavigate } from "react-router-dom";
+
+// Adding a local extension if your DriverType is missing the database _id
+interface InternalDriver extends DriverType {
+  _id: string;
+}
 
 type AmountFilter = "All" | "Below 10000" | "Below 20000" | "Below 30000";
 
 const Staff: React.FC = () => {
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
   const [filter, setFilter] = useState<AmountFilter>("All");
 
   const drivers = useDriverStore((state) => state.drivers);
   const setDrivers = useDriverStore((state) => state.setDrivers);
 
-  const fetchDrivers = async () => {
+  const fetchDrivers = async (): Promise<void> => {
     setLoading(true);
     try {
       const res = await fetch(`${BASE_URL}/user/drivers`, { headers: getAuthHeader() });
-      const data: DriverType[] = await res.json();
-      setDrivers(data);
+      const data = await res.json();
+      // Cast to InternalDriver[] if the backend definitely sends _id
+      setDrivers(data as InternalDriver[]);
     } catch (error) {
       console.error("Error fetching drivers", error);
     } finally {
@@ -31,16 +45,18 @@ const Staff: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchDrivers(); }, []);
+  useEffect(() => { 
+    fetchDrivers(); 
+  }, []);
 
   const filteredDrivers = useMemo(() => {
-    return drivers.filter((d) => {
+    return (drivers as InternalDriver[]).filter((d) => {
       const amount = Number(d.amount);
       const query = search.toLowerCase();
       const matchesSearch = 
         d.name.toLowerCase().includes(query) || 
-        d.phoneNumber.includes(query) ||
-        d.email.toLowerCase().includes(query);
+        (d.phoneNumber && d.phoneNumber.includes(query)) ||
+        (d.email && d.email.toLowerCase().includes(query));
       
       if (filter === "All") return matchesSearch;
       const limit = parseInt(filter.replace("Below ", ""));
@@ -49,7 +65,7 @@ const Staff: React.FC = () => {
   }, [drivers, search, filter]);
 
   return (
-    <div className="p-4 md:p-10 min-h-screen bg-[#FDFDFD] space-y-10">
+    <div className="p-4 md:p-10 min-h-screen bg-[#FDFDFD] space-y-10 font-sans">
       
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -79,7 +95,7 @@ const Staff: React.FC = () => {
             type="text"
             placeholder="Search by name, email, or phone..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
             className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border-none bg-slate-50 focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all font-semibold text-slate-700 placeholder:text-slate-300"
           />
         </div>
@@ -141,7 +157,7 @@ const Staff: React.FC = () => {
                 </h3>
                 <p className="text-slate-400 font-bold text-xs truncate flex items-center gap-1.5 uppercase tracking-tighter">
                   <Mail size={12} />
-                  {driver.email}
+                  {driver.email || "No Email Provided"}
                 </p>
               </div>
 
@@ -151,7 +167,7 @@ const Staff: React.FC = () => {
                     <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Monthly</span>
                     <div className="flex items-center text-slate-900 font-black text-lg">
                       <IndianRupee size={16} className="text-slate-400 mr-0.5" />
-                      <span>{Number(driver.amount).toLocaleString()}</span>
+                      <span>{Number(driver.amount || 0).toLocaleString()}</span>
                     </div>
                   </div>
                   <div className="text-right">
@@ -181,7 +197,6 @@ const Staff: React.FC = () => {
         </div>
       )}
 
-      {/* Empty State */}
       {!loading && filteredDrivers.length === 0 && (
         <div className="flex flex-col items-center justify-center py-32 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100">
           <div className="p-6 bg-white rounded-full shadow-sm mb-6">

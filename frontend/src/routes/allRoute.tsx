@@ -1,34 +1,33 @@
 import { Navigate } from "react-router-dom";
-import { Dashboard } from "../screens/pages/dashBoard";
-import NotFound from "../screens/NotFound";
-import VehicleList from "../screens/pages/Vehicles/Vehicle";
+import ForgotPassword from "../screens/auth/ForgotPassword";
 import Login from "../screens/auth/Login";
-import ProfilePage from "../screens/pages/profiles/profile";
-import AddVehicle from "../screens/pages/Vehicles/AddVehicle";
-import ViewVehicle from "../screens/pages/Vehicles/viewVehicle";
-import FuelPage from "../screens/pages/Vehicles/Fuel/FuelPage";
-import ShopPage from "../screens/pages/shops/ShopPage";
-import AddFuelPage from "../screens/pages/Vehicles/Fuel/AddFuelPage";
+import ResetPassword from "../screens/auth/ResetPassword";
+import SignUp from "../screens/auth/SignUp";
+import NotFound from "../screens/NotFound";
 import Banks from "../screens/pages/banks/banks";
 import TransactionsPage from "../screens/pages/banks/TransactionsPage";
+import { Dashboard } from "../screens/pages/dashBoard";
 import LandingPage from "../screens/pages/landing/LandingPage";
-import SignUp from "../screens/auth/SignUp";
-import ResetPassword from "../screens/auth/ResetPassword";
-import ForgotPassword from "../screens/auth/ForgotPassword";
-import Staff from "../screens/pages/staff/staff";
+import ProfilePage from "../screens/pages/profiles/profile";
+import ShopPage from "../screens/pages/shops/ShopPage";
 import AddDriverPage from "../screens/pages/staff/AddDriverPage";
+import Staff from "../screens/pages/staff/staff";
+import AddVehicle from "../screens/pages/Vehicles/AddVehicle";
+import AddFuelPage from "../screens/pages/Vehicles/Fuel/AddFuelPage";
+import FuelPage from "../screens/pages/Vehicles/Fuel/FuelPage";
+import VehicleList from "../screens/pages/Vehicles/Vehicle";
+import ViewVehicle from "../screens/pages/Vehicles/viewVehicle";
 // --- IMPORT THE NEW VIEW DETAIL COMPONENT ---
-import ViewStaffDetail from "../screens/pages/staff/ViewStaffDetail"; 
-import ServiceShopPage from "../screens/pages/shops/services/ServiceShopPage";
-import BunkPage from "../screens/pages/shops/bunks/bunkPage";
-import AddBunkPage from "../screens/pages/shops/bunks/AddBunkPage";
-import AddServiceShopPage from "../screens/pages/shops/services/AddServiceShopPage";
-import ServicePage from "../screens/pages/Vehicles/service/ServicePage";
-import AddServicePage from "../screens/pages/Vehicles/service/AddServicePage";
-import ServiceHistoryPage from "../screens/pages/shops/services/ServiceHistoryPage";
-import FuelHistoryPage from "../screens/pages/shops/bunks/FuelHistoryPage";
-import Contact from "../screens/pages/landing/Contact";
 import ContactPage from "../screens/pages/ContactPage";
+import AddBunkPage from "../screens/pages/shops/bunks/AddBunkPage";
+import BunkPage from "../screens/pages/shops/bunks/bunkPage";
+import FuelHistoryPage from "../screens/pages/shops/bunks/FuelHistoryPage";
+import AddServiceShopPage from "../screens/pages/shops/services/AddServiceShopPage";
+import ServiceHistoryPage from "../screens/pages/shops/services/ServiceHistoryPage";
+import ServiceShopPage from "../screens/pages/shops/services/ServiceShopPage";
+import ViewStaffDetail from "../screens/pages/staff/ViewStaffDetail";
+import AddServicePage from "../screens/pages/Vehicles/service/AddServicePage";
+import ServicePage from "../screens/pages/Vehicles/service/ServicePage";
 
 
 const privateRoutes = [
