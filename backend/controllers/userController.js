@@ -20,6 +20,7 @@ exports.getProfile = async (req, res) => {
         "drivingLicenceBackUrl",
         "drivingLicenceValidity",
         "userRole",
+        "staffRole", // ✅ Added
       ],
     });
 
@@ -31,10 +32,12 @@ exports.getProfile = async (req, res) => {
   }
 };
 
+
 /* 🔹 Update Profile Image */
 exports.updateProfileImage = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No image uploaded" });
+    if (!req.file)
+      return res.status(400).json({ message: "No image uploaded" });
 
     const imageUrl = `/images/${req.file.filename}`;
 
@@ -49,10 +52,12 @@ exports.updateProfileImage = async (req, res) => {
   }
 };
 
+
 /* 🔹 Update Aadhaar */
 exports.updateAadharImage = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No Aadhar image uploaded" });
+    if (!req.file)
+      return res.status(400).json({ message: "No Aadhar image uploaded" });
 
     const aadharUrl = `/images/${req.file.filename}`;
 
@@ -61,16 +66,18 @@ exports.updateAadharImage = async (req, res) => {
       { where: { userid: req.user.userid, isDeleted: false } }
     );
 
-    res.json({ message: "Aadhar card uploaded successfully", aadharUrl });
+    res.json({ message: "Aadhar uploaded", aadharUrl });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+
 /* 🔹 Update Driving Licence Front */
 exports.updateDrivingLicenceImage = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No Driving Licence image uploaded" });
+    if (!req.file)
+      return res.status(400).json({ message: "No DL image uploaded" });
 
     const drivingLicenceUrl = `/images/${req.file.filename}`;
 
@@ -79,35 +86,43 @@ exports.updateDrivingLicenceImage = async (req, res) => {
       { where: { userid: req.user.userid, isDeleted: false } }
     );
 
-    res.json({ message: "Driving licence uploaded successfully", drivingLicenceUrl });
+    res.json({
+      message: "Driving licence uploaded",
+      drivingLicenceUrl,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* 🔹 Update Driving Licence Back + Validity Date */
+
+/* 🔹 Update Driving Licence Back + Validity */
 exports.updateDrivingLicenceBack = async (req, res) => {
   try {
     if (!req.file && !req.body.validityDate)
       return res.status(400).json({ message: "No data provided" });
 
     const updates = {};
-    if (req.file) updates.drivingLicenceBackUrl = `/images/${req.file.filename}`;
-    if (req.body.validityDate) updates.drivingLicenceValidity = req.body.validityDate;
 
-    await User.update(
-      updates,
-      { where: { userid: req.user.userid, isDeleted: false } }
-    );
+    if (req.file)
+      updates.drivingLicenceBackUrl = `/images/${req.file.filename}`;
+
+    if (req.body.validityDate)
+      updates.drivingLicenceValidity = req.body.validityDate;
+
+    await User.update(updates, {
+      where: { userid: req.user.userid, isDeleted: false },
+    });
 
     res.json({
-      message: "Driving licence back uploaded successfully",
+      message: "Updated successfully",
       ...updates,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 /* 🔹 Get All Users */
 exports.getAllUsers = async (req, res) => {
@@ -116,24 +131,30 @@ exports.getAllUsers = async (req, res) => {
       where: { isDeleted: false },
       attributes: { exclude: ["password"] },
     });
+
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* 🔹 Soft Delete User */
+
+/* 🔹 Soft Delete */
 exports.deleteUser = async (req, res) => {
   try {
     await User.update(
       { isDeleted: true },
       { where: { userid: req.params.userid } }
     );
-    res.json({ message: "User deleted successfully" });
+
+    res.json({ message: "User deleted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+/* 🔹 Drivers Only */
 exports.getDriversOnly = async (req, res) => {
   try {
     const drivers = await User.findAll({
@@ -153,6 +174,7 @@ exports.getDriversOnly = async (req, res) => {
         "drivingLicenceBackUrl",
         "drivingLicenceValidity",
         "userRole",
+        "staffRole", // ✅ Added
       ],
     });
 
@@ -161,4 +183,3 @@ exports.getDriversOnly = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-

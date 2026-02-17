@@ -30,12 +30,12 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
       },
 
-      drivingLicenceBackUrl: {       // ✅ New field
+      drivingLicenceBackUrl: {
         type: DataTypes.STRING,
         allowNull: true,
       },
 
-      drivingLicenceValidity: {      // ✅ New field
+      drivingLicenceValidity: {
         type: DataTypes.DATE,
         allowNull: true,
       },
@@ -43,6 +43,13 @@ module.exports = (sequelize, DataTypes) => {
       userRole: {
         type: DataTypes.INTEGER,
         defaultValue: 3,
+      },
+
+      // ✅ NEW FIELD
+      staffRole: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: null,
       },
 
       isDeleted: {

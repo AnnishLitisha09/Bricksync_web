@@ -11,7 +11,8 @@ import {
   ShieldCheck,
   Trash2,
   User,
-  X
+  X,
+  Briefcase // Added for role visualization
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +21,7 @@ import { useDriverStore, type DriverType } from "../../../store/driverStore";
 
 interface InternalDriver extends DriverType {
   _id: string;
+  staffRole?: string; // ✅ Added to interface
 }
 
 type AmountFilter = "All" | "Below 10000" | "Below 20000" | "Below 30000";
@@ -30,7 +32,6 @@ const Staff: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [filter, setFilter] = useState<AmountFilter>("All");
   
-  // Track which driver card has the action menu open
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   const drivers = useDriverStore((state) => state.drivers);
@@ -50,7 +51,7 @@ const Staff: React.FC = () => {
   };
 
   const handleDeleteUser = async (driverId: string | number) => {
-    if (!window.confirm("Are you sure you want to delete this driver? This action cannot be undone.")) return;
+    if (!window.confirm("Are you sure you want to delete this personnel? This action cannot be undone.")) return;
     
     try {
       const res = await fetch(`${BASE_URL}/user/${driverId}`, {
@@ -59,12 +60,11 @@ const Staff: React.FC = () => {
       });
 
       if (res.ok) {
-        // Filter out the deleted driver from the store
         const updatedDrivers = (drivers as InternalDriver[]).filter(d => d.userid !== driverId);
         setDrivers(updatedDrivers);
         setActiveMenu(null);
       } else {
-        alert("Failed to delete user. Please try again.");
+        alert("Failed to delete user.");
       }
     } catch (error) {
       console.error("Delete error:", error);
@@ -73,7 +73,6 @@ const Staff: React.FC = () => {
 
   useEffect(() => {
     fetchDrivers();
-    // Close menu on click outside
     const closeMenu = () => setActiveMenu(null);
     window.addEventListener("click", closeMenu);
     return () => window.removeEventListener("click", closeMenu);
@@ -86,7 +85,8 @@ const Staff: React.FC = () => {
       const matchesSearch =
         d.name.toLowerCase().includes(query) ||
         (d.phoneNumber && d.phoneNumber.includes(query)) ||
-        (d.email && d.email.toLowerCase().includes(query));
+        (d.email && d.email.toLowerCase().includes(query)) ||
+        (d.staffRole && d.staffRole.toLowerCase().includes(query)); // Search by role too
 
       if (filter === "All") return matchesSearch;
       const limit = parseInt(filter.replace("Below ", ""));
@@ -104,8 +104,8 @@ const Staff: React.FC = () => {
             <ShieldCheck size={16} />
             Internal Database
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Driver Directory</h1>
-          <p className="text-slate-500 font-medium text-lg">Manage personnel details and weekly attendance.</p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Staff Directory</h1>
+          <p className="text-slate-500 font-medium text-lg">Manage roles, documents, and weekly attendance.</p>
         </div>
 
         <button
@@ -113,7 +113,7 @@ const Staff: React.FC = () => {
           className="flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 hover:bg-indigo-600 text-white rounded-2xl transition-all shadow-xl shadow-slate-200 active:scale-95 group"
         >
           <Plus size={22} />
-          <span className="font-bold">Add New Driver</span>
+          <span className="font-bold">Add New Personnel</span>
         </button>
       </div>
 
@@ -123,7 +123,7 @@ const Staff: React.FC = () => {
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
           <input
             type="text"
-            placeholder="Search by name, email, or phone..."
+            placeholder="Search by name, role, email..."
             value={search}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
             className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border-none bg-slate-50 focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all font-semibold text-slate-700 placeholder:text-slate-300"
@@ -176,7 +176,6 @@ const Staff: React.FC = () => {
                   <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full"></div>
                 </div>
                 
-                {/* Actions Dropdown */}
                 <div className="relative">
                   <button 
                     onClick={(e) => {
@@ -232,8 +231,12 @@ const Staff: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</span>
-                    <span className="text-emerald-600 font-black text-[10px] uppercase bg-emerald-50 px-2 py-1 rounded-md">On Duty</span>
+                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Designation</span>
+                    {/* ✅ STAFF ROLE SHOWING HERE */}
+                    <span className="text-indigo-600 font-black text-[10px] uppercase bg-indigo-50 px-2 py-1 rounded-md inline-flex items-center gap-1">
+                      <Briefcase size={10} />
+                      {driver.staffRole || "Staff"}
+                    </span>
                   </div>
                 </div>
 
@@ -258,7 +261,6 @@ const Staff: React.FC = () => {
         </div>
       )}
 
-      {/* Empty State */}
       {!loading && filteredDrivers.length === 0 && (
         <div className="flex flex-col items-center justify-center py-32 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100">
           <div className="p-6 bg-white rounded-full shadow-sm mb-6">

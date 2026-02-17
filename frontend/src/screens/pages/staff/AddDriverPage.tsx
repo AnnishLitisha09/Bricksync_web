@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   UserPlus, Mail, Phone, Lock, IndianRupee, 
   Calendar, FileText, ChevronLeft, Save, 
-  UploadCloud, X, CheckCircle2, UserCircle 
+  UploadCloud, X, CheckCircle2, UserCircle, Briefcase 
 } from "lucide-react";
 import { BASE_URL, getAuthHeader } from "../../../api/base";
 
@@ -18,6 +18,7 @@ export default function AddDriverPage() {
     password: "",
     amount: "",
     drivingLicenceValidity: "",
+    staffRole: "Driver", // Default selection
   });
 
   const [files, setFiles] = useState<{ [key: string]: File | null }>({
@@ -29,7 +30,7 @@ export default function AddDriverPage() {
 
   const [previews, setPreviews] = useState<{ [key: string]: string }>({});
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -59,20 +60,31 @@ export default function AddDriverPage() {
 
     setLoading(true);
     const formData = new FormData();
+    
+    // Append text fields
     Object.entries(form).forEach(([key, value]) => formData.append(key, value));
+    
+    // Append files
     Object.entries(files).forEach(([key, file]) => {
       if (file) formData.append(key, file);
     });
 
     try {
-      const res = await fetch(`${BASE_URL}/driver/create-driver`, {
+      // Updated endpoint to match your cURL: /api/auth/create-driver
+      const res = await fetch(`${BASE_URL}/auth/create-driver`, {
         method: "POST",
-        headers: { ...getAuthHeader() },
+        headers: { ...getAuthHeader() }, 
         body: formData,
       });
-      if (res.ok) navigate("/staff");
+
+      if (res.ok) {
+        navigate("/staff");
+      } else {
+        const err = await res.json();
+        alert(err.message || "Error creating staff member");
+      }
     } catch (error) {
-      console.error("Error creating driver", error);
+      console.error("Error creating staff", error);
     } finally {
       setLoading(false);
     }
@@ -85,8 +97,8 @@ export default function AddDriverPage() {
         <button onClick={() => navigate(-1)} className="p-2 -ml-2">
           <ChevronLeft size={24} className="text-slate-600" />
         </button>
-        <h1 className="text-lg font-black text-slate-900">New Driver</h1>
-        <div className="w-10" /> {/* Spacer */}
+        <h1 className="text-lg font-black text-slate-900">New Personnel</h1>
+        <div className="w-10" />
       </div>
 
       <div className="max-w-6xl mx-auto p-4 md:p-10">
@@ -102,18 +114,16 @@ export default function AddDriverPage() {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-          
-          {/* Progress Section */}
+          {/* Sidebar Info */}
           <div className="lg:col-span-4 lg:sticky lg:top-10 h-fit space-y-6">
             <div className="hidden lg:block space-y-4">
               <div className="w-20 h-20 bg-slate-900 rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl shadow-slate-200 mb-6">
                 <UserPlus size={36} />
               </div>
-              <h1 className="text-4xl font-black text-slate-900 leading-tight">Driver<br/>Onboarding</h1>
-              <p className="text-slate-500 font-medium">Create a digital profile and verify legal documents.</p>
+              <h1 className="text-4xl font-black text-slate-900 leading-tight">Personnel<br/>Onboarding</h1>
+              <p className="text-slate-500 font-medium">Assign roles and verify documents for your operational team.</p>
             </div>
 
-            {/* Steps - Responsive Layout */}
             <div className="flex lg:flex-col items-center lg:items-start justify-between lg:justify-start gap-4 lg:gap-6 bg-white lg:bg-transparent p-4 lg:p-0 rounded-3xl border border-slate-100 lg:border-none shadow-sm lg:shadow-none">
               <StepItem icon={<UserCircle size={18}/>} title="Identity" active />
               <div className="h-px flex-1 lg:hidden bg-slate-100" />
@@ -123,11 +133,10 @@ export default function AddDriverPage() {
             </div>
           </div>
 
-          {/* Form Section */}
+          {/* Form */}
           <div className="lg:col-span-8 space-y-6 pb-20 lg:pb-0">
             <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
               
-              {/* Profile Information */}
               <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-sm transition-all hover:shadow-md">
                 <SectionHeader number="01" title="General Details" />
                 
@@ -136,24 +145,47 @@ export default function AddDriverPage() {
                     icon={<UserPlus size={18}/>} label="Full Name" name="name" 
                     placeholder="E.g. Rahul Kumar" value={form.name} onChange={handleChange} 
                   />
+
+                  {/* Staff Role Selection */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Staff Role</label>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
+                        <Briefcase size={18}/>
+                      </div>
+                      <select
+                        name="staffRole"
+                        value={form.staffRole}
+                        onChange={handleChange}
+                        className="w-full bg-slate-50/50 border-2 border-slate-50 focus:border-indigo-500/20 focus:bg-white focus:ring-8 focus:ring-indigo-500/5 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 outline-none appearance-none transition-all cursor-pointer"
+                      >
+                        <option value="Operator">Operator</option>
+                        <option value="Driver">Driver</option>
+                        <option value="Loader">Loader</option>
+                        <option value="Stocker">Stocker</option>
+                        <option value="Others">Others</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <Input 
                     icon={<Mail size={18}/>} label="Email Address" name="email" 
                     type="email" placeholder="rahul@example.com" value={form.email} onChange={handleChange} 
                   />
                   <Input 
                     icon={<Phone size={18}/>} label="Phone Number" name="phoneNumber" 
-                    placeholder="+91 00000 00000" value={form.phoneNumber} onChange={handleChange} 
+                    placeholder="12345678" value={form.phoneNumber} onChange={handleChange} 
                   />
                   <Input 
                     icon={<Lock size={18}/>} label="Portal Password" name="password" 
-                    type="password" placeholder="Set a secure password" value={form.password} onChange={handleChange} 
+                    type="password" placeholder="******" value={form.password} onChange={handleChange} 
                   />
                   <Input 
                     icon={<IndianRupee size={18}/>} label="Base Salary" name="amount" 
-                    type="number" placeholder="Enter amount" value={form.amount} onChange={handleChange} 
+                    type="number" placeholder="Salary amount" value={form.amount} onChange={handleChange} 
                   />
                   <Input 
-                    icon={<Calendar size={18}/>} label="License Expiry" name="drivingLicenceValidity" 
+                    icon={<Calendar size={18}/>} label="License/ID Validity" name="drivingLicenceValidity" 
                     type="date" value={form.drivingLicenceValidity} onChange={handleChange} 
                   />
                 </div>
@@ -165,20 +197,12 @@ export default function AddDriverPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                   <FileDrop label="Profile Picture" preview={previews.image} onChange={(f) => handleFileChange("image", f)} />
                   <FileDrop label="Aadhar Card" preview={previews.aadhar} onChange={(f) => handleFileChange("aadhar", f)} />
-                  <FileDrop label="DL (Front)" preview={previews.drivingLicence} onChange={(f) => handleFileChange("drivingLicence", f)} />
-                  <FileDrop label="DL (Back)" preview={previews.drivingLicenceBack} onChange={(f) => handleFileChange("drivingLicenceBack", f)} />
+                  <FileDrop label="ID Card Front" preview={previews.drivingLicence} onChange={(f) => handleFileChange("drivingLicence", f)} />
+                  <FileDrop label="ID Card Back" preview={previews.drivingLicenceBack} onChange={(f) => handleFileChange("drivingLicenceBack", f)} />
                 </div>
               </div>
 
-              {/* Mobile Sticky Footer Actions */}
-              <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-lg border-t border-slate-100 lg:relative lg:bg-transparent lg:border-none lg:p-0 flex items-center justify-between lg:justify-end gap-4 z-40">
-                <button
-                  type="button"
-                  onClick={() => navigate(-1)}
-                  className="hidden md:block px-8 py-4 text-slate-400 font-bold hover:text-slate-900 transition-colors"
-                >
-                  Cancel
-                </button>
+              <div className="flex items-center justify-end gap-4">
                 <button
                   type="submit"
                   disabled={loading}
@@ -189,7 +213,7 @@ export default function AddDriverPage() {
                   ) : (
                     <Save size={20} />
                   )}
-                  {loading ? "Processing..." : "Complete Registration"}
+                  {loading ? "Onboarding..." : "Complete Registration"}
                 </button>
               </div>
             </form>
