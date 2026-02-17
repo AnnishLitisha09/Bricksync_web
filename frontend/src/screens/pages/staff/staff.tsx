@@ -45,19 +45,19 @@ const Staff: React.FC = () => {
     }
   };
 
-  useEffect(() => { 
-    fetchDrivers(); 
+  useEffect(() => {
+    fetchDrivers();
   }, []);
 
   const filteredDrivers = useMemo(() => {
     return (drivers as InternalDriver[]).filter((d) => {
       const amount = Number(d.amount);
       const query = search.toLowerCase();
-      const matchesSearch = 
-        d.name.toLowerCase().includes(query) || 
+      const matchesSearch =
+        d.name.toLowerCase().includes(query) ||
         (d.phoneNumber && d.phoneNumber.includes(query)) ||
         (d.email && d.email.toLowerCase().includes(query));
-      
+
       if (filter === "All") return matchesSearch;
       const limit = parseInt(filter.replace("Below ", ""));
       return matchesSearch && amount < limit;
@@ -66,7 +66,7 @@ const Staff: React.FC = () => {
 
   return (
     <div className="p-4 md:p-10 min-h-screen bg-[#FDFDFD] space-y-10 font-sans">
-      
+
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
@@ -77,7 +77,7 @@ const Staff: React.FC = () => {
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">Driver Directory</h1>
           <p className="text-slate-500 font-medium text-lg">Manage personnel details and weekly attendance.</p>
         </div>
-        
+
         <button
           onClick={() => navigate("/driver/add")}
           className="flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 hover:bg-indigo-600 text-white rounded-2xl transition-all shadow-xl shadow-slate-200 active:scale-95 group"
@@ -99,18 +99,17 @@ const Staff: React.FC = () => {
             className="w-full pl-14 pr-6 py-4 rounded-[1.8rem] border-none bg-slate-50 focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all font-semibold text-slate-700 placeholder:text-slate-300"
           />
         </div>
-        
+
         <div className="flex items-center gap-2 px-4 overflow-x-auto no-scrollbar w-full lg:w-auto">
           <Filter size={18} className="text-slate-400 mr-2 shrink-0" />
           {(["All", "Below 10000", "Below 20000", "Below 30000"] as AmountFilter[]).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`whitespace-nowrap px-6 py-3 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all ${
-                filter === f
+              className={`whitespace-nowrap px-6 py-3 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all ${filter === f
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
                   : "bg-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-50"
-              }`}
+                }`}
             >
               {f}
             </button>
@@ -121,14 +120,14 @@ const Staff: React.FC = () => {
       {/* Grid Content */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-40">
-           <div className="w-12 h-12 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-           <p className="text-slate-400 font-bold tracking-widest uppercase text-xs tracking-[0.2em]">Syncing Fleet...</p>
+          <div className="w-12 h-12 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-400 font-bold tracking-widest uppercase text-xs tracking-[0.2em]">Syncing Fleet...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
           {filteredDrivers.map((driver) => (
-            <div 
-              key={driver._id} 
+            <div
+              key={driver._id}
               className="group bg-white rounded-[2.5rem] border border-slate-100 p-8 hover:border-indigo-100 hover:shadow-2xl hover:shadow-indigo-50/50 transition-all duration-500 flex flex-col"
             >
               <div className="flex items-start justify-between mb-8">
@@ -177,16 +176,16 @@ const Staff: React.FC = () => {
                 </div>
 
                 <div className="flex gap-3">
-                  <a 
+                  <a
                     href={`tel:${driver.phoneNumber}`}
                     className="flex-1 bg-slate-50 hover:bg-indigo-50 text-slate-900 hover:text-indigo-600 py-4 rounded-2xl flex items-center justify-center gap-2 transition-all font-bold text-sm border border-transparent hover:border-indigo-100 active:scale-95"
                   >
                     <Phone size={16} />
                     Call
                   </a>
-                  <button 
-                    onClick={() => navigate(`/driver/view/${driver._id}`)}
-                    className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200 group-hover:translate-x-1 active:scale-90"
+                  <button
+                    onClick={() => navigate(`/driver/view/${driver.userid}`)} // Use userid here
+                    className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:bg-indigo-600 transition-all shadow-lg"
                   >
                     <ArrowRight size={20} />
                   </button>

@@ -1,55 +1,138 @@
 import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  ChevronLeft, ChevronRight,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   CreditCard,
   FileText,
   IndianRupee,
-  Mail, Phone,
+  Mail,
+  Phone,
   ShieldCheck,
-  User
+  User,
+  Loader2,
+  ExternalLink,
+  Save,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Wallet
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { BASE_URL, FILE_BASE_URL, getAuthHeader } from "../../../api/base";
+import toast, { Toaster } from "react-hot-toast";
+
+// --- Interfaces ---
+interface APIUser {
+  userid: number;
+  name: string;
+  email: string | null;
+  phoneNumber: string;
+  amount: number; // Driver's current balance
+  imageUrl: string | null;
+  aadharUrl: string | null;
+  drivingLicenceUrl: string | null;
+  drivingLicenceBackUrl: string | null;
+  drivingLicenceValidity: string | null;
+  userRole: number;
+  createdAt: string;
+}
 
 interface AttendanceRecord {
   day: string;
+  date: string;
   fn: boolean;
   an: boolean;
+}
+
+interface Transaction {
+  id: number;
+  date: string;
+  amount: number;
+  type: "sent" | "received";
+  description: string;
 }
 
 const ViewStaffDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-
-  // --- Mock Data ---
-  const driver = {
-    name: "Rahul Kumar",
-    email: "rahul.k@logistics.com",
-    phoneNumber: "+91 98765 43210",
-    baseSalary: "25,000",
-    licenseValidity: "2028-12-31",
-    status: "Active",
-    joinedDate: "Oct 12, 2024",
-    documents: [
-      { name: "Aadhar Card", status: "Verified" },
-      { name: "Driving License", status: "Verified" }
-    ]
-  };
-
-  const payments = [
-    { id: 1, date: "2026-02-10", mode: "UPI", amount: "5,000", type: "Received", ref: "TXN9901" },
-    { id: 2, date: "2026-02-01", mode: "Bank Transfer", amount: "20,000", type: "Sent", ref: "TXN8820" },
-    { id: 3, date: "2026-01-15", mode: "Cash", amount: "1,200", type: "Received", ref: "CASH_02" },
-  ];
-
-  // --- Attendance State ---
+  
+  const [staff, setStaff] = useState<APIUser | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
   const [currentWeekOffset, setCurrentWeekOffset] = useState<number>(0);
-  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>(
-    days.map((day) => ({ day, fn: false, an: false }))
-  );
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  // --- Date Helpers ---
+  const getStartOfWeek = useCallback((offset: number) => {
+    const date = new Date();
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1) + (offset * 7);
+    return new Date(date.setDate(diff));
+  }, []);
+
+  const formatDate = (date: Date) => date.toISOString().split('T')[0];
+
+  // --- Fetch Data ---
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Fetch User Detail
+        const userRes = await fetch(`${BASE_URL}/user`, { headers: getAuthHeader() });
+        const userData: APIUser[] = await userRes.json();
+        const found = userData.find((u) => String(u.userid) === id);
+        setStaff(found || null);
+
+        // Mocking Transactions (Replace with your actual API call)
+        // const transRes = await fetch(`${BASE_URL}/transactions?userid=${id}`, { headers: getAuthHeader() });
+        // const transData = await transRes.json();
+        setTransactions([
+          { id: 1, date: "2026-02-10", amount: 5000, type: "received", description: "Weekly Salary" },
+          { id: 2, date: "2026-02-12", amount: 200, type: "sent", description: "Fuel Advance" },
+          { id: 3, date: "2026-02-15", amount: 1500, type: "received", description: "Incentive" },
+        ]);
+
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load details");
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (id) fetchData();
+  }, [id]);
+
+  // --- Attendance Sync ---
+  useEffect(() => {
+    const fetchWeeklyAttendance = async () => {
+      if (!id) return;
+      const start = getStartOfWeek(currentWeekOffset);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+
+      try {
+        const res = await fetch(
+          `${BASE_URL}/attendance/weekly?userid=${id}&start=${formatDate(start)}&end=${formatDate(end)}`,
+          { headers: getAuthHeader() }
+        );
+        const remoteData = await res.json();
+
+        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        const weeklyRecords = days.map((dayName, idx) => {
+          const d = new Date(start);
+          d.setDate(d.getDate() + idx);
+          const dateStr = formatDate(d);
+          const record = remoteData.find((r: any) => r.date.split('T')[0] === dateStr);
+          return { day: dayName, date: dateStr, fn: record ? record.forenoon : false, an: record ? record.afternoon : false };
+        });
+        setAttendance(weeklyRecords);
+      } catch (error) {
+        console.error("Attendance fetch error:", error);
+      }
+    };
+    fetchWeeklyAttendance();
+  }, [id, currentWeekOffset, getStartOfWeek]);
 
   const toggleAttendance = (index: number, shift: "fn" | "an") => {
     const updated = [...attendance];
@@ -57,259 +140,198 @@ const ViewStaffDetail: React.FC = () => {
     setAttendance(updated);
   };
 
-  // Helper to format the date range display
-  const getWeekRange = (offset: number) => {
-    const start = new Date();
-    start.setDate(start.getDate() - start.getDay() + 1 + (offset * 7));
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    
-    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-    return `${start.toLocaleDateString('en-US', options)} - ${end.toLocaleDateString('en-US', options)}`;
+  const handleSave = async () => {
+    setSaving(true);
+    const loadingToast = toast.loading("Saving attendance...");
+    try {
+      const res = await fetch(`${BASE_URL}/attendance/save`, {
+        method: "POST",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify({ userid: Number(id), records: attendance.map(rec => ({ date: rec.date, forenoon: rec.fn, afternoon: rec.an })) })
+      });
+      if (res.ok) toast.success("Attendance synced successfully!", { id: loadingToast });
+      else throw new Error();
+    } catch (error) {
+      toast.error("Save failed", { id: loadingToast });
+    } finally {
+      setSaving(false);
+    }
   };
 
+  if (loading) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#FDFDFD]">
+      <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
+      <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Loading Profile...</p>
+    </div>
+  );
+
+  if (!staff) return <div className="p-20 text-center">User not found</div>;
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-10 space-y-8 font-sans">
-      
-      {/* 1. TOP NAVIGATION & ACTIONS */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate(-1)}
-            className="p-3 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
-          >
-            <ChevronLeft size={20} className="text-slate-600" />
-          </button>
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Driver Profile</h1>
-            <p className="text-slate-500 font-medium flex items-center gap-2">
-              UID: <span className="text-indigo-600 font-bold">{id?.toUpperCase() || "DRV-7721"}</span>
-              <span className="w-1 h-1 bg-slate-300 rounded-full" />
-              Joined {driver.joinedDate}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-            <button className="flex-1 md:flex-none px-6 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 transition-all">
-                Edit Details
-            </button>
-            <button className="flex-1 md:flex-none px-6 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                Generate Report
-            </button>
+    <div className="min-h-screen bg-[#FDFDFD] p-4 md:p-10 space-y-10 font-sans">
+      <Toaster position="top-right" />
+
+      {/* Header */}
+      <div className="flex items-center gap-5">
+        <button onClick={() => navigate(-1)} className="p-4 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
+          <ChevronLeft size={24} className="text-slate-600" />
+        </button>
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">{staff.name}</h1>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">DRIVER ID: {staff.userid}</p>
         </div>
       </div>
 
+      {/* Main Grid: Profile & Attendance */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* 2. LEFT COLUMN: PERSISTENT INFO */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-32 h-32 bg-slate-50 rounded-[2.5rem] flex items-center justify-center border border-slate-100 relative">
-                <User size={64} className="text-slate-200" />
-                <div className="absolute -bottom-2 px-4 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">
-                  {driver.status}
-                </div>
+        <div className="lg:col-span-4 space-y-8">
+          <div className="bg-white rounded-[3rem] border border-slate-100 p-8 shadow-sm">
+            <div className="flex flex-col items-center mb-8">
+               <div className="w-40 h-40 bg-slate-50 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-sm flex items-center justify-center">
+                {staff.imageUrl ? <img src={`${FILE_BASE_URL}${staff.imageUrl}`} className="w-full h-full object-cover" alt="Staff" /> : <User size={60} className="text-slate-200" />}
               </div>
-              <div>
-                <h2 className="text-2xl font-black text-slate-800">{driver.name}</h2>
-                <p className="text-slate-400 font-bold text-sm">Logistics Partner</p>
+              <div className="mt-6 flex flex-col items-center">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Balance</p>
+                <h2 className="text-3xl font-black text-indigo-600">₹{staff.amount.toLocaleString()}</h2>
               </div>
             </div>
-
-            <div className="mt-10 space-y-2">
-              <InfoRow icon={<Mail size={16}/>} label="Email" value={driver.email} />
-              <InfoRow icon={<Phone size={16}/>} label="Phone" value={driver.phoneNumber} />
-              <InfoRow icon={<IndianRupee size={16}/>} label="Base Salary" value={`₹${driver.baseSalary}`} />
-              <InfoRow icon={<ShieldCheck size={16}/>} label="DL Validity" value={driver.licenseValidity} />
-            </div>
-
-            <div className="mt-8 pt-8 border-t border-slate-50">
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Verification Docs</p>
-               <div className="grid grid-cols-2 gap-3">
-                  {driver.documents.map((doc, i) => (
-                    <div key={i} className="p-3 bg-slate-50 rounded-2xl flex flex-col gap-1">
-                        <FileText size={16} className="text-indigo-500" />
-                        <span className="text-xs font-bold text-slate-700">{doc.name}</span>
-                        <span className="text-[9px] font-black text-emerald-500 uppercase">{doc.status}</span>
-                    </div>
-                  ))}
-               </div>
+            <div className="space-y-4">
+              <InfoRow icon={<Mail size={18} />} label="Email" value={staff.email || "N/A"} />
+              <InfoRow icon={<Phone size={18} />} label="Phone" value={staff.phoneNumber} />
+              <InfoRow icon={<ShieldCheck size={18} />} label="DL Expiry" value={staff.drivingLicenceValidity ? new Date(staff.drivingLicenceValidity).toLocaleDateString() : "N/A"} />
             </div>
           </div>
         </div>
 
-        {/* 3. RIGHT COLUMN: ATTENDANCE & PAYMENTS */}
-        <div className="lg:col-span-8 space-y-8">
-          
-          {/* Attendance Section */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
-                  <Clock size={24} />
-                </div>
-                <h3 className="text-xl font-black text-slate-800 tracking-tight">Weekly Attendance</h3>
-              </div>
-              
-              <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-                <button 
-                   onClick={() => setCurrentWeekOffset(o => o - 1)}
-                   className="p-2 hover:bg-white hover:shadow-sm rounded-xl transition-all text-slate-600"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <div className="px-4 text-center min-w-[120px]">
-                  <span className="text-[10px] font-black text-slate-400 uppercase block">
-                    {getWeekRange(currentWeekOffset)}
-                  </span>
-                </div>
-                <button 
-                  onClick={() => setCurrentWeekOffset(o => o + 1)}
-                  className="p-2 hover:bg-white hover:shadow-sm rounded-xl transition-all text-slate-600"
-                >
-                  <ChevronRight size={18} />
-                </button>
+        <div className="lg:col-span-8">
+          <div className="bg-white rounded-[3rem] border border-slate-100 p-8 shadow-sm h-full">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-xl font-black text-slate-800">Weekly Attendance</h3>
+              <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+                <button onClick={() => setCurrentWeekOffset(o => o - 1)} className="p-1.5 hover:bg-white rounded-lg transition-all"><ChevronLeft size={16}/></button>
+                <span className="text-[10px] font-black text-slate-500 uppercase px-2">Week Offset: {currentWeekOffset}</span>
+                <button onClick={() => setCurrentWeekOffset(o => o + 1)} className="p-1.5 hover:bg-white rounded-lg transition-all"><ChevronRight size={16}/></button>
               </div>
             </div>
-
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-separate border-spacing-y-3">
+              <table className="w-full border-separate border-spacing-y-2">
                 <thead>
-                  <tr className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                  <tr className="text-[10px] font-black text-slate-300 uppercase text-left tracking-widest">
                     <th className="px-6 py-2">Day</th>
-                    <th className="px-6 py-2 text-center">Forenoon</th>
-                    <th className="px-6 py-2 text-center">Afternoon</th>
+                    <th className="px-6 py-2 text-center">FN</th>
+                    <th className="px-6 py-2 text-center">AN</th>
                     <th className="px-6 py-2 text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {attendance.map((row, index) => (
-                    <tr key={row.day} className="bg-slate-50/50 hover:bg-indigo-50/30 transition-colors group">
-                      <td className="px-6 py-4 rounded-l-2xl font-bold text-slate-700">{row.day}</td>
-                      <td className="px-6 py-4 text-center">
-                        <AttendanceCheckbox checked={row.fn} onChange={() => toggleAttendance(index, "fn")} />
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <AttendanceCheckbox checked={row.an} onChange={() => toggleAttendance(index, "an")} />
-                      </td>
-                      <td className="px-6 py-4 rounded-r-2xl text-right">
-                        <StatusBadge fn={row.fn} an={row.an} />
-                      </td>
+                    <tr key={row.date} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4 rounded-l-2xl font-bold text-slate-700">{row.day} <span className="text-[10px] text-slate-400 font-normal ml-2">{row.date}</span></td>
+                      <td><AttendanceCheckbox checked={row.fn} onChange={() => toggleAttendance(index, "fn")} /></td>
+                      <td><AttendanceCheckbox checked={row.an} onChange={() => toggleAttendance(index, "an")} /></td>
+                      <td className="px-6 py-4 rounded-r-2xl text-right"><StatusBadge fn={row.fn} an={row.an} /></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <button className="mt-6 w-full py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200">
-              Save Weekly Records
+            <button onClick={handleSave} disabled={saving} className="w-full mt-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-indigo-600 transition-all flex items-center justify-center gap-2">
+              {saving ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>} Save Records
             </button>
           </div>
+        </div>
+      </div>
 
-          {/* Payment Logs Section */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
-                  <CreditCard size={24} />
-                </div>
-                <h3 className="text-xl font-black text-slate-800 tracking-tight">Payment History</h3>
-              </div>
-              <button className="text-indigo-600 font-black text-[11px] uppercase tracking-widest hover:underline">View All</button>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-separate border-spacing-y-2">
-                <thead>
-                  <tr className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                    <th className="px-6 py-3">Sl.No</th>
-                    <th className="px-6 py-3">Date</th>
-                    <th className="px-6 py-3">Mode</th>
-                    <th className="px-6 py-3">Amount</th>
-                    <th className="px-6 py-3 text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((pay, idx) => (
-                    <tr key={pay.id} className="hover:bg-slate-50 transition-colors group">
-                      <td className="px-6 py-4 text-slate-400 font-bold">{idx + 1}</td>
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-slate-700">{pay.date}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">Ref: {pay.ref}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase">
-                          {pay.mode}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className={`font-black ${pay.type === 'Sent' ? 'text-blue-600' : 'text-amber-600'}`}>
-                          ₹{pay.amount}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className={`inline-flex items-center gap-1 font-black text-[9px] uppercase px-3 py-1 rounded-full ${
-                          pay.type === 'Received' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'
-                        }`}>
-                          {pay.type === 'Received' ? <ArrowDownLeft size={10}/> : <ArrowUpRight size={10}/>}
-                          {pay.type}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {/* Transaction History Section */}
+      <div className="bg-white rounded-[3rem] border border-slate-100 p-8 shadow-sm">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><Wallet size={24} /></div>
+            <div>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Financial Ledger</h3>
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Transaction history & Balance</p>
             </div>
           </div>
+          <div className="text-right">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Driver Balance</p>
+            <p className="text-3xl font-black text-slate-900">₹{staff.amount.toLocaleString()}</p>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full border-separate border-spacing-y-3">
+            <thead>
+              <tr className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                <th className="px-6 py-2 text-left">Sl.No</th>
+                <th className="px-6 py-2 text-left">Date</th>
+                <th className="px-6 py-2 text-left">Description</th>
+                <th className="px-6 py-2 text-center">Status</th>
+                <th className="px-6 py-2 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.map((t, idx) => (
+                <tr key={t.id} className="bg-slate-50/30 hover:bg-slate-50 transition-all group">
+                  <td className="px-6 py-5 rounded-l-2xl font-bold text-slate-400 text-xs">{String(idx + 1).padStart(2, '0')}</td>
+                  <td className="px-6 py-5 font-bold text-slate-700 text-sm">{new Date(t.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                  <td className="px-6 py-5">
+                    <p className="font-bold text-slate-800 text-sm">{t.description}</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-black">Ref ID: TXN-{t.id}992</p>
+                  </td>
+                  <td className="px-6 py-5 text-center">
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase ${
+                      t.type === 'received' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+                    }`}>
+                      {t.type === 'received' ? <ArrowDownLeft size={12} /> : <ArrowUpRight size={12} />}
+                      {t.type}
+                    </span>
+                  </td>
+                  <td className={`px-6 py-5 rounded-r-2xl text-right font-black text-sm ${t.type === 'received' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {t.type === 'received' ? '+' : '-'} ₹{t.amount.toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+              {transactions.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">No transactions found</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 };
 
-/* --- SHARED UI COMPONENTS --- */
-
-interface InfoRowProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}
-
-const InfoRow: React.FC<InfoRowProps> = ({ icon, label, value }) => (
-  <div className="flex items-center gap-4 p-3 rounded-2xl hover:bg-slate-50 transition-colors group">
-    <div className="text-slate-300 group-hover:text-indigo-500 transition-colors">{icon}</div>
+/* --- UI Subcomponents --- */
+const InfoRow: React.FC<{ icon: React.ReactNode; label: string; value: string }> = ({ icon, label, value }) => (
+  <div className="flex items-center gap-4 p-3 bg-slate-50/50 rounded-2xl">
+    <div className="text-slate-400">{icon}</div>
     <div>
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
-      <p className="font-bold text-slate-700">{value}</p>
+      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">{label}</p>
+      <p className="font-bold text-slate-700 text-sm mt-1">{value}</p>
     </div>
   </div>
 );
 
-interface AttendanceCheckboxProps {
-  checked: boolean;
-  onChange: () => void;
-}
-
-const AttendanceCheckbox: React.FC<AttendanceCheckboxProps> = ({ checked, onChange }) => (
-  <div 
-    onClick={onChange}
-    className={`mx-auto w-6 h-6 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-center ${
-      checked ? "bg-indigo-600 border-indigo-600 shadow-md shadow-indigo-100" : "border-slate-200 bg-white"
-    }`}
-  >
+const AttendanceCheckbox: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked, onChange }) => (
+  <div onClick={onChange} className={`mx-auto w-6 h-6 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-center ${checked ? "bg-indigo-600 border-indigo-600" : "border-slate-200 bg-white"}`}>
     {checked && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
   </div>
 );
 
-interface StatusBadgeProps {
-  fn: boolean;
-  an: boolean;
-}
-
-const StatusBadge: React.FC<StatusBadgeProps> = ({ fn, an }) => {
-  if (fn && an) return <span className="text-[9px] font-black uppercase px-2 py-1 rounded-md text-emerald-600 bg-emerald-50">Full Day</span>;
-  if (fn || an) return <span className="text-[9px] font-black uppercase px-2 py-1 rounded-md text-amber-600 bg-amber-50">Half Day</span>;
-  return <span className="text-[9px] font-black uppercase px-2 py-1 rounded-md text-slate-300 bg-slate-100">Absent</span>;
+const StatusBadge: React.FC<{ fn: boolean; an: boolean }> = ({ fn, an }) => {
+  if (fn && an) return <span className="text-[9px] font-black uppercase px-2 py-1 rounded bg-emerald-50 text-emerald-600">Present</span>;
+  if (fn || an) return <span className="text-[9px] font-black uppercase px-2 py-1 rounded bg-amber-50 text-amber-600">Half Day</span>;
+  return <span className="text-[9px] font-black uppercase px-2 py-1 rounded bg-slate-100 text-slate-300">Absent</span>;
 };
+
+const DocLink: React.FC<{ label: string; url: string | null }> = ({ label, url }) => (
+  <a href={url ? `${FILE_BASE_URL}${url}` : "#"} target="_blank" rel="noreferrer" className={`flex items-center justify-between p-4 rounded-2xl border ${url ? 'bg-white border-slate-100' : 'bg-slate-50 opacity-50 cursor-not-allowed'}`}>
+    <span className="text-xs font-bold text-slate-700">{label}</span>
+    {url && <ExternalLink size={14} className="text-slate-300" />}
+  </a>
+);
 
 export default ViewStaffDetail;
