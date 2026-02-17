@@ -1,21 +1,29 @@
 const fs = require("fs");
 const path = require("path");
 const Sequelize = require("sequelize");
+const basename = path.basename(__filename);
 const config = require("../config/config.js").development;
 
 const sequelize = new Sequelize(
   config.database,
   config.username,
   config.password,
-  config
+  {
+    ...config,
+    logging: false,
+  }
 );
 
 const db = {};
 
-/* ================= LOAD MODELS ================= */
-
+/* LOAD MODELS */
 fs.readdirSync(__dirname)
-  .filter((file) => file !== "index.js")
+  .filter(
+    (file) =>
+      file.indexOf(".") !== 0 &&
+      file !== basename &&
+      file.slice(-3) === ".js"
+  )
   .forEach((file) => {
     const model = require(path.join(__dirname, file))(
       sequelize,
@@ -24,16 +32,14 @@ fs.readdirSync(__dirname)
     db[model.name] = model;
   });
 
-/* ================= RUN MODEL ASSOCIATIONS ================= */
-
+/* RUN ASSOCIATIONS */
 Object.keys(db).forEach((modelName) => {
   if (db[modelName].associate) {
     db[modelName].associate(db);
   }
 });
 
-/* ================= VEHICLE RELATIONS ================= */
-
+/* VEHICLE RELATIONS */
 if (db.Vehicle && db.VehicleService) {
   db.Vehicle.hasMany(db.VehicleService, {
     foreignKey: "vehicleId",
@@ -58,8 +64,7 @@ if (db.Vehicle && db.VehicleFuel) {
   });
 }
 
-/* ================= SERVICE SHOP ================= */
-
+/* SERVICE SHOP */
 if (db.ServiceShop && db.VehicleService) {
   db.ServiceShop.hasMany(db.VehicleService, {
     foreignKey: "serviceShopId",
@@ -72,8 +77,7 @@ if (db.ServiceShop && db.VehicleService) {
   });
 }
 
-/* ================= BUNK RELATIONS ================= */
-
+/* BUNK RELATIONS */
 if (db.Bunk && db.VehicleFuel) {
   db.Bunk.hasMany(db.VehicleFuel, {
     foreignKey: "bunkId",
@@ -98,33 +102,15 @@ if (db.Bunk && db.BunkStatement) {
   });
 }
 
-if (db.Bunk && db.FuelStatement) {
-  db.Bunk.hasMany(db.FuelStatement, {
-    foreignKey: "bunk_id",
-    as: "fuelStatements",
-  });
-
-  db.FuelStatement.belongsTo(db.Bunk, {
-    foreignKey: "bunk_id",
-    as: "paymentBunk",
-  });
-}
-
-/* ================= BANK RELATIONS ================= */
-
-if (db.BankTable && db.FuelStatement) {
-  db.BankTable.hasMany(db.FuelStatement, {
-    foreignKey: "bank_id",
-    as: "fuelStatements",
-  });
-
-  db.FuelStatement.belongsTo(db.BankTable, {
-    foreignKey: "bank_id",
-    as: "fuelBank",
-  });
-}
-
-/* ================= EXPORT ================= */
+/* CONNECTION TEST */
+(async () => {
+  try {
+    await sequelize.authenticate();
+    console.log("✅ Database connected");
+  } catch (err) {
+    console.error("❌ DB Error:", err);
+  }
+})();
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;

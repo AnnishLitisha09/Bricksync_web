@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  AlertCircle, ChevronLeft,
+  AlertCircle,
+  ChevronLeft,
   ChevronRight,
   CreditCard,
   Droplets,
@@ -41,7 +42,7 @@ export default function FuelPage() {
   
   const [filters, setFilters] = useState({
     vehicleId: "",
-    status: "",
+    status: "", // "verified" | "not_verified"
     startDate: "",
     endDate: "",
   });
@@ -78,9 +79,15 @@ export default function FuelPage() {
   const filteredFuels = useMemo(() => {
     return fuels.filter((fuel) => {
       let match = true;
-      if (search) match = fuel.vehicle.vehicleNumber.toLowerCase().includes(search.toLowerCase());
-      if (filters.vehicleId) match = match && fuel.vehicle.id === Number(filters.vehicleId);
-      if (filters.status) match = match && fuel.status === filters.status;
+      if (search) match = fuel.vehicle?.vehicleNumber.toLowerCase().includes(search.toLowerCase());
+      if (filters.vehicleId) match = match && fuel.vehicle?.id === Number(filters.vehicleId);
+      
+      // Sync with API boolean 'isVerified'
+      if (filters.status) {
+        const isFuelVerified = fuel.isVerified === true;
+        match = match && (filters.status === "verified" ? isFuelVerified : !isFuelVerified);
+      }
+
       if (filters.startDate && filters.endDate) {
         const fuelDate = new Date(fuel.date).getTime();
         const start = new Date(filters.startDate).getTime();
@@ -99,7 +106,7 @@ export default function FuelPage() {
 
   const statusStyles = {
     verified: "bg-emerald-100 text-emerald-700 border-emerald-200 cursor-default",
-    not_verified: "bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200 transition-all cursor-pointer active:scale-95",
+    pending: "bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200 transition-all cursor-pointer active:scale-95",
   };
 
   return (
@@ -221,15 +228,20 @@ export default function FuelPage() {
                   {currentData.map((fuel) => (
                     <tr key={fuel.fuelId} className="group hover:bg-orange-50/30 transition-colors">
                       <td className="px-8 py-5">
-                        <div className="font-black text-slate-800 text-sm uppercase">{fuel.vehicle.vehicleNumber}</div>
-                        <div className="text-[11px] text-slate-400 font-bold">{fuel.bunk.bunkName}</div>
+                        <div className="font-black text-slate-800 text-sm uppercase">{fuel.vehicle?.vehicleNumber}</div>
+                        {/* FIX: Changed bunk to fuelBunk */}
+                        <div className="text-[11px] text-slate-400 font-bold">{fuel.fuelBunk?.bunkName || "N/A"}</div>
                       </td>
                       <td className="px-6 py-5"><span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-black italic">{fuel.volume} L</span></td>
                       <td className="px-6 py-5 font-black text-slate-700">₹{fuel.amount.toLocaleString()}</td>
                       <td className="px-6 py-5 text-slate-500 font-medium text-xs">{new Date(fuel.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                       <td className="px-6 py-5 text-center">
-                        <button disabled={fuel.status === "verified"} onClick={() => setConfirmModal({ show: true, fuelId: fuel.fuelId })} className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase border transition-all ${statusStyles[fuel.status === 'verified' ? 'verified' : 'not_verified']}`}>
-                          {fuel.status === "verified" ? "Verified" : "Pending"}
+                        <button 
+                          disabled={fuel.isVerified} 
+                          onClick={() => setConfirmModal({ show: true, fuelId: fuel.fuelId })} 
+                          className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase border transition-all ${statusStyles[fuel.isVerified ? 'verified' : 'pending']}`}
+                        >
+                          {fuel.isVerified ? "Verified" : "Pending"}
                         </button>
                       </td>
                       <td className="px-8 py-5 text-right"><button className="p-2 bg-gray-50 group-hover:bg-white rounded-xl text-slate-400 hover:text-orange-600 transition-all border border-transparent hover:border-orange-100"><ChevronRight size={18} /></button></td>
@@ -239,7 +251,7 @@ export default function FuelPage() {
               </table>
             </div>
 
-            {/* MOBILE VIEW (UPDATED) */}
+            {/* MOBILE VIEW */}
             <div className="md:hidden divide-y divide-gray-100">
               {currentData.map((fuel, idx) => (
                 <motion.div 
@@ -252,19 +264,20 @@ export default function FuelPage() {
                   <div className="flex justify-between items-start">
                     <div className="flex gap-3">
                       <div className="w-10 h-10 rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 font-black text-xs uppercase">
-                        {fuel.vehicle.vehicleNumber.slice(-2)}
+                        {fuel.vehicle?.vehicleNumber.slice(-2)}
                       </div>
                       <div>
-                        <h3 className="text-sm font-black text-slate-800 uppercase leading-none">{fuel.vehicle.vehicleNumber}</h3>
-                        <p className="text-[10px] text-slate-400 font-bold mt-1.5 uppercase tracking-tighter">{fuel.bunk.bunkName}</p>
+                        <h3 className="text-sm font-black text-slate-800 uppercase leading-none">{fuel.vehicle?.vehicleNumber}</h3>
+                        {/* FIX: Changed bunk to fuelBunk */}
+                        <p className="text-[10px] text-slate-400 font-bold mt-1.5 uppercase tracking-tighter">{fuel.fuelBunk?.bunkName || "N/A"}</p>
                       </div>
                     </div>
                     <button
-                      disabled={fuel.status === "verified"}
+                      disabled={fuel.isVerified}
                       onClick={() => setConfirmModal({ show: true, fuelId: fuel.fuelId })}
-                      className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border ${statusStyles[fuel.status === 'verified' ? 'verified' : 'not_verified']}`}
+                      className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border ${statusStyles[fuel.isVerified ? 'verified' : 'pending']}`}
                     >
-                      {fuel.status === "verified" ? "Verified" : "Pending"}
+                      {fuel.isVerified ? "Verified" : "Pending"}
                     </button>
                   </div>
 

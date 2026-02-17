@@ -1,4 +1,3 @@
-// models/fuelStatement.js
 module.exports = (sequelize, DataTypes) => {
   const FuelStatement = sequelize.define(
     "FuelStatement",
@@ -12,19 +11,11 @@ module.exports = (sequelize, DataTypes) => {
       bunk_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        references: {
-          model: "bunks",
-          key: "id",
-        },
       },
 
       bank_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        references: {
-          model: "bank_details",
-          key: "id",
-        },
       },
 
       amount: {
@@ -37,10 +28,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
 
-      description: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-      },
+      description: DataTypes.TEXT,
     },
     {
       tableName: "fuel_statement",
@@ -49,13 +37,18 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   FuelStatement.associate = (models) => {
+
+    // ✅ Bank
     FuelStatement.belongsTo(models.BankTable, {
       foreignKey: "bank_id",
+      targetKey: "id",
       as: "bank",
     });
 
+    // ✅ Bunk
     FuelStatement.belongsTo(models.Bunk, {
       foreignKey: "bunk_id",
+      targetKey: "id",
       as: "bunk",
     });
   };

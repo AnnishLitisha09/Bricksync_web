@@ -1,93 +1,68 @@
-const { sequelize, BankTable, Bunk, FuelStatement } = require("../models");
+const db = require("../models");
+
+const FuelStatement = db.FuelStatement;
+const BankTable = db.BankTable;
+const Bunk = db.Bunk;
 
 
-// ✅ CREATE
+/* ================= CREATE ================= */
+
 exports.createFuelStatement = async (req, res) => {
-  const { bunk_id, bank_id, amount, payment_mode, description } = req.body;
-
-  const transaction = await sequelize.transaction();
-
   try {
-    // Basic validation
-    if (!payment_mode) {
-      throw new Error("Payment mode is required");
-    }
+    const { bunk_id, bank_id, amount, payment_mode, description } = req.body;
 
-    const bank = await BankTable.findByPk(bank_id, { transaction });
-    if (!bank) throw new Error("Bank not found");
-
-    if (bank.amount < amount)
-      throw new Error("Insufficient bank balance");
-
-    const bunk = await Bunk.findByPk(bunk_id, { transaction });
-    if (!bunk) throw new Error("Bunk not found");
-
-    if (bunk.amount < amount)
-      throw new Error("Insufficient bunk balance");
-
-    // Deduct from bank
-    await bank.update(
-      { amount: bank.amount - amount },
-      { transaction }
-    );
-
-    // Deduct from bunk
-    await bunk.update(
-      { amount: bunk.amount - amount },
-      { transaction }
-    );
-
-    // Insert fuel statement
-    const fuelStatement = await FuelStatement.create(
-      {
-        bunk_id,
-        bank_id,
-        amount,
-        payment_mode,
-        description,
-      },
-      { transaction }
-    );
-
-    await transaction.commit();
-
-    return res.status(201).json({
-      success: true,
-      message: "Fuel statement created successfully",
-      data: fuelStatement,
+    const record = await FuelStatement.create({
+      bunk_id,
+      bank_id,
+      amount,
+      payment_mode,
+      description,
     });
 
-  } catch (error) {
-    await transaction.rollback();
+    res.status(201).json({
+      success: true,
+      data: record,
+    });
 
-    return res.status(500).json({
+  } catch (err) {
+    console.error("CREATE ERROR:", err);
+    res.status(500).json({
       success: false,
-      message: error.message,
+      message: err.message,
     });
   }
 };
 
 
-// ✅ GET ALL
+/* ================= GET ALL ================= */
+
 exports.getAllFuelStatements = async (req, res) => {
   try {
-    const data = await FuelStatement.findAll({
+    const records = await FuelStatement.findAll({
       include: [
-        { model: BankTable, as: "bank" },
-        { model: Bunk, as: "bunk" },
+        {
+          model: BankTable,
+          as: "bank",
+          attributes: ["id", "name"],
+        },
+        {
+          model: Bunk,
+          as: "bunk",
+          attributes: ["id", "bunkName"],
+        },
       ],
       order: [["createdAt", "DESC"]],
     });
 
-    return res.json({
+    res.json({
       success: true,
-      data,
+      count: records.length,
+      data: records,
     });
 
-  } catch (error) {
-    console.error("GET ALL FUEL STATEMENT ERROR:", error);
-
-    return res.status(500).json({
+  } catch (err) {
+    console.error("GET ERROR:", err);   // ⭐ CRITICAL DEBUG
+    res.status(500).json({
       success: false,
       message: "Failed to fetch fuel statement records",
     });
@@ -95,89 +70,55 @@ exports.getAllFuelStatements = async (req, res) => {
 };
 
 
-// ✅ GET BY ID
+/* ================= GET BY ID ================= */
+
 exports.getFuelStatementById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const record = await FuelStatement.findByPk(req.params.id);
 
-    const data = await FuelStatement.findByPk(id, {
-      include: [
-        { model: BankTable, as: "bank" },
-        { model: Bunk, as: "bunk" },
-      ],
-    });
-
-    if (!data) {
+    if (!record)
       return res.status(404).json({
         success: false,
-        message: "Fuel statement not found",
+        message: "Record not found",
       });
-    }
 
-    return res.json({
+    res.json({
       success: true,
-      data,
+      data: record,
     });
 
-  } catch (error) {
-    console.error("GET FUEL STATEMENT BY ID ERROR:", error);
-
-    return res.status(500).json({
+  } catch (err) {
+    res.status(500).json({
       success: false,
-      message: "Failed to fetch fuel statement",
+      message: err.message,
     });
   }
 };
 
 
-// ✅ DELETE
+/* ================= DELETE ================= */
+
 exports.deleteFuelStatement = async (req, res) => {
-  const { id } = req.params;
-  const transaction = await sequelize.transaction();
-
   try {
-    const fuelStatement = await FuelStatement.findByPk(id, { transaction });
+    const record = await FuelStatement.findByPk(req.params.id);
 
-    if (!fuelStatement) {
-      throw new Error("Fuel statement not found");
-    }
+    if (!record)
+      return res.status(404).json({
+        success: false,
+        message: "Record not found",
+      });
 
-    const { bank_id, bunk_id, amount } = fuelStatement;
+    await record.destroy();
 
-    const bank = await BankTable.findByPk(bank_id, { transaction });
-    const bunk = await Bunk.findByPk(bunk_id, { transaction });
-
-    if (!bank || !bunk) {
-      throw new Error("Associated bank or bunk not found");
-    }
-
-    // Refund amounts
-    await bank.increment("amount", {
-      by: amount,
-      transaction,
-    });
-
-    await bunk.increment("amount", {
-      by: amount,
-      transaction,
-    });
-
-    // Delete record
-    await fuelStatement.destroy({ transaction });
-
-    await transaction.commit();
-
-    return res.json({
+    res.json({
       success: true,
-      message: "Fuel statement deleted and balance reverted successfully",
+      message: "Deleted successfully",
     });
 
-  } catch (error) {
-    await transaction.rollback();
-
-    return res.status(500).json({
+  } catch (err) {
+    res.status(500).json({
       success: false,
-      message: error.message,
+      message: err.message,
     });
   }
 };

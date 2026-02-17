@@ -49,21 +49,30 @@ exports.createVehicleFuel = async (req, res) => {
   }
 };
 
-// Get all fuels
 exports.getAllVehicleFuels = async (req, res) => {
   try {
     const fuels = await VehicleFuel.findAll({
       include: [
-        { model: Vehicle, as: "vehicle", attributes: ["id", "vehicleName", "vehicleNumber"] },
-        { model: Bunk, as: "bunk", attributes: ["id", "bunkName"] },
+        {
+          model: Vehicle,
+          as: "vehicle",
+          attributes: ["id", "vehicleName", "vehicleNumber"],
+        },
+        {
+          model: Bunk,
+          as: "fuelBunk",   // ✅ FIXED
+          attributes: ["id", "bunkName"],
+        },
       ],
       order: [["date", "DESC"]],
     });
+
     res.json(fuels);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // Get fuel by ID
 exports.getVehicleFuelById = async (req, res) => {
