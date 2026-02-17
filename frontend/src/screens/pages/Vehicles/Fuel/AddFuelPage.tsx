@@ -1,8 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useFuelStore } from "../../../../store/useFuelStore";
-import { useVehicleStore } from "../../../../store/useVehicleStore";
+import { useVehicleStore } from "../../../../store/vechicle/useVehicleStore";
 import { useBunkStore } from "../../../../store/useBunkStore";
 import { 
   ArrowLeft, 
@@ -15,6 +14,7 @@ import {
   Save,
   Loader2
 } from "lucide-react";
+import { useFuelStore } from "../../../../store/fuel/useFuelStore";
 
 const labelClass = "text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 mb-1 block";
 const inputClass = 

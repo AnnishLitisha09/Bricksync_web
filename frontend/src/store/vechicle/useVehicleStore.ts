@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { BASE_URL, getAuthHeader } from "../api/base";
+import { BASE_URL, getAuthHeader } from "../../api/base";
 
 export interface Vehicle {
   id: number;

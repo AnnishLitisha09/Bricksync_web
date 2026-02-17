@@ -11,7 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useVehicleServiceStore } from "../../../../store/useVehicleServiceStore";
-import { useVehicleStore } from "../../../../store/useVehicleStore";
+import { useVehicleStore } from "../../../../store/vechicle/useVehicleStore";
 
 export default function ServicePage() {
   const navigate = useNavigate();

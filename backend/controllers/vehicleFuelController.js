@@ -4,6 +4,7 @@ const Vehicle = db.Vehicle;
 const Bunk = db.Bunk;
 const BunkStatement = db.BunkStatement;
 
+/* CREATE */
 exports.createVehicleFuel = async (req, res) => {
   try {
     const { vehicleId, bunkId, volume, amount, date, kilometer } = req.body;
@@ -39,7 +40,7 @@ exports.createVehicleFuel = async (req, res) => {
       fuelId: fuel.fuelId,
       date,
       amount,
-      isFueled: 1, // always 1 since this is fuel addition
+      isFueled: 1,
     });
 
     res.status(201).json(fuel);
@@ -49,9 +50,15 @@ exports.createVehicleFuel = async (req, res) => {
   }
 };
 
+/* GET ALL WITH PAGINATION */
 exports.getAllVehicleFuels = async (req, res) => {
   try {
-    const fuels = await VehicleFuel.findAll({
+    // Get page from query, default to 1
+    let page = parseInt(req.query.page) || 1;
+    const limit = 10; // 10 records per page
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await VehicleFuel.findAndCountAll({
       include: [
         {
           model: Vehicle,
@@ -60,21 +67,27 @@ exports.getAllVehicleFuels = async (req, res) => {
         },
         {
           model: Bunk,
-          as: "fuelBunk",   // ✅ FIXED
+          as: "fuelBunk",
           attributes: ["id", "bunkName"],
         },
       ],
       order: [["date", "DESC"]],
+      limit,
+      offset,
     });
 
-    res.json(fuels);
+    res.json({
+      totalRecords: count,
+      currentPage: page,
+      totalPages: Math.ceil(count / limit),
+      fuels: rows,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-
-// Get fuel by ID
+/* GET FUEL BY ID */
 exports.getVehicleFuelById = async (req, res) => {
   try {
     const fuel = await VehicleFuel.findByPk(req.params.id);
@@ -84,13 +97,13 @@ exports.getVehicleFuelById = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// PATCH /vehicle-fuel/:id/verify
+
+/* VERIFY FUEL */
 exports.verifyFuel = async (req, res) => {
   try {
     const fuel = await VehicleFuel.findByPk(req.params.id);
     if (!fuel) return res.status(404).json({ message: "Fuel record not found" });
 
-    // 🔄 Toggle isVerified
     fuel.isVerified = !fuel.isVerified;
     await fuel.save();
 
@@ -102,5 +115,3 @@ exports.verifyFuel = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-

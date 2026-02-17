@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 import { FILE_BASE_URL } from "../../../api/base";
 import Input from "../../../components/InputBox";
-import { useVehicleStore, type Vehicle } from "../../../store/useVehicleStore";
+import { useVehicleStore, type Vehicle } from "../../../store/vechicle/useVehicleStore";
 import { decryptId } from "../../../utils/functions";
 
 type DocKey = "vehicleImage" | "rcImage" | "insuranceImage" | "pollutionImage" | "speedImage";

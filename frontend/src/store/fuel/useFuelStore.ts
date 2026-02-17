@@ -1,8 +1,7 @@
 import { create } from "zustand";
-import { BASE_URL, getAuthHeader } from "../api/base";
+import { BASE_URL, getAuthHeader } from "../../api/base";
 
 export interface Fuel {
-  isVerified: boolean;
   fuelId: number;
   vehicleId: number;
   bunkId: number;
@@ -10,13 +9,15 @@ export interface Fuel {
   amount: number;
   date: string;
   kilometer: number;
-  status?: "verified" | "not_verified";
+  isVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
   vehicle: {
     id: number;
     vehicleName: string;
     vehicleNumber: string;
   };
-  bunk: {
+  fuelBunk: { // Updated to match API key
     id: number;
     bunkName: string;
   };
@@ -24,27 +25,26 @@ export interface Fuel {
 
 interface FuelStore {
   fuels: Fuel[];
+  totalRecords: number;
+  totalPages: number;
+  currentPage: number;
   loading: boolean;
-  getFuels: () => Promise<void>;
-  createFuel: (payload: {
-    vehicleId: number;
-    bunkId: number;
-    volume: number;
-    amount: number;
-    date: string;
-    kilometer: number;
-  }) => Promise<void>;
+  getFuels: (page?: number) => Promise<void>;
+  createFuel: (payload: any) => Promise<void>;
   toggleFuelStatus: (fuelId: number) => Promise<void>;
 }
 
 export const useFuelStore = create<FuelStore>((set, get) => ({
   fuels: [],
+  totalRecords: 0,
+  totalPages: 1,
+  currentPage: 1,
   loading: false,
 
-  getFuels: async () => {
+  getFuels: async (page = 1) => {
     try {
       set({ loading: true });
-      const res = await fetch(`${BASE_URL}/vehicle-fuels`, {
+      const res = await fetch(`${BASE_URL}/vehicle-fuels?page=${page}`, {
         headers: {
           "Content-Type": "application/json",
           ...getAuthHeader(),
@@ -52,15 +52,17 @@ export const useFuelStore = create<FuelStore>((set, get) => ({
       });
       const data = await res.json();
 
-      const formatted = data.map((f: Fuel) => ({
-        ...f,
-        status: f.isVerified ? "verified" : "not_verified",
-      }));
-
-      set({ fuels: formatted, loading: false });
+      // Data is now { totalRecords, currentPage, totalPages, fuels: [] }
+      set({ 
+        fuels: data.fuels || [], 
+        totalRecords: data.totalRecords,
+        totalPages: data.totalPages,
+        currentPage: data.currentPage,
+        loading: false 
+      });
     } catch (error) {
       console.error("Error fetching fuels:", error);
-      set({ loading: false });
+      set({ loading: false, fuels: [] });
     }
   },
 
@@ -69,14 +71,10 @@ export const useFuelStore = create<FuelStore>((set, get) => ({
       set({ loading: true });
       await fetch(`${BASE_URL}/vehicle-fuels`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeader(),
-        },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
         body: JSON.stringify(payload),
       });
-      set({ loading: false });
-      await get().getFuels();
+      await get().getFuels(get().currentPage);
     } catch (error) {
       console.error("Error creating fuel:", error);
       set({ loading: false });
@@ -85,25 +83,14 @@ export const useFuelStore = create<FuelStore>((set, get) => ({
 
   toggleFuelStatus: async (fuelId) => {
     try {
-      const res = await fetch(`${BASE_URL}/vehicle-fuel/${fuelId}/verify`, {
+      const res = await fetch(`${BASE_URL}/vehicle-fuels/${fuelId}/verify`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeader(),
-        },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
       });
-      const updatedFuel = await res.json();
-
-      set({
-        fuels: get().fuels.map((f) =>
-          f.fuelId === fuelId
-            ? {
-                ...f,
-                status: updatedFuel.fuel.isVerified ? "verified" : "not_verified",
-              }
-            : f
-        ),
-      });
+      if (res.ok) {
+        // Refresh current page to get updated status
+        await get().getFuels(get().currentPage);
+      }
     } catch (error) {
       console.error("Error toggling fuel status:", error);
     }
