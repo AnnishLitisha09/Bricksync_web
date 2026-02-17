@@ -1,27 +1,20 @@
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  Building2, 
-  LayoutGrid,
-  Zap,
-  Plus,
-  Send,
-  Download,
-  Wallet,
-  ArrowRightLeft,
-  History as HistoryIcon,
-  CheckCircle2,
-  X,
-  Loader2,
-  CreditCard,
-  Wifi,
-  Smartphone,
-  Globe
+import { AnimatePresence, motion } from "framer-motion";
+import {
+    ArrowDownLeft,
+    ArrowUpRight,
+    Building2,
+    CheckCircle2,
+    CreditCard,
+    Globe,
+    Loader2,
+    Plus,
+    Smartphone,
+    Wifi,
+    X
 } from "lucide-react";
-import { useBankStore } from "../../../store/bankStore";
+import React, { useEffect, useState } from "react";
 import { BASE_URL, getAuthHeader } from "../../../api/base";
+import { useBankStore } from "../../../store/bankStore";
 
 const treasuryData = [
     { title: "Today's Income", amount: "12,340.00", icon: <ArrowUpRight size={24} />, color: "bg-emerald-500", shadow: "shadow-emerald-200" },
@@ -238,11 +231,11 @@ const ToggleButton = ({ label, active, onClick, icon }: { label: string, active:
     </button>
 );
 
-const QuickAction = ({ icon, label, color, shadow }: { icon: any, label: string, color: string, shadow: string }) => (
-    <motion.button whileHover={{ y: -12 }} className="flex flex-col items-center justify-center gap-6 p-8 bg-white rounded-[3rem] border border-slate-100 shadow-sm transition-all hover:border-orange-500/30 group">
-        <div className={`p-5 rounded-[1.5rem] ${color} text-white group-hover:rotate-12 transition-all shadow-xl ${shadow}`}>{icon}</div>
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-slate-900">{label}</span>
-    </motion.button>
-);
+// const QuickAction = ({ icon, label, color, shadow }: { icon: any, label: string, color: string, shadow: string }) => (
+//     <motion.button whileHover={{ y: -12 }} className="flex flex-col items-center justify-center gap-6 p-8 bg-white rounded-[3rem] border border-slate-100 shadow-sm transition-all hover:border-orange-500/30 group">
+//         <div className={`p-5 rounded-[1.5rem] ${color} text-white group-hover:rotate-12 transition-all shadow-xl ${shadow}`}>{icon}</div>
+//         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-slate-900">{label}</span>
+//     </motion.button>
+// );
 
 export default Banks;

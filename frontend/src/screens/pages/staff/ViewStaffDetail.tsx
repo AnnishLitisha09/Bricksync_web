@@ -1,23 +1,28 @@
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  ChevronLeft,
-  Loader2,
-  Save,
-  Wallet,
-  Plus,
-  X,
-  ArrowUpRight,
   ArrowDownLeft,
+  ArrowUpRight,
   Banknote,
+  CalendarDays,
+  ChevronLeft,
   HandCoins,
-  Filter
+  History,
+  Landmark,
+  Loader2,
+  Plus,
+  Save,
+  User,
+  X
 } from "lucide-react";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { BASE_URL, FILE_BASE_URL, getAuthHeader } from "../../../api/base";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
+import { useNavigate, useParams } from "react-router-dom";
+import { BASE_URL, BASE_URL_NO_API, FILE_BASE_URL, getAuthHeader } from "../../../api/base";
 import DriverInfoCard from "../../../components/staff/DriverInfoCard";
 import WeeklyAttendance from "../../../components/staff/WeeklyAttendance";
+import { useBankStore } from "../../../store/bankStore";
 
+// --- TYPES ---
 interface APIUser {
   userid: number;
   name: string;
@@ -30,16 +35,26 @@ interface APIUser {
 
 interface Transaction {
   id: number;
-  date: string;
+  userid: number;
   amount: number;
   type: "sent" | "received";
-  description: string;
   category: "salary" | "advance";
+  paymentType: string;
+  description: string;
+  date: string;
+  bank?: {
+    name: string;
+    accountNumber: string;
+    gpay: boolean;
+    phonepe: boolean;
+    bankTransfer: boolean;
+  };
 }
 
 const ViewStaffDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { banks, fetchBanks } = useBankStore();
 
   const [staff, setStaff] = useState<APIUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -48,42 +63,61 @@ const ViewStaffDetail: React.FC = () => {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
-
   const [mode, setMode] = useState<"salary" | "advance">("salary");
+
   const [formData, setFormData] = useState({
     amount: "",
-    type: "received", 
+    type: "received" as "received" | "sent", 
     description: "",
     date: new Date().toISOString().split('T')[0],
-    bankName: "",
-    paymentType: "UPI"
+    bankId: "",
+    paymentType: ""
   });
 
-  const fetchStaffData = useCallback(async () => {
+  const selectedBankData = useMemo(() => 
+    banks.find(b => b.id.toString() === formData.bankId), 
+  [formData.bankId, banks]);
+
+  const availableModes = useMemo(() => {
+    if (!selectedBankData) return [];
+    if (selectedBankData.name.toLowerCase() === 'cash') return ["CASH"];
+    const modes = [];
+    if (selectedBankData.gpay) modes.push("GPAY");
+    if (selectedBankData.phonepe) modes.push("PHONEPE");
+    if (selectedBankData.bankTransfer) modes.push("BANK TRANSFER");
+    return modes;
+  }, [selectedBankData]);
+
+  const fetchData = useCallback(async () => {
     try {
-      const userRes = await fetch(`${BASE_URL}/user`, { headers: getAuthHeader() });
+      setLoading(true);
+      await fetchBanks();
+      const [userRes, transRes] = await Promise.all([
+        fetch(`${BASE_URL}/user`, { headers: getAuthHeader() }),
+        fetch(`${BASE_URL_NO_API}/wallet/transaction?userid=${id}`, { headers: getAuthHeader() })
+      ]);
+      
       const userData: APIUser[] = await userRes.json();
       const found = userData.find((u) => String(u.userid) === id);
       setStaff(found || null);
 
-      // Simulated transaction data with categories
-      setTransactions([
-        { id: 1, date: "2026-02-10", amount: 5000, type: "received", description: "Monthly Salary - Feb", category: "salary" },
-        { id: 2, date: "2026-02-12", amount: 2000, type: "received", description: "Home Advance", category: "advance" },
-        { id: 3, date: "2026-02-15", amount: 500, type: "sent", description: "Advance Deduction", category: "advance" },
-      ]);
+      const transData = await transRes.json();
+      if (transData.success) setTransactions(transData.data);
     } catch (error) {
-      toast.error("Failed to load staff details");
+      toast.error("Failed to load records");
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, fetchBanks]);
+
+  useEffect(() => { if (id) fetchData(); }, [id, fetchData]);
 
   useEffect(() => {
-    if (id) fetchStaffData();
-  }, [id, fetchStaffData]);
+    if (availableModes.length > 0) {
+      setFormData(prev => ({ ...prev, paymentType: availableModes[0] }));
+    }
+  }, [availableModes]);
 
-  // Calculations for remaining advance
   const remainingAdvance = useMemo(() => {
     return transactions
       .filter(t => t.category === "advance")
@@ -95,318 +129,231 @@ const ViewStaffDetail: React.FC = () => {
     return transactions.filter(t => t.category === filter);
   }, [transactions, filter]);
 
-  const handleModeChange = (newMode: "salary" | "advance") => {
-    setMode(newMode);
-    setFormData(prev => ({
-      ...prev,
-      type: newMode === "salary" ? "received" : prev.type 
-    }));
-  };
-
   const handleTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.amount || Number(formData.amount) <= 0) return toast.error("Enter valid amount");
-    if (!formData.bankName) return toast.error("Please select a bank");
-    
     setModalLoading(true);
     try {
       const payload = {
         userid: Number(id),
-        ...formData,
-        category: mode,
+        bankName: selectedBankData?.name || "Cash",
         amount: Number(formData.amount),
+        type: mode === 'salary' ? 'received' : formData.type,
+        category: mode,
+        paymentType: formData.paymentType,
+        description: formData.description,
+        date: formData.date
       };
 
-      const res = await fetch(`${BASE_URL}/wallet/transaction`, {
+      const res = await fetch(`${BASE_URL_NO_API}/wallet/transaction`, {
         method: "POST",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
       if (res.ok) {
-        toast.success(`${mode.toUpperCase()} entry saved`);
+        toast.success(`${mode} recorded successfully`);
         setIsModalOpen(false);
-        resetForm();
-        fetchStaffData();
-      } else throw new Error();
-    } catch {
+        fetchData();
+      }
+    } catch (err) {
       toast.error("Transaction failed");
     } finally {
       setModalLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      amount: "",
-      type: "received",
-      description: "",
-      date: new Date().toISOString().split('T')[0],
-      bankName: "",
-      paymentType: "UPI"
-    });
-  };
-
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FDFDFD]">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50/50">
       <Loader2 className="animate-spin text-indigo-600" size={40} />
     </div>
   );
 
-  if (!staff) return <div className="p-20 text-center font-bold text-slate-400">Staff not found</div>;
-
   return (
-    <div className="min-h-screen bg-[#FDFDFD] p-4 md:p-10 space-y-10 font-sans text-slate-900">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-gray-50/50 p-4 md:p-10 space-y-10 font-sans text-slate-900 max-w-7xl mx-auto">
       <Toaster position="top-right" />
 
-      {/* Header */}
+      {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
-          <button 
-            onClick={() => navigate(-1)} 
-            className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-colors"
-          >
+          <button onClick={() => navigate(-1)} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-colors">
             <ChevronLeft size={24}/>
           </button>
           <div>
-            <h1 className="text-4xl font-black tracking-tight">{staff.name}</h1>
-            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Staff Member ID: {staff.userid}</p>
+            <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase italic">
+              {staff?.name}
+            </h1>
+            <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.3em]">Staff Code: {staff?.userid}</p>
           </div>
         </div>
 
-        {/* Remaining Advance Card */}
-        <div className="bg-rose-50 border border-rose-100 p-6 rounded-[2rem] flex items-center gap-5">
-          <div className="p-3 bg-rose-500 text-white rounded-xl shadow-lg shadow-rose-200">
-            <HandCoins size={24} />
+        <div className="flex items-center gap-4">
+          <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-[11px] hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200">
+            <Plus size={18} /> Manage Ledger
+          </button>
+        </div>
+      </div>
+
+      {/* BENTO SUMMARY STATS */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3 relative bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center gap-6 overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
+          <div className="relative z-10 p-5 bg-indigo-50 rounded-3xl text-indigo-600">
+             <User size={40} strokeWidth={2.5} />
           </div>
-          <div>
-            <p className="text-rose-400 text-[10px] font-black uppercase tracking-widest">Outstanding Advance</p>
-            <h4 className="text-2xl font-black text-rose-600">₹{remainingAdvance.toLocaleString()}</h4>
+          <div className="relative z-10 flex-1">
+            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] mb-1">Employee Overview</p>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{staff?.name}</h2>
+            <div className="flex items-center gap-4 mt-2">
+              <p className="text-slate-400 font-bold text-xs">Joined: <span className="text-slate-900">May 2024</span></p>
+              <div className="w-1 h-1 bg-slate-300 rounded-full" />
+              <p className="text-slate-400 font-bold text-xs">Total Earnings: <span className="text-indigo-600">₹{staff?.amount.toLocaleString()}</span></p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-rose-500 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+          <div className="absolute -bottom-4 -right-4 text-white/10 group-hover:scale-110 transition-transform"><HandCoins size={120} /></div>
+          <div className="relative z-10">
+            <p className="text-[10px] font-black text-rose-100 uppercase tracking-[0.2em] opacity-80 mb-2">Advance Due</p>
+            <p className="text-4xl font-black tabular-nums">₹{remainingAdvance.toLocaleString()}</p>
+            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-lg text-[9px] font-black uppercase tracking-widest italic">Action Required</div>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-4">
-          <DriverInfoCard staff={staff} fileBaseUrl={FILE_BASE_URL} />
-        </div>
-        <div className="lg:col-span-8">
-          <WeeklyAttendance userId={id!} />
-        </div>
+        <div className="lg:col-span-4"><DriverInfoCard staff={staff!} fileBaseUrl={FILE_BASE_URL} /></div>
+        <div className="lg:col-span-8"><WeeklyAttendance userId={id!} /></div>
       </div>
 
-      {/* Ledger Section */}
-      <div className="bg-white rounded-[3rem] border border-slate-100 p-8 shadow-sm">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><Wallet size={24} /></div>
-            <h3 className="text-2xl font-black tracking-tight">Financial Ledger</h3>
+      {/* LEDGER SECTION */}
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+             <div className="p-3 bg-white border border-slate-100 rounded-xl shadow-sm"><History size={20} className="text-indigo-500" /></div>
+             <h3 className="text-xl font-black uppercase tracking-tight italic">Transaction Timeline</h3>
           </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            {/* View Filter Toggle */}
-            <div className="flex p-1 bg-slate-100 rounded-xl">
-              {(['all', 'salary', 'advance'] as const).map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => setFilter(opt)}
-                  className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                    filter === opt ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-                  }`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-
-            <button 
-              onClick={() => setIsModalOpen(true)} 
-              className="flex items-center gap-2 bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200"
-            >
-              <Plus size={16} /> Manage Amount
-            </button>
+          
+          <div className="flex gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl w-fit shadow-sm overflow-x-auto">
+            {(['all', 'salary', 'advance'] as const).map((tab) => (
+              <button key={tab} onClick={() => setFilter(tab)} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filter === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
+                {tab}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full border-separate border-spacing-y-3">
-            <thead>
-              <tr className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-left">
-                <th className="px-6">Ref</th>
-                <th className="px-6">Details</th>
-                <th className="px-6 text-center">Category</th>
-                <th className="px-6 text-center">Type</th>
-                <th className="px-6 text-right">Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTransactions.map((t) => (
-                <tr key={t.id} className="bg-slate-50/30 hover:bg-slate-50 transition-colors group">
-                  <td className="px-6 py-5 rounded-l-2xl font-bold text-slate-400 text-xs">#{t.id}</td>
-                  <td className="px-6 py-5 font-bold text-sm">
-                    {t.description}
-                    <div className="text-[10px] text-slate-400 uppercase mt-1">{t.date}</div>
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-tighter bg-slate-100 px-2 py-1 rounded-md">
-                      {t.category}
-                    </span>
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                      t.type === 'received' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-                    }`}>
-                      {t.type === 'received' ? <ArrowDownLeft size={10}/> : <ArrowUpRight size={10}/>}
-                      {t.type === 'received' ? 'Credit' : 'Debit'}
-                    </span>
-                  </td>
-                  <td className={`px-6 py-5 rounded-r-2xl text-right font-black text-sm ${
-                    t.type === 'received' ? 'text-emerald-600' : 'text-rose-600'
-                  }`}>
-                    {t.type === 'received' ? '+' : '-'} ₹{t.amount.toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-              {filteredTransactions.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-20 text-center text-slate-400 font-bold uppercase text-xs tracking-widest">No records found for this filter</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 gap-4">
+          <AnimatePresence mode="popLayout">
+            {filteredTransactions.map((t, idx) => (
+              <motion.div 
+                key={t.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className="group relative bg-white rounded-[2rem] p-6 border border-slate-100 hover:border-indigo-200 transition-all hover:shadow-xl hover:shadow-indigo-500/5"
+              >
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="flex items-center gap-5">
+                    <div className={`p-4 rounded-2xl ${t.type === 'received' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                      {t.type === 'received' ? <ArrowDownLeft size={24} /> : <ArrowUpRight size={24} />}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.category}</span>
+                        <div className="w-1 h-1 bg-slate-200 rounded-full" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">{t.paymentType}</span>
+                      </div>
+                      <h4 className="text-lg font-black text-slate-900 tracking-tight mt-0.5 uppercase italic">{t.description}</h4>
+                      <p className="text-xs font-bold text-slate-400 flex items-center gap-1.5 mt-1 uppercase">
+                         <CalendarDays size={12} /> {new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                         <span className="ml-2 px-2 py-0.5 bg-slate-50 rounded text-[10px]">{t.bank?.name || 'Cash'}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <p className={`text-2xl font-black tabular-nums ${t.type === 'received' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {t.type === 'received' ? '+' : '-'} ₹{t.amount.toLocaleString()}
+                    </p>
+                    {t.bank?.accountNumber && <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">A/C: {t.bank.accountNumber}</p>}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </div>
 
-      {/* Unified Management Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)} />
-          <div className="relative bg-white w-full max-w-lg rounded-[3rem] p-10 shadow-2xl animate-in zoom-in duration-200 overflow-hidden">
-            
-            <div className="flex justify-between items-center mb-8">
-              <div>
-                <h3 className="text-2xl font-black text-slate-900">Manage Amount</h3>
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Financial Entry</p>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-slate-100 rounded-full transition-colors"><X size={24}/></button>
-            </div>
-
-            {/* Category Toggle */}
-            <div className="flex p-1.5 bg-slate-100 rounded-2xl mb-8">
-              <button 
-                type="button"
-                onClick={() => handleModeChange("salary")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${mode === 'salary' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}
-              >
-                <Banknote size={16} /> Salary
-              </button>
-              <button 
-                type="button"
-                onClick={() => handleModeChange("advance")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${mode === 'advance' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}
-              >
-                <HandCoins size={16} /> Advance
-              </button>
-            </div>
-
-            <form onSubmit={handleTransaction} className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Bank Name</label>
-                  <select 
-                    required
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-bold focus:outline-indigo-500 appearance-none"
-                    value={formData.bankName}
-                    onChange={(e) => setFormData({...formData, bankName: e.target.value})}
-                  >
-                    <option value="">Select Bank</option>
-                    <option value="SBI">SBI</option>
-                    <option value="HDFC">HDFC</option>
-                    <option value="ICICI">ICICI</option>
-                    <option value="Axis">Axis Bank</option>
-                  </select>
+      {/* TRANSACTION MODAL */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-lg rounded-[3.5rem] shadow-2xl overflow-hidden">
+              <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-indigo-50/30">
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">Manage Funds</h2>
+                  <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-1">Staff Ledger Entry</p>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Payment Method</label>
-                  <select 
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-bold focus:outline-indigo-500 appearance-none"
-                    value={formData.paymentType}
-                    onChange={(e) => setFormData({...formData, paymentType: e.target.value})}
-                  >
-                    <option value="UPI">UPI / GPay</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="Cash">Cash</option>
-                  </select>
-                </div>
+                <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-white rounded-full transition-colors text-slate-400"><X size={24} /></button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Amount (₹)</label>
-                  <input 
-                    type="number" required placeholder="0.00" 
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-bold focus:outline-indigo-500" 
-                    value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Date</label>
-                  <input 
-                    type="date" required
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-bold focus:outline-indigo-500" 
-                    value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} 
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Entry Type</label>
-                {mode === "salary" ? (
-                  <div className="w-full bg-emerald-50 text-emerald-600 border-2 border-emerald-500 py-4 rounded-2xl text-center font-black text-xs uppercase tracking-widest">
-                    Salary Credit (+)
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <button 
-                      type="button" 
-                      onClick={() => setFormData({...formData, type: 'received'})} 
-                      className={`py-4 rounded-2xl font-black text-xs uppercase border-2 transition-all ${formData.type === 'received' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'text-slate-400 border-slate-100'}`}
-                    >
-                      Add Advance (+)
+              <form className="p-10 space-y-6" onSubmit={handleTransaction}>
+                {/* Mode Toggler */}
+                <div className="flex p-1.5 bg-slate-100 rounded-[2rem] mb-4">
+                  {(['salary', 'advance'] as const).map((m) => (
+                    <button key={m} type="button" onClick={() => setMode(m)} className={`flex-1 py-3.5 rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest transition-all ${mode === m ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500'}`}>
+                       {m === 'salary' ? <Banknote size={16} className="inline mr-2" /> : <HandCoins size={16} className="inline mr-2" />} {m}
                     </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setFormData({...formData, type: 'sent'})} 
-                      className={`py-4 rounded-2xl font-black text-xs uppercase border-2 transition-all ${formData.type === 'sent' ? 'border-rose-500 bg-rose-50 text-rose-600' : 'text-slate-400 border-slate-100'}`}
-                    >
-                      Less Advance (-)
-                    </button>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Select Bank Account</label>
+                  <div className="relative">
+                    <select required value={formData.bankId} onChange={(e) => setFormData({ ...formData, bankId: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4.5 font-black text-slate-800 appearance-none outline-none focus:ring-2 ring-indigo-500/20">
+                      <option value="">Choose Bank...</option>
+                      {banks.map(bank => <option key={bank.id} value={bank.id}>{bank.name} - {bank.holderName}</option>)}
+                    </select>
+                    <Landmark className="absolute right-6 top-1/2 -translate-y-1/2 text-indigo-500" size={20} />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Amount (₹)</label>
+                    <input type="number" required placeholder="0.00" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4.5 font-black text-slate-800" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Payment Method</label>
+                    <select value={formData.paymentType} onChange={(e) => setFormData({ ...formData, paymentType: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4.5 font-black text-slate-800 appearance-none">
+                      {availableModes.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {mode === 'advance' && (
+                   <div className="grid grid-cols-2 gap-4">
+                      <button type="button" onClick={() => setFormData({...formData, type: 'received'})} className={`py-4 rounded-3xl font-black text-[10px] uppercase border-2 transition-all ${formData.type === 'received' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'text-slate-400 border-slate-100'}`}>Give Advance</button>
+                      <button type="button" onClick={() => setFormData({...formData, type: 'sent'})} className={`py-4 rounded-3xl font-black text-[10px] uppercase border-2 transition-all ${formData.type === 'sent' ? 'border-rose-500 bg-rose-50 text-rose-600' : 'text-slate-400 border-slate-100'}`}>Recover Advance</button>
+                   </div>
                 )}
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Description</label>
-                <input 
-                  type="text" placeholder="e.g. Weekly settlement or Fuel advance" 
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-bold focus:outline-indigo-500" 
-                  value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} 
-                />
-              </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Notes / Description</label>
+                  <input type="text" required placeholder="Description..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4.5 font-black text-slate-800" />
+                </div>
 
-              <button 
-                type="submit" 
-                disabled={modalLoading} 
-                className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-black shadow-xl shadow-slate-200 transition-all flex items-center justify-center gap-2"
-              >
-                {modalLoading ? <Loader2 size={18} className="animate-spin"/> : <Save size={18}/>} 
-                Confirm {mode} Transaction
-              </button>
-            </form>
+                <button type="submit" disabled={modalLoading} className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] hover:bg-indigo-600 shadow-xl shadow-slate-200 transition-all flex items-center justify-center gap-3">
+                  {modalLoading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} 
+                  Confirm {mode} Entry
+                </button>
+              </form>
+            </motion.div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
