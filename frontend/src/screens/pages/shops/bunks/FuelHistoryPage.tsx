@@ -82,23 +82,35 @@ export default function FuelHistoryPage() {
     banks.find(b => b.id.toString() === paymentForm.bankId), 
   [paymentForm.bankId, banks]);
 
+  // Dynamically calculate available payment modes
+  const availableModes = useMemo(() => {
+    if (!selectedBankData) return [];
+    
+    // Check if the bank name is "Cash"
+    if (selectedBankData.name.toLowerCase() === 'cash') {
+      return ["CASH"];
+    }
+
+    const modes = [];
+    if (selectedBankData.gpay) modes.push("GPAY");
+    if (selectedBankData.phonepe) modes.push("PHONEPE");
+    if (selectedBankData.bankTransfer) modes.push("BANK TRANSFER");
+    return modes;
+  }, [selectedBankData]);
+
   useEffect(() => {
     fetchBanks();
     if (bunkId) fetchData();
   }, [bunkId]);
 
+  // Auto-set the payment mode when bank or available modes change
   useEffect(() => {
-    if (selectedBankData) {
-      if (selectedBankData.gpay || selectedBankData.phonepe) 
-        setPaymentForm(prev => ({ ...prev, payment_mode: "UPI" }));
-      else if (selectedBankData.bankTransfer) 
-        setPaymentForm(prev => ({ ...prev, payment_mode: "Bank Transfer" }));
-      else 
-        setPaymentForm(prev => ({ ...prev, payment_mode: "" }));
+    if (availableModes.length > 0) {
+      setPaymentForm(prev => ({ ...prev, payment_mode: availableModes[0] }));
     } else {
-      setPaymentForm(prev => ({ ...prev, payment_mode: "", description: "" }));
+      setPaymentForm(prev => ({ ...prev, payment_mode: "" }));
     }
-  }, [selectedBankData]);
+  }, [availableModes]);
 
   const fetchData = async () => {
     try {
@@ -122,7 +134,7 @@ export default function FuelHistoryPage() {
           type: 'statement', 
           sortDate: new Date(item.createdAt || item.date),
           description: item.description,
-          payment_mode: item.payment_mode // Explicitly mapping from API
+          payment_mode: item.payment_mode 
         }));
       
       const fuelTotal = filteredLogs.reduce((acc, curr) => acc + Number(curr.amount), 0);
@@ -293,20 +305,24 @@ export default function FuelHistoryPage() {
                             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Payment Mode</label>
                             <div className="relative">
                                 <select 
-                                    disabled={!paymentForm.bankId}
+                                    disabled={!paymentForm.bankId || availableModes.length === 0}
                                     required
-                                    className={`w-full border rounded-2xl px-5 py-4 font-black text-slate-800 appearance-none focus:ring-2 ring-emerald-500/20 outline-none transition-all ${!paymentForm.bankId ? 'bg-slate-100 border-slate-200 cursor-not-allowed text-slate-400' : 'bg-slate-50 border-slate-100'}`}
+                                    className={`w-full border rounded-2xl px-5 py-4 font-black text-slate-800 appearance-none focus:ring-2 ring-emerald-500/20 outline-none transition-all ${(!paymentForm.bankId || availableModes.length === 0) ? 'bg-slate-100 border-slate-200 cursor-not-allowed text-slate-400' : 'bg-slate-50 border-slate-100'}`}
                                     value={paymentForm.payment_mode}
                                     onChange={(e) => setPaymentForm({...paymentForm, payment_mode: e.target.value})}
                                 >
                                     {!paymentForm.bankId && <option value="">Select Bank First</option>}
-                                    {(selectedBankData?.gpay || selectedBankData?.phonepe) && <option value="UPI">UPI</option>}
-                                    {selectedBankData?.bankTransfer && <option value="Bank Transfer">Bank Transfer</option>}
+                                    {availableModes.map(mode => (
+                                        <option key={mode} value={mode}>{mode}</option>
+                                    ))}
                                 </select>
-                                {paymentForm.payment_mode === "UPI" ? 
-                                    <Smartphone className="absolute right-5 top-1/2 -translate-y-1/2 text-blue-500" size={18} /> : 
+                                {paymentForm.payment_mode === "CASH" ? (
+                                    <Wallet className="absolute right-5 top-1/2 -translate-y-1/2 text-orange-500" size={18} />
+                                ) : ["GPAY", "PHONEPE"].includes(paymentForm.payment_mode) ? (
+                                    <Smartphone className="absolute right-5 top-1/2 -translate-y-1/2 text-blue-500" size={18} />
+                                ) : (
                                     <CreditCard className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                                }
+                                )}
                             </div>
                         </div>
 
@@ -399,7 +415,6 @@ function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
                             <div className="flex items-center gap-2">
                                 <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{st.bank?.name}</p>
                                 <div className="w-1 h-1 bg-emerald-300 rounded-full" />
-                                {/* PAYMENT MODE DISPLAYED HERE */}
                                 <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[8px] font-black uppercase rounded-md border border-emerald-100">
                                     {st.payment_mode || 'N/A'}
                                 </span>

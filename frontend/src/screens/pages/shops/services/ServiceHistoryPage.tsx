@@ -5,7 +5,6 @@ import {
   Car,
   CheckCircle2,
   CreditCard,
-  FileText,
   Gauge,
   History,
   Landmark,
@@ -81,24 +80,35 @@ export default function ServiceHistoryPage() {
     banks.find(b => b.id.toString() === paymentForm.bankId),
     [paymentForm.bankId, banks]);
 
+  // Generate available payment modes based on bank capabilities
+  const availableModes = useMemo(() => {
+    if (!selectedBankData) return [];
+
+    // Check if the bank name is "Cash" (case-insensitive)
+    if (selectedBankData.name.toLowerCase() === 'cash') {
+      return ["CASH"];
+    }
+
+    const modes = [];
+    if (selectedBankData.gpay) modes.push("GPAY");
+    if (selectedBankData.phonepe) modes.push("PHONEPE");
+    if (selectedBankData.bankTransfer) modes.push("BANK TRANSFER");
+    return modes;
+  }, [selectedBankData]);
+
   useEffect(() => {
     fetchBanks();
     if (shopId) fetchData();
   }, [shopId]);
 
-  // Auto-detect payment mode based on bank selection
+  // Auto-select the first available payment mode when bank changes
   useEffect(() => {
-    if (selectedBankData) {
-      if (selectedBankData.gpay || selectedBankData.phonepe)
-        setPaymentForm(prev => ({ ...prev, payment_mode: "UPI" }));
-      else if (selectedBankData.bankTransfer)
-        setPaymentForm(prev => ({ ...prev, payment_mode: "Bank Transfer" }));
-      else
-        setPaymentForm(prev => ({ ...prev, payment_mode: "" }));
+    if (availableModes.length > 0) {
+      setPaymentForm(prev => ({ ...prev, payment_mode: availableModes[0] }));
     } else {
-      setPaymentForm(prev => ({ ...prev, payment_mode: "", description: "" }));
+      setPaymentForm(prev => ({ ...prev, payment_mode: "" }));
     }
-  }, [selectedBankData]);
+  }, [availableModes]);
 
   const fetchData = async () => {
     try {
@@ -121,6 +131,8 @@ export default function ServiceHistoryPage() {
           ...item,
           type: 'statement',
           sortDate: new Date(item.createdAt || item.date),
+          payment_mode: item.payment_mode,
+          bank: item.bank
         }));
 
       const serviceTotal = filteredLogs.reduce((acc, curr) => acc + Number(curr.amount), 0);
@@ -291,21 +303,24 @@ export default function ServiceHistoryPage() {
                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Payment Mode</label>
                     <div className="relative">
                       <select
-                        disabled={!paymentForm.bankId}
+                        disabled={!paymentForm.bankId || availableModes.length === 0}
                         required
-                        className={`w-full border rounded-2xl px-5 py-4 font-black text-slate-800 appearance-none focus:ring-2 ring-emerald-500/20 outline-none transition-all ${!paymentForm.bankId ? 'bg-slate-100 border-slate-200 cursor-not-allowed text-slate-400' : 'bg-slate-50 border-slate-100'}`}
+                        className={`w-full border rounded-2xl px-5 py-4 font-black text-slate-800 appearance-none focus:ring-2 ring-emerald-500/20 outline-none transition-all ${(!paymentForm.bankId || availableModes.length === 0) ? 'bg-slate-100 border-slate-200 cursor-not-allowed text-slate-400' : 'bg-slate-50 border-slate-100'}`}
                         value={paymentForm.payment_mode}
                         onChange={(e) => setPaymentForm({ ...paymentForm, payment_mode: e.target.value })}
                       >
                         {!paymentForm.bankId && <option value="">Select Bank First</option>}
-                        {(selectedBankData?.gpay || selectedBankData?.phonepe) && <option value="UPI">UPI</option>}
-                        {selectedBankData?.bankTransfer && <option value="Bank Transfer">Bank Transfer</option>}
-                        <option value="CASH">Cash</option>
+                        {availableModes.map(mode => (
+                          <option key={mode} value={mode}>{mode}</option>
+                        ))}
                       </select>
-                      {paymentForm.payment_mode === "UPI" ?
-                        <Smartphone className="absolute right-5 top-1/2 -translate-y-1/2 text-blue-500" size={18} /> :
+                      {paymentForm.payment_mode === "CASH" ? (
+                        <Wallet className="absolute right-5 top-1/2 -translate-y-1/2 text-orange-500" size={18} />
+                      ) : ["GPAY", "PHONEPE"].includes(paymentForm.payment_mode) ? (
+                        <Smartphone className="absolute right-5 top-1/2 -translate-y-1/2 text-blue-500" size={18} />
+                      ) : (
                         <CreditCard className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                      }
+                      )}
                     </div>
                   </div>
 
@@ -334,7 +349,7 @@ export default function ServiceHistoryPage() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || !paymentForm.bankId}
+                  disabled={isSubmitting || !paymentForm.bankId || !paymentForm.payment_mode}
                   className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
