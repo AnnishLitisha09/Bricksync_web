@@ -4,7 +4,7 @@ import {
     Building2,
     CheckCircle2,
     CreditCard,
-    Download, // Added Icon
+    Download,
     Droplets,
     Fuel,
     History,
@@ -19,7 +19,7 @@ import {
     Wallet,
     X
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { BASE_URL, getAuthHeader } from "../../../../api/base";
 import { useBankStore } from "../../../../store/bankStore";
@@ -61,9 +61,12 @@ export default function FuelHistoryPage() {
 
   const [fuelLogs, setFuelLogs] = useState<Transaction[]>([]);
   const [statements, setStatements] = useState<Transaction[]>([]);
-  const [combinedTimeline, setCombinedTimeline] = useState<Transaction[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('all');
+  
+  // Pagination & Scroll States
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -79,6 +82,21 @@ export default function FuelHistoryPage() {
     totalPaid: 0,
     outstanding: 0
   });
+
+  // --- INFINITE SCROLL LOGIC ---
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prev => prev + 1);
+      }
+    });
+    
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore]);
 
   const selectedBankData = useMemo(() => 
     banks.find(b => b.id.toString() === paymentForm.bankId), 
@@ -96,8 +114,11 @@ export default function FuelHistoryPage() {
 
   useEffect(() => {
     fetchBanks();
-    if (bunkId) fetchData();
-  }, [bunkId]);
+  }, [fetchBanks]);
+
+  useEffect(() => {
+    if (bunkId) fetchData(page);
+  }, [bunkId, page]);
 
   useEffect(() => {
     if (availableModes.length > 0) {
@@ -107,12 +128,13 @@ export default function FuelHistoryPage() {
     }
   }, [availableModes]);
 
-  const fetchData = async () => {
+  const fetchData = async (pageNum: number) => {
     if (!bunkId) return;
     try {
       setLoading(true);
+      // We keep the bunk-specific search, adding page if your API supports it
       const [fuelRes, statementRes] = await Promise.all([
-        fetch(`${BASE_URL}/vehicle-fuels/search/by-bunk-id?bunkId=${bunkId}`, { headers: getAuthHeader() }),
+        fetch(`${BASE_URL}/vehicle-fuels/search/by-bunk-id?bunkId=${bunkId}&page=${pageNum}`, { headers: getAuthHeader() }),
         fetch(`${BASE_URL}/fuel-statements/`, { headers: getAuthHeader() })
       ]);
 
@@ -120,7 +142,7 @@ export default function FuelHistoryPage() {
       const statementData = await statementRes.json();
 
       const logsArray = Array.isArray(fuelData) ? fuelData : (fuelData.fuels || []);
-      const filteredLogs: Transaction[] = logsArray.map((item: any) => ({ 
+      const newLogs: Transaction[] = logsArray.map((item: any) => ({ 
         ...item, 
         type: 'fuel', 
         sortDate: new Date(item.date),
@@ -136,24 +158,33 @@ export default function FuelHistoryPage() {
           description: item.description,
           payment_mode: item.payment_mode 
         }));
-      
-      const fuelTotal = filteredLogs.reduce((acc, curr) => acc + Number(curr.amount), 0);
-      const paidTotal = filteredStatements.reduce((acc, curr) => acc + Number(curr.amount), 0);
 
-      const combined = [...filteredLogs, ...filteredStatements].sort((a, b) => 
-        b.sortDate.getTime() - a.sortDate.getTime()
-      );
+      if (newLogs.length < 10) setHasMore(false);
 
-      setFuelLogs(filteredLogs.sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime()));
-      setStatements(filteredStatements.sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime()));
-      setCombinedTimeline(combined);
-      setSummary({ totalFuel: fuelTotal, totalPaid: paidTotal, outstanding: fuelTotal - paidTotal });
+      setFuelLogs(prev => pageNum === 1 ? newLogs : [...prev, ...newLogs]);
+      setStatements(filteredStatements);
+
+      // Summary is usually based on the full history
+      const fuelTotal = pageNum === 1 ? newLogs.reduce((a, c) => a + Number(c.amount), 0) : summary.totalFuel;
+      const paidTotal = filteredStatements.reduce((a, c) => a + Number(c.amount), 0);
+
+      setSummary(prev => ({
+        totalFuel: pageNum === 1 ? newLogs.reduce((a, c) => a + Number(c.amount), 0) : prev.totalFuel,
+        totalPaid: paidTotal,
+        outstanding: (pageNum === 1 ? newLogs.reduce((a, c) => a + Number(c.amount), 0) : prev.totalFuel) - paidTotal
+      }));
     } catch (err) {
       console.error("Fetch error", err);
     } finally {
       setLoading(false);
     }
   };
+
+  const combinedTimeline = useMemo(() => {
+    return [...fuelLogs, ...statements].sort((a, b) => 
+      b.sortDate.getTime() - a.sortDate.getTime()
+    );
+  }, [fuelLogs, statements]);
 
   const handleDownloadPdf = () => {
     generateFuelHistoryPDF(bunkName, combinedTimeline, summary);
@@ -179,7 +210,11 @@ export default function FuelHistoryPage() {
       if (!response.ok) throw new Error("Payment failed");
       setIsModalOpen(false);
       setPaymentForm({ amount: "", bankId: "", payment_mode: "", description: "" });
-      fetchData(); 
+      
+      // Reset to page 1 to refresh everything
+      setPage(1);
+      setHasMore(true);
+      fetchData(1); 
     } catch (err: any) {
       alert(`Failed: ${err.message}`);
     } finally {
@@ -198,7 +233,6 @@ export default function FuelHistoryPage() {
         </button>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* PDF DOWNLOAD BUTTON */}
           <button 
             onClick={handleDownloadPdf}
             className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all shadow-sm"
@@ -253,20 +287,33 @@ export default function FuelHistoryPage() {
         ))}
       </div>
 
-      <AnimatePresence mode="wait">
-        {loading ? (
-           <div key="loading" className="space-y-4">
-              {[1,2,3].map(i => <div key={i} className="h-32 bg-white/40 animate-pulse rounded-[2rem] border border-white" />)}
-           </div>
-        ) : (
-          <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 gap-4">
-            {activeTab === 'all' && combinedTimeline.map((item, idx) => item.type === 'fuel' ? <FuelLogRow key={idx} log={item} idx={idx} /> : <StatementRow key={idx} st={item} idx={idx} />)}
-            {activeTab === 'logs' && fuelLogs.map((log, idx) => <FuelLogRow key={idx} log={log} idx={idx} />)}
-            {activeTab === 'statements' && statements.map((st, idx) => <StatementRow key={idx} st={st} idx={idx} />)}
-            {(activeTab === 'all' ? combinedTimeline : activeTab === 'logs' ? fuelLogs : statements).length === 0 && <EmptyState icon={<LayoutList size={40}/>} label="No Transactions Found" />}
-          </motion.div>
+      <div className="grid grid-cols-1 gap-4">
+        {activeTab === 'all' && combinedTimeline.map((item, idx) => (
+          <div key={`${item.id}-${idx}`} ref={idx === combinedTimeline.length - 1 ? lastElementRef : null}>
+            {item.type === 'fuel' ? <FuelLogRow log={item} idx={idx} /> : <StatementRow st={item} idx={idx} />}
+          </div>
+        ))}
+        {activeTab === 'logs' && fuelLogs.map((log, idx) => (
+          <div key={`${log.id}-${idx}`} ref={idx === fuelLogs.length - 1 ? lastElementRef : null}>
+            <FuelLogRow log={log} idx={idx} />
+          </div>
+        ))}
+        {activeTab === 'statements' && statements.map((st, idx) => (
+          <div key={`${st.id}-${idx}`} ref={idx === statements.length - 1 ? lastElementRef : null}>
+            <StatementRow st={st} idx={idx} />
+          </div>
+        ))}
+
+        {loading && (
+          <div className="flex justify-center py-8">
+            <Loader2 className="animate-spin text-orange-600" size={32} />
+          </div>
         )}
-      </AnimatePresence>
+
+        {!loading && (activeTab === 'all' ? combinedTimeline : activeTab === 'logs' ? fuelLogs : statements).length === 0 && (
+          <EmptyState icon={<LayoutList size={40}/>} label="No Transactions Found" />
+        )}
+      </div>
 
       {/* --- ADD PAYMENT MODAL --- */}
       <AnimatePresence>
@@ -325,13 +372,7 @@ export default function FuelHistoryPage() {
                                         <option key={mode} value={mode}>{mode}</option>
                                     ))}
                                 </select>
-                                {paymentForm.payment_mode === "CASH" ? (
-                                    <Wallet className="absolute right-5 top-1/2 -translate-y-1/2 text-orange-500" size={18} />
-                                ) : ["GPAY", "PHONEPE"].includes(paymentForm.payment_mode) ? (
-                                    <Smartphone className="absolute right-5 top-1/2 -translate-y-1/2 text-blue-500" size={18} />
-                                ) : (
-                                    <CreditCard className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                                )}
+                                <CreditCard className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                             </div>
                         </div>
 
@@ -361,7 +402,7 @@ export default function FuelHistoryPage() {
                     <button 
                         type="submit" 
                         disabled={isSubmitting || !paymentForm.bankId || !paymentForm.payment_mode}
-                        className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
                     >
                         {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
                         {isSubmitting ? "Processing..." : "Confirm Payment"}
@@ -375,11 +416,11 @@ export default function FuelHistoryPage() {
   );
 }
 
-// --- SUB-COMPONENTS REMAIN THE SAME ---
+// --- SUB-COMPONENTS ---
 function FuelLogRow({ log, idx }: { log: Transaction; idx: number }) {
     const date = log.sortDate;
     return (
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className={`group bg-white p-2 pr-6 rounded-[2rem] shadow-sm border transition-all flex flex-col md:flex-row items-center gap-6 ${!log.isVerified ? 'border-red-100 bg-red-50/10' : 'border-slate-100 hover:shadow-xl'}`}>
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className={`group bg-white p-2 pr-6 rounded-[2rem] shadow-sm border transition-all flex flex-col md:flex-row items-center gap-6 mb-4 ${!log.isVerified ? 'border-red-100 bg-red-50/10' : 'border-slate-100 hover:shadow-xl'}`}>
           <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-slate-50 border border-slate-100 flex flex-col items-center justify-center">
               <span className="text-[10px] font-black text-slate-400 uppercase mb-1">{date.getFullYear()}</span>
               <span className="text-2xl font-black text-slate-800 leading-none">{date.getDate()}</span>
@@ -409,7 +450,7 @@ function FuelLogRow({ log, idx }: { log: Transaction; idx: number }) {
 function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
     const date = st.sortDate;
     return (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="bg-white p-2 pr-6 rounded-[2rem] shadow-sm border border-emerald-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6">
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="bg-white p-2 pr-6 rounded-[2rem] shadow-sm border border-emerald-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
             <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-emerald-50 border border-emerald-100 flex flex-col items-center justify-center">
                 <span className="text-[10px] font-black text-emerald-600/50 uppercase mb-1">PAID</span>
                 <span className="text-2xl font-black text-emerald-700 leading-none">{date.getDate()}</span>

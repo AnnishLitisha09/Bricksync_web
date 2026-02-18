@@ -1,25 +1,22 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
-    ArrowLeft,
-    Building2,
-    Car,
-    CheckCircle2,
-    CreditCard,
-    Gauge,
-    History,
-    Landmark,
-    LayoutList,
-    Loader2,
-    Plus,
-    ReceiptText,
-    Smartphone,
-    StickyNote,
-    TrendingUp,
-    Wallet,
-    Wrench,
-    X
+  ArrowLeft,
+  Building2,
+  Car,
+  CheckCircle2,
+  Gauge,
+  History,
+  Landmark,
+  LayoutList,
+  Loader2,
+  Plus,
+  ReceiptText,
+  TrendingUp,
+  Wallet,
+  Wrench,
+  X
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { BASE_URL, getAuthHeader } from "../../../../api/base";
 import { useBankStore } from "../../../../store/bankStore";
@@ -51,11 +48,15 @@ export default function ServiceHistoryPage() {
 
   const { banks, fetchBanks } = useBankStore();
 
+  // Data States
   const [serviceLogs, setServiceLogs] = useState<Transaction[]>([]);
   const [statements, setStatements] = useState<Transaction[]>([]);
-  const [combinedTimeline, setCombinedTimeline] = useState<Transaction[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('all');
-  const [loading, setLoading] = useState(true);
+  
+  // Pagination & Loading States
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -71,6 +72,21 @@ export default function ServiceHistoryPage() {
     totalPaid: 0,
     outstanding: 0
   });
+
+  // --- FIXED INFINITE SCROLL LOGIC ---
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+    
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore]);
 
   const selectedBankData = useMemo(() => 
     banks.find(b => b.id.toString() === paymentForm.bankId), 
@@ -88,8 +104,11 @@ export default function ServiceHistoryPage() {
 
   useEffect(() => {
     fetchBanks();
-    if (shopId) fetchData();
-  }, [shopId]);
+  }, [fetchBanks]);
+
+  useEffect(() => {
+    if (shopId) fetchData(page);
+  }, [shopId, page]);
 
   useEffect(() => {
     if (availableModes.length > 0) {
@@ -99,12 +118,12 @@ export default function ServiceHistoryPage() {
     }
   }, [availableModes]);
 
-  const fetchData = async () => {
+  const fetchData = async (pageNum: number) => {
     if (!shopId) return;
     try {
       setLoading(true);
       const [serviceRes, statementRes] = await Promise.all([
-        fetch(`${BASE_URL}/vehicle-services`, { headers: getAuthHeader() }),
+        fetch(`${BASE_URL}/vehicle-services?page=${pageNum}&limit=10`, { headers: getAuthHeader() }),
         fetch(`${BASE_URL}/service-statements`, { headers: getAuthHeader() })
       ]);
 
@@ -112,7 +131,7 @@ export default function ServiceHistoryPage() {
       const statementData = await statementRes.json();
 
       const logsArray = Array.isArray(serviceData.data) ? serviceData.data : (serviceData || []);
-      const filteredLogs: Transaction[] = logsArray
+      const newLogs: Transaction[] = logsArray
         .filter((item: any) => item.serviceShopId === Number(shopId))
         .map((item: any) => ({ 
             ...item, 
@@ -128,23 +147,33 @@ export default function ServiceHistoryPage() {
           sortDate: new Date(item.createdAt || item.date),
         }));
       
-      const serviceTotal = filteredLogs.reduce((acc, curr) => acc + Number(curr.amount), 0);
-      const paidTotal = filteredStatements.reduce((acc, curr) => acc + Number(curr.amount), 0);
+      if (newLogs.length < 10) setHasMore(false);
 
-      const combined = [...filteredLogs, ...filteredStatements].sort((a, b) => 
-        b.sortDate.getTime() - a.sortDate.getTime()
-      );
+      setServiceLogs(prev => pageNum === 1 ? newLogs : [...prev, ...newLogs]);
+      setStatements(filteredStatements);
 
-      setServiceLogs(filteredLogs.sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime()));
-      setStatements(filteredStatements.sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime()));
-      setCombinedTimeline(combined);
-      setSummary({ totalService: serviceTotal, totalPaid: paidTotal, outstanding: serviceTotal - paidTotal });
+      const totalP = filteredStatements.reduce((a, c) => a + Number(c.amount), 0);
+      
+      setSummary(prev => {
+        const currentTotalS = pageNum === 1 ? newLogs.reduce((a, c) => a + Number(c.amount), 0) : prev.totalService;
+        return {
+          totalService: currentTotalS,
+          totalPaid: totalP,
+          outstanding: currentTotalS - totalP
+        };
+      });
     } catch (err) {
       console.error("Fetch error", err);
     } finally {
       setLoading(false);
     }
   };
+
+  const combinedTimeline = useMemo(() => {
+    return [...serviceLogs, ...statements].sort((a, b) => 
+      b.sortDate.getTime() - a.sortDate.getTime()
+    );
+  }, [serviceLogs, statements]);
 
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,7 +195,11 @@ export default function ServiceHistoryPage() {
       if (!response.ok) throw new Error("Payment failed");
       setIsModalOpen(false);
       setPaymentForm({ amount: "", bankId: "", payment_mode: "", description: "" });
-      fetchData(); 
+      
+      setPage(1);
+      setHasMore(true);
+      setServiceLogs([]);
+      fetchData(1); 
     } catch (err: any) {
       alert(`Failed: ${err.message}`);
     } finally {
@@ -232,20 +265,33 @@ export default function ServiceHistoryPage() {
         ))}
       </div>
 
-      <AnimatePresence mode="wait">
-        {loading ? (
-           <div key="loading" className="space-y-4">
-              {[1,2,3].map(i => <div key={i} className="h-32 bg-white/40 animate-pulse rounded-[2rem] border border-white" />)}
-           </div>
-        ) : (
-          <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 gap-4">
-            {activeTab === 'all' && combinedTimeline.map((item, idx) => item.type === 'service' ? <ServiceLogRow key={idx} log={item} idx={idx} /> : <StatementRow key={idx} st={item} idx={idx} />)}
-            {activeTab === 'logs' && serviceLogs.map((log, idx) => <ServiceLogRow key={idx} log={log} idx={idx} />)}
-            {activeTab === 'statements' && statements.map((st, idx) => <StatementRow key={idx} st={st} idx={idx} />)}
-            {(activeTab === 'all' ? combinedTimeline : activeTab === 'logs' ? serviceLogs : statements).length === 0 && <EmptyState icon={<LayoutList size={40}/>} label="No Transactions Found" />}
-          </motion.div>
+      <div className="grid grid-cols-1 gap-4">
+        {activeTab === 'all' && combinedTimeline.map((item, idx) => (
+          <div key={`${item.id}-${idx}`} ref={idx === combinedTimeline.length - 1 ? lastElementRef : null}>
+            {item.type === 'service' ? <ServiceLogRow log={item} idx={idx} /> : <StatementRow st={item} idx={idx} />}
+          </div>
+        ))}
+        {activeTab === 'logs' && serviceLogs.map((log, idx) => (
+          <div key={`${log.id}-${idx}`} ref={idx === serviceLogs.length - 1 ? lastElementRef : null}>
+            <ServiceLogRow log={log} idx={idx} />
+          </div>
+        ))}
+        {activeTab === 'statements' && statements.map((st, idx) => (
+          <div key={`${st.id}-${idx}`} ref={idx === statements.length - 1 ? lastElementRef : null}>
+            <StatementRow st={st} idx={idx} />
+          </div>
+        ))}
+
+        {loading && (
+          <div className="flex justify-center py-8">
+            <Loader2 className="animate-spin text-blue-600" size={32} />
+          </div>
         )}
-      </AnimatePresence>
+
+        {(!loading && (activeTab === 'all' ? combinedTimeline : activeTab === 'logs' ? serviceLogs : statements).length === 0) && 
+          <EmptyState icon={<LayoutList size={40}/>} label="No Transactions Found" />
+        }
+      </div>
 
       {/* --- RECORD PAYMENT MODAL --- */}
       <AnimatePresence>
@@ -264,76 +310,44 @@ export default function ServiceHistoryPage() {
                 <form className="p-8 space-y-6" onSubmit={handlePaymentSubmit}>
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Receiving Workshop</label>
-                        <div className="relative">
-                            <input disabled value={shopName} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800" />
-                            <Building2 className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                        </div>
+                        <input disabled value={shopName} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800" />
                     </div>
 
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Source Bank Account</label>
-                        <div className="relative">
-                            <select 
-                                required
-                                value={paymentForm.bankId}
-                                onChange={(e) => setPaymentForm({...paymentForm, bankId: e.target.value})}
-                                className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 font-black text-slate-800 focus:ring-2 ring-emerald-500/20 outline-none appearance-none transition-all"
-                            >
-                                <option value="">Select a Bank...</option>
-                                {banks.map(bank => (
-                                    <option key={bank.id} value={bank.id}>{bank.name} - {bank.holderName}</option>
-                                ))}
-                            </select>
-                            <Landmark className="absolute right-5 top-1/2 -translate-y-1/2 text-emerald-500" size={18} />
-                        </div>
+                        <select 
+                            required
+                            value={paymentForm.bankId}
+                            onChange={(e) => setPaymentForm({...paymentForm, bankId: e.target.value})}
+                            className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 font-black text-slate-800 focus:ring-2 ring-emerald-500/20 outline-none transition-all"
+                        >
+                            <option value="">Select a Bank...</option>
+                            {banks.map(bank => (
+                                <option key={bank.id} value={bank.id}>{bank.name} - {bank.holderName}</option>
+                            ))}
+                        </select>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Payment Mode</label>
-                            <div className="relative">
-                                <select 
-                                    disabled={!paymentForm.bankId || availableModes.length === 0}
-                                    required
-                                    className={`w-full border rounded-2xl px-5 py-4 font-black text-slate-800 appearance-none focus:ring-2 ring-emerald-500/20 outline-none transition-all ${(!paymentForm.bankId || availableModes.length === 0) ? 'bg-slate-100 border-slate-200 cursor-not-allowed text-slate-400' : 'bg-slate-50 border-slate-100'}`}
-                                    value={paymentForm.payment_mode}
-                                    onChange={(e) => setPaymentForm({...paymentForm, payment_mode: e.target.value})}
-                                >
-                                    {!paymentForm.bankId && <option value="">Select Bank First</option>}
-                                    {availableModes.map(mode => (
-                                        <option key={mode} value={mode}>{mode}</option>
-                                    ))}
-                                </select>
-                                {paymentForm.payment_mode === "CASH" ? (
-                                    <Wallet className="absolute right-5 top-1/2 -translate-y-1/2 text-orange-500" size={18} />
-                                ) : ["GPAY", "PHONEPE"].includes(paymentForm.payment_mode) ? (
-                                    <Smartphone className="absolute right-5 top-1/2 -translate-y-1/2 text-blue-500" size={18} />
-                                ) : (
-                                    <CreditCard className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                                )}
-                            </div>
+                            <select 
+                                disabled={!paymentForm.bankId || availableModes.length === 0}
+                                required
+                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800"
+                                value={paymentForm.payment_mode}
+                                onChange={(e) => setPaymentForm({...paymentForm, payment_mode: e.target.value})}
+                            >
+                                {!paymentForm.bankId && <option value="">Select Bank First</option>}
+                                {availableModes.map(mode => (
+                                    <option key={mode} value={mode}>{mode}</option>
+                                ))}
+                            </select>
                         </div>
 
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Amount</label>
-                            <div className="relative">
-                                <input type="number" required placeholder="0.00" value={paymentForm.amount} onChange={(e) => setPaymentForm({...paymentForm, amount: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800 focus:ring-2 ring-emerald-500/20 outline-none transition-all" />
-                                <span className="absolute right-5 top-1/2 -translate-y-1/2 font-black text-emerald-600">₹</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Description</label>
-                        <div className="relative">
-                            <textarea 
-                                rows={2}
-                                placeholder="Enter transaction details..." 
-                                value={paymentForm.description} 
-                                onChange={(e) => setPaymentForm({...paymentForm, description: e.target.value})} 
-                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800 focus:ring-2 ring-emerald-500/20 outline-none transition-all resize-none" 
-                            />
-                            <StickyNote className="absolute right-5 top-5 text-slate-300" size={18} />
+                            <input type="number" required placeholder="0.00" value={paymentForm.amount} onChange={(e) => setPaymentForm({...paymentForm, amount: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800" />
                         </div>
                     </div>
 
@@ -358,8 +372,8 @@ export default function ServiceHistoryPage() {
 function ServiceLogRow({ log, idx }: { log: Transaction; idx: number }) {
   const date = log.sortDate;
   return (
-    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.02 }} className="group bg-white p-2 pr-6 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6">
-      <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-slate-50 border border-slate-100 flex flex-col items-center justify-center group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors">
+    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="group bg-white p-2 pr-6 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
+      <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-slate-50 border border-slate-100 flex flex-col items-center justify-center group-hover:bg-blue-50 transition-colors">
         <span className="text-[10px] font-black text-slate-400 uppercase mb-1">{date.getFullYear()}</span>
         <span className="text-2xl font-black text-slate-800 leading-none">{date.getDate()}</span>
         <span className="text-[10px] font-black uppercase text-blue-600 mt-1">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>
@@ -369,7 +383,7 @@ function ServiceLogRow({ log, idx }: { log: Transaction; idx: number }) {
           <h3 className="text-xl font-black text-slate-800 tracking-tight uppercase group-hover:text-blue-600 transition-colors">{log.topic || "Routine Service"}</h3>
           <p className="text-slate-400 text-sm font-medium mt-1 line-clamp-1">{log.description || "General maintenance and repairs."}</p>
         </div>
-        <div className="flex items-center gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-100 group-hover:bg-white transition-all">
+        <div className="flex items-center gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
           <div className="text-right">
             <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Odometer</p>
             <div className="flex items-center gap-2 text-slate-700">
@@ -385,10 +399,7 @@ function ServiceLogRow({ log, idx }: { log: Transaction; idx: number }) {
         </div>
       </div>
       <div className="w-full md:w-56 p-4 rounded-[1.5rem] bg-slate-900 text-white shadow-lg">
-        <div className="flex items-center gap-2 mb-1">
-          <Car size={12} className="text-blue-400" />
-          <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Vehicle</p>
-        </div>
+        <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Vehicle</p>
         <p className="font-black text-sm uppercase truncate">{log.vehicle?.vehicleName || "Unknown"}</p>
         <span className="text-[10px] font-mono text-blue-400">{log.vehicle?.vehicleNumber || "N/A"}</span>
       </div>
@@ -399,7 +410,7 @@ function ServiceLogRow({ log, idx }: { log: Transaction; idx: number }) {
 function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
   const date = st.sortDate;
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.02 }} className="bg-white p-2 pr-6 rounded-[2rem] shadow-sm border border-emerald-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6">
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="bg-white p-2 pr-6 rounded-[2rem] shadow-sm border border-emerald-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
       <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-emerald-50 border border-emerald-100 flex flex-col items-center justify-center">
         <span className="text-[10px] font-black text-emerald-600/50 uppercase mb-1">PAID</span>
         <span className="text-2xl font-black text-emerald-700 leading-none">{date.getDate()}</span>
@@ -411,13 +422,7 @@ function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
             <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl"><Landmark size={24} /></div>
             <div>
               <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Settlement</h3>
-              <div className="flex items-center gap-2">
-                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{st.bank?.name || 'Bank'}</p>
-                <div className="w-1 h-1 bg-emerald-300 rounded-full" />
-                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[8px] font-black uppercase rounded-md border border-emerald-100">
-                  {st.payment_mode || 'TRANSFER'}
-                </span>
-              </div>
+              <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{st.bank?.name || 'Bank'}</p>
             </div>
           </div>
           <div className="text-right">
@@ -425,10 +430,6 @@ function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
             <span className="text-xl font-black text-emerald-700">₹{st.amount.toLocaleString()}</span>
           </div>
         </div>
-      </div>
-      <div className="w-full md:w-56 p-4 rounded-[1.5rem] bg-emerald-900 text-white shadow-xl shadow-emerald-100">
-        <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Account Holder</p>
-        <p className="font-black text-[10px] uppercase truncate">{st.bank?.holderName || 'SYSTEM'}</p>
       </div>
     </motion.div>
   );

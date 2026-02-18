@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Store, 
   User, 
@@ -12,18 +12,23 @@ import {
   Loader2,
   ShieldCheck,
   Info,
-  Tag
+  Tag,
+  Plus,
+  Trash2,
+  ListPlus
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-// Assuming you have a shop store similar to your bunk store
-// import { useShopStore } from "../../../../store/useShopStore";
+interface CustomField {
+  id: number;
+  title: string;
+  options: string[];
+  selectedValue: string;
+  newOptionText: string;
+}
 
 export default function AddShopPage() {
   const navigate = useNavigate();
-  
-  // Replace with your actual store hook
-  // const { createShop, loading } = useShopStore();
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
@@ -35,6 +40,9 @@ export default function AddShopPage() {
     balance: "",
   });
 
+  // Dynamic Fields State
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+
   const categories = ["Retail", "Wholesale", "Distributor", "Contractor"];
 
   const handleChange = (
@@ -43,9 +51,45 @@ export default function AddShopPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  /* 🔹 Custom Field Logic */
+  const addField = () => {
+    const newField: CustomField = {
+      id: Date.now(),
+      title: "",
+      options: [],
+      selectedValue: "",
+      newOptionText: ""
+    };
+    setCustomFields([...customFields, newField]);
+  };
+
+  const removeField = (id: number) => {
+    setCustomFields(customFields.filter(f => f.id !== id));
+  };
+
+  const updateFieldTitle = (id: number, title: string) => {
+    setCustomFields(customFields.map(f => f.id === id ? { ...f, title } : f));
+  };
+
+  const addOptionToField = (id: number) => {
+    setCustomFields(customFields.map(f => {
+      if (f.id === id && f.newOptionText.trim() !== "") {
+        return { 
+          ...f, 
+          options: [...f.options, f.newOptionText.trim()], 
+          newOptionText: "" 
+        };
+      }
+      return f;
+    }));
+  };
+
+  const handleOptionInput = (id: number, text: string) => {
+    setCustomFields(customFields.map(f => f.id === id ? { ...f, newOptionText: text } : f));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!form.shopName || !form.ownerName || !form.phoneNumber || !form.address) {
       toast.error("Please fill all required fields");
       return;
@@ -53,16 +97,14 @@ export default function AddShopPage() {
 
     setLoading(true);
     try {
-      // Logic to save shop
-      console.log("Saving Shop:", form);
+      const finalData = {
+        ...form,
+        customFields: customFields.map(f => ({ title: f.title, value: f.selectedValue }))
+      };
+      console.log("Saving Shop with Custom Fields:", finalData);
       
-      // await createShop({
-      //   ...form,
-      //   balance: Number(form.balance) || 0,
-      // });
-
       toast.success("Merchant registered successfully!");
-      navigate("/shop/ledger"); // Navigate back to your shop list
+      navigate("/shop/ledger");
     } catch (error) {
       toast.error("Failed to register shop");
     } finally {
@@ -76,7 +118,6 @@ export default function AddShopPage() {
       animate={{ opacity: 1, y: 0 }}
       className="max-w-6xl mx-auto p-4 md:p-8 font-sans"
     >
-      {/* BACK BUTTON */}
       <button
         onClick={() => navigate(-1)}
         className="group mb-6 flex items-center gap-2 text-slate-400 hover:text-indigo-600 transition-colors font-black uppercase tracking-widest text-[10px]"
@@ -89,48 +130,32 @@ export default function AddShopPage() {
 
       <div className="bg-white rounded-[3rem] shadow-2xl shadow-slate-200 overflow-hidden border border-slate-100 flex flex-col lg:flex-row">
         
-        {/* LEFT PANEL: INFO & DECORATION */}
+        {/* LEFT PANEL */}
         <div className="lg:w-1/3 bg-slate-900 p-8 lg:p-12 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl -mr-32 -mt-32" />
-          
           <div className="relative z-10 space-y-8">
             <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-900/50">
               <Store size={32} />
             </div>
-            
             <div>
-              <h1 className="text-3xl font-black tracking-tight leading-tight">
-                REGISTER <br />
-                <span className="text-indigo-500 italic">NEW MERCHANT</span>
+              <h1 className="text-3xl font-black tracking-tight leading-tight uppercase">
+                Register <br />
+                <span className="text-indigo-500 italic">New Merchant</span>
               </h1>
-              <p className="text-slate-400 mt-4 text-sm font-medium leading-relaxed">
-                Onboard a new vendor to your ledger system to manage credit, track outstanding balances, and streamline procurement.
-              </p>
             </div>
 
-            <div className="space-y-4 pt-8">
-              <div className="flex items-center gap-4 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
-                <ShieldCheck size={16} className="text-emerald-500" />
-                Verified Merchant Entry
-              </div>
-              <div className="flex items-center gap-4 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
-                <Tag size={16} className="text-indigo-500" />
-                Category Based Tracking
-              </div>
-            </div>
-          </div>
-          
-          <div className="absolute bottom-8 left-8 right-8 p-6 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 hidden lg:block">
-            <div className="flex gap-3">
-               <Info className="text-indigo-500 shrink-0" size={18} />
-               <p className="text-[10px] text-slate-300 leading-relaxed font-medium">
-                 Initial balance setup will create a starting point for the credit history. This can be adjusted later through transactions.
-               </p>
-            </div>
+            <button
+              type="button"
+              onClick={addField}
+              className="w-full flex items-center justify-center gap-3 p-4 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl transition-all text-xs font-black uppercase tracking-widest"
+            >
+              <Plus size={18} className="text-indigo-400" />
+              Add Custom Field
+            </button>
           </div>
         </div>
 
-        {/* RIGHT PANEL: FORM */}
+        {/* RIGHT PANEL */}
         <div className="flex-1 p-8 lg:p-16">
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -178,18 +203,16 @@ export default function AddShopPage() {
                 value={form.balance}
                 onChange={handleChange}
               />
-
-              <div className="md:col-span-2">
-                <CustomInput
-                  icon={<Phone size={18} />}
-                  label="Phone Number"
-                  name="phoneNumber"
-                  placeholder="+91 90000 00000"
-                  value={form.phoneNumber}
-                  onChange={handleChange}
-                />
-              </div>
             </div>
+
+            <CustomInput
+              icon={<Phone size={18} />}
+              label="Phone Number"
+              name="phoneNumber"
+              placeholder="+91 90000 00000"
+              value={form.phoneNumber}
+              onChange={handleChange}
+            />
 
             <div className="space-y-2">
               <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
@@ -201,10 +224,76 @@ export default function AddShopPage() {
                 value={form.address}
                 onChange={handleChange}
                 placeholder="Enter complete business location details..."
-                rows={4}
+                rows={3}
                 className="w-full bg-slate-50 border-2 border-transparent rounded-[2rem] px-6 py-5 text-sm font-bold focus:bg-white focus:border-indigo-500 transition-all outline-none text-slate-700 resize-none shadow-inner"
               />
             </div>
+
+            {/* DYNAMIC CUSTOM FIELDS SECTION */}
+            <AnimatePresence>
+              {customFields.length > 0 && (
+                <div className="space-y-6 pt-6 border-t border-slate-100">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-500">Additional Information Fields</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {customFields.map((field) => (
+                      <motion.div 
+                        key={field.id}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-4"
+                      >
+                        <div className="flex justify-between items-center">
+                          <input 
+                            placeholder="Field Title (e.g. GST Type)"
+                            className="bg-transparent border-b-2 border-slate-200 focus:border-indigo-500 outline-none font-black text-xs uppercase tracking-widest text-slate-700 pb-1 w-2/3"
+                            value={field.title}
+                            onChange={(e) => updateFieldTitle(field.id, e.target.value)}
+                          />
+                          <button type="button" onClick={() => removeField(field.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+
+                        {/* Add Option Input */}
+                        <div className="flex gap-2">
+                          <input 
+                            placeholder="Add Option..."
+                            className="flex-1 bg-white rounded-xl px-4 py-2 text-xs font-bold outline-none border border-slate-200 focus:border-indigo-500"
+                            value={field.newOptionText}
+                            onChange={(e) => handleOptionInput(field.id, e.target.value)}
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => addOptionToField(field.id)}
+                            className="p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700"
+                          >
+                            <ListPlus size={16} />
+                          </button>
+                        </div>
+
+                        {/* Final Dropdown Preview */}
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-slate-400 uppercase">Field Preview</label>
+                          <select 
+                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold outline-none"
+                            value={field.selectedValue}
+                            onChange={(e) => {
+                              setCustomFields(customFields.map(f => f.id === field.id ? { ...f, selectedValue: e.target.value } : f));
+                            }}
+                          >
+                            <option value="">Select {field.title || 'Option'}...</option>
+                            {field.options.map((opt, i) => (
+                              <option key={i} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </AnimatePresence>
 
             {/* ACTION BUTTONS */}
             <div className="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t border-dashed border-slate-100">
@@ -238,15 +327,7 @@ export default function AddShopPage() {
   );
 }
 
-/* 🔹 Custom Styled Input Component */
-const CustomInput = ({
-  label,
-  icon,
-  ...props
-}: {
-  label: string;
-  icon: React.ReactNode;
-} & React.InputHTMLAttributes<HTMLInputElement>) => (
+const CustomInput = ({ label, icon, ...props }: { label: string; icon: React.ReactNode; } & React.InputHTMLAttributes<HTMLInputElement>) => (
   <div className="space-y-2">
     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
       <span className="text-indigo-500">{icon}</span>

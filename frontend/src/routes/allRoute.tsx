@@ -31,7 +31,10 @@ import ServicePage from "../screens/pages/Vehicles/service/ServicePage";
 // --- MATERIAL SHOP IMPORTS ---
 import MaterialManagement from "../screens/pages/shops/material/MaterialManagement"; // This is your ShopLedgerPage
 import AddShopPage from "../screens/pages/shops/material/AddShopPage";
-import MaterialHistoryPage from "../screens/pages/shops/material/MaterialHistoryPage"; 
+import MaterialHistoryPage from "../screens/pages/shops/material/MaterialHistoryPage";
+import StockInventory from "../screens/pages/stock/StockInventory";
+import AddProductPage from "../screens/pages/stock/AddProductPage";
+import ProductionHistoryPage from "../screens/pages/stock/ProductionHistoryPage";
 
 const privateRoutes = [
   {
@@ -141,6 +144,19 @@ const privateRoutes = [
   {
     path: "/contact",
     element: <ContactPage />,
+  },
+
+  {
+    path: "/inventory/history",
+    element: <ProductionHistoryPage />,
+  },
+    {
+    path: "/inventory/add",
+    element: <AddProductPage />,
+  },
+  {
+    path: "/stock",
+    element: <StockInventory />,
   },
   {
     path: "*",

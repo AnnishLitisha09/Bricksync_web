@@ -63,11 +63,11 @@ const menu: MenuItem[] = [
     name: "Stock",
     icon: Boxes,
     path: "/stock",
-    children: [
-      { name: "View Stock", path: "/stock/view" },
-      { name: "Add Stock", path: "/stock/add" },
-      { name: "Edit Stock", path: "/stock/edit" },
-    ],
+    // children: [
+    //   { name: "View Stock", path: "/stock/view" },
+    //   { name: "Add Stock", path: "/stock/add" },
+    //   { name: "Edit Stock", path: "/stock/edit" },
+    // ],
   },
   {
     name: "Staff",
