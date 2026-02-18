@@ -14,10 +14,12 @@ import {
   ShieldCheck,
   Star,
   Truck,
-  X
+  X,
+  CheckCircle2
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BASE_URL } from "../../../api/base";
 
 // --- Configuration & Data ---
 const highlights = [
@@ -28,11 +30,11 @@ const highlights = [
 ];
 
 const products = [
-  { id: "01", name: "Hollow Bricks", icon: "🧱", size: "4\", 6\", 8\", 9\"", description: "Precision-molded with advanced vibration technology for superior bonding and thermal insulation.", imageUrl: "https://imgs.search.brave.com/0gTocmMAqd-q4qx56bIWnhOA3hcNa2s6V15JWP1IQAo/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5pc3RvY2twaG90/by5jb20vaWQvMTAx/MjI5NjU5OC9waG90/by9jb25jcmV0ZS1i/bG9ja3MtZm9yLWNv/bnN0cnVjdGlvbi1i/YWNrZ3JvdW5kLWFu/ZC10ZXh0dXJlLXdp/dGgtc2VsZWN0aXZl/LWZvY3VzLmpwZz9z/PTYxMng2MTImdz0w/Jms9MjAmYz1fQjJN/WDVuTnVHSHBob3N5/VUNsYTJYOGJpV1hy/NWpuUEcxUERLUzdk/MnF3PQ" },
-  { id: "02", name: "Red Stones", icon: "💎", size: "Standard / Custom", description: "Hard-mined natural foundation stones sourced from premium quarries for heavy-load bearing.", imageUrl: "https://imgs.search.brave.com/U7CO95bkEr5upjBOFbf6Llx7GOqCksUO1qkv85En8b4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90aHVt/YnMuZHJlYW1zdGlt/ZS5jb20vYi9wYXJ0/LXN0b25lLXdhbGwt/cmVkLWJyaWNrcy04/NDM4MjA1LmpwZw" },
-  { id: "03", name: "Fly Ash Bricks", icon: "🌿", size: "9 x 4 x 3", description: "Eco-friendly alternatives with high dimensional accuracy and reduced mortar consumption.", imageUrl: "https://imgs.search.brave.com/SQtLsKBrd7VM7FeXttHx0WK4XxzMw4Ne55iVEYfvLz8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tY2Nv/eW1hcnQuY29tL3Bv/c3Qvd3AtY29udGVu/dC93ZWJwLWV4cHJl/c3Mvd2VicC1pbWFn/ZXMvdXBsb2Fkcy8w/OC1NYXktMjQtRmx5/LUFzaC1Ccmlja3Mt/QS5qcGcud2VicA" },
-  { id: "04", name: "M-Sand & P-Sand", icon: "🏜️", size: "Triple Washed", description: "Silt-free Karur sand. P-Sand for smooth plastering and M-Sand for high-strength concrete.", imageUrl: "https://imgs.search.brave.com/PqWkks9BQDvf8GRygmKPVg8nUpJeLeZHD0MZRoXE0Us/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9lbmdp/bmVlcm1hcnQuaW4v/ZW1hcnRfdXBsb2Fk/cy9tYXVuZmFjdHVy/ZWQtc2FuZC1mZWF0/dXJlZC1pbWFnZTE3/NTIzMzQ5OTcuanBn" },
-  { id: "06", name: "Premium Cement", icon: "💎", size: "Grade 53/43", description: "Authorized distribution of Dalmia Gold and Maha Cement for long-lasting structural life.", imageUrl: "https://imgs.search.brave.com/LzkU-fezZy0MEYe8o6q4VM8q5o1czX1HZir73ldlJ3s/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90NC5m/dGNkbi5uZXQvanBn/LzEyLzI1LzgwLzc1/LzM2MF9GXzEyMjU4/MDc1OTFfVGpZS1Jn/aTRiUFlrUnVQbnNk/RUZvR3U1Y3M0cXl3/OGwuanBn" },
+  { id: "01", name: "Hollow Bricks", icon: "🧱", size: "4\", 6\", 8\", 9\"", description: "Precision-molded with advanced vibration technology for superior bonding and thermal insulation.", imageUrl: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80" },
+  { id: "02", name: "Red Stones", icon: "💎", size: "Standard / Custom", description: "Hard-mined natural foundation stones sourced from premium quarries for heavy-load bearing.", imageUrl: "https://images.unsplash.com/photo-1590069546976-7fbf32acc30a?auto=format&fit=crop&w=800&q=80" },
+  { id: "03", name: "Fly Ash Bricks", icon: "🌿", size: "9 x 4 x 3", description: "Eco-friendly alternatives with high dimensional accuracy and reduced mortar consumption.", imageUrl: "https://images.unsplash.com/photo-1516156008625-3a9d6067fab5?auto=format&fit=crop&w=800&q=80" },
+  { id: "04", name: "M-Sand & P-Sand", icon: "🏜️", size: "Triple Washed", description: "Silt-free Karur sand. P-Sand for smooth plastering and M-Sand for high-strength concrete.", imageUrl: "https://images.unsplash.com/photo-1533052605963-883395726395?auto=format&fit=crop&w=800&q=80" },
+  { id: "06", name: "Premium Cement", icon: "💎", size: "Grade 53/43", description: "Authorized distribution of Dalmia Gold and Maha Cement for long-lasting structural life.", imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80" },
 ];
 
 const testimonials = [
@@ -40,19 +42,12 @@ const testimonials = [
   { name: "Senthil Prabhu", role: "Home Owner", text: "The delivery was surprisingly fast. Even in Tiruppur traffic, they reached my site exactly when promised." }
 ];
 
-// Cleaned up Variants definition
 const fadeInUp: Variants = {
-  hidden: { 
-    opacity: 0, 
-    y: 30 
-  },
+  hidden: { opacity: 0, y: 30 },
   visible: { 
     opacity: 1, 
     y: 0, 
-    transition: { 
-      duration: 0.8, 
-      ease: [0.16, 1, 0.3, 1] 
-    } 
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } 
   }
 };
 
@@ -62,9 +57,13 @@ const AswathBricksPro: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [formData, setFormData] = useState({ name: "", phone: "", email: "" });
   const [errors, setErrors] = useState({ email: "" });
+  
+  // New Loading States
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const navigate = useNavigate();
+  const [loadingStage, setLoadingStage] = useState(""); 
+  const [isSuccess, setIsSuccess] = useState(false);
 
+  const navigate = useNavigate();
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
   const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
@@ -83,12 +82,41 @@ const AswathBricksPro: React.FC = () => {
       setErrors({ email: "Please enter a valid business email." });
       return;
     }
+    
     setErrors({ email: "" });
     setIsSubmitting(true);
-    await new Promise(r => setTimeout(r, 2000));
-    setIsSubmitting(false);
-    setIsModalOpen(false);
-    alert("Quote Request Sent! Our manager will call you shortly.");
+    
+    // Creative Loading Sequence
+    setLoadingStage("Verifying Details...");
+    await new Promise(r => setTimeout(r, 800));
+    
+    setLoadingStage("Notifying Sales Team...");
+    
+    try {
+      const response = await fetch(`${BASE_URL}/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setLoadingStage("Syncing with Dispatch...");
+        await new Promise(r => setTimeout(r, 1000));
+        setIsSuccess(true);
+        setFormData({ name: "", phone: "", email: "" });
+        // Auto close after 3 seconds
+        setTimeout(() => {
+          setIsModalOpen(false);
+          setIsSuccess(false);
+          setIsSubmitting(false);
+        }, 3000);
+      } else {
+        throw new Error("Failed");
+      }
+    } catch (error) {
+      alert("Submission error. Please try again.");
+      setIsSubmitting(false);
+    }
   };
 
   const navLinks = [
@@ -98,11 +126,8 @@ const AswathBricksPro: React.FC = () => {
   ];
 
   const [secretClicks, setSecretClicks] = useState(0);
-
   useEffect(() => {
-    if (secretClicks >= 5) {
-      navigate("/login");
-    }
+    if (secretClicks >= 5) navigate("/login");
   }, [secretClicks, navigate]);
 
   const handleSecretClick = () => {
@@ -121,35 +146,73 @@ const AswathBricksPro: React.FC = () => {
         <MessageCircle size={24} className="md:w-7 md:h-7" />
       </a>
 
-      {/* MODAL */}
+      {/* MODAL WITH ENHANCED LOADING */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-[2005] flex items-center justify-center p-4 md:p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" />
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="relative bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh] p-6 md:p-14">
-              <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-950 transition-colors"><X size={24} /></button>
-              <div className="mb-8 md:mb-10">
-                <h3 className="text-3xl md:text-4xl font-black italic uppercase leading-none mb-2">Build <span className="text-orange-500">Stronger.</span></h3>
-                <p className="text-slate-500 text-xs md:text-sm font-medium">Professional quotation for bulk or retail requirements.</p>
-              </div>
-              <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
-                <div className="space-y-1">
-                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Full Name</label>
-                   <input required type="text" placeholder="John Doe" className="w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm" onChange={e => setFormData({...formData, name: e.target.value})} />
-                </div>
-                <div className="space-y-1">
-                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Contact Number</label>
-                   <input required type="tel" placeholder="+91 00000 00000" className="w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm" onChange={e => setFormData({...formData, phone: e.target.value})} />
-                </div>
-                <div className="space-y-1">
-                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Email Address</label>
-                   <input required type="email" placeholder="name@company.com" className={`w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm ${errors.email ? 'ring-2 ring-red-500' : ''}`} onChange={e => setFormData({...formData, email: e.target.value})} />
-                   {errors.email && <p className="text-[10px] text-red-600 font-bold uppercase mt-1 ml-4">{errors.email}</p>}
-                </div>
-                <button disabled={isSubmitting} className="w-full bg-slate-950 text-white py-5 md:py-6 rounded-[1.2rem] md:rounded-[1.5rem] font-black uppercase text-[10px] md:text-xs tracking-[0.2em] hover:bg-orange-600 transition-all flex items-center justify-center gap-3 disabled:opacity-50 mt-4">
-                  {isSubmitting ? <Loader2 className="animate-spin" /> : <>Request Estimate <Send size={16} /></>}
-                </button>
-              </form>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { if(!isSubmitting) setIsModalOpen(false)}} className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="relative bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden p-8 md:p-14">
+              
+              {!isSubmitting && !isSuccess && (
+                <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-950 transition-colors"><X size={24} /></button>
+              )}
+
+              <AnimatePresence mode="wait">
+                {isSuccess ? (
+                  <motion.div key="success" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center text-center py-10">
+                    <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
+                      <CheckCircle2 size={48} />
+                    </div>
+                    <h3 className="text-3xl font-black uppercase italic mb-2">Request Received!</h3>
+                    <p className="text-slate-500 font-medium">Our managers are coordinating your quote now.</p>
+                  </motion.div>
+                ) : isSubmitting ? (
+                  <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center py-12">
+                    <div className="relative w-24 h-24 mb-8">
+                      <motion.div 
+                        animate={{ rotate: 360 }} 
+                        transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                        className="absolute inset-0 border-4 border-orange-100 border-t-orange-600 rounded-full" 
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Truck className="text-orange-600 animate-bounce" size={32} />
+                      </div>
+                    </div>
+                    <motion.p 
+                      key={loadingStage}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-orange-600 font-black uppercase tracking-widest text-xs"
+                    >
+                      {loadingStage}
+                    </motion.p>
+                  </motion.div>
+                ) : (
+                  <motion.div key="form">
+                    <div className="mb-8 md:mb-10">
+                      <h3 className="text-3xl md:text-4xl font-black italic uppercase leading-none mb-2">Build <span className="text-orange-500">Stronger.</span></h3>
+                      <p className="text-slate-500 text-xs md:text-sm font-medium">Professional quotation for bulk or retail requirements.</p>
+                    </div>
+                    <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
+                      <div className="space-y-1">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Full Name</label>
+                         <input required value={formData.name} type="text" placeholder="John Doe" className="w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm" onChange={e => setFormData({...formData, name: e.target.value})} />
+                      </div>
+                      <div className="space-y-1">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Contact Number</label>
+                         <input required value={formData.phone} type="tel" placeholder="+91 00000 00000" className="w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm" onChange={e => setFormData({...formData, phone: e.target.value})} />
+                      </div>
+                      <div className="space-y-1">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Email Address</label>
+                         <input required value={formData.email} type="email" placeholder="name@company.com" className={`w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm ${errors.email ? 'ring-2 ring-red-500' : ''}`} onChange={e => setFormData({...formData, email: e.target.value})} />
+                      </div>
+                      <button className="w-full bg-slate-950 text-white py-5 md:py-6 rounded-[1.2rem] md:rounded-[1.5rem] font-black uppercase text-[10px] md:text-xs tracking-[0.2em] hover:bg-orange-600 transition-all flex items-center justify-center gap-3 mt-4">
+                        Request Estimate <Send size={16} />
+                      </button>
+                    </form>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </div>
         )}
@@ -159,8 +222,8 @@ const AswathBricksPro: React.FC = () => {
       <nav className={`fixed top-0 w-full z-[1000] transition-all duration-500 ${scrolled ? "py-3 md:py-4" : "py-6 md:py-10"}`}>
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           <div className={`flex justify-between items-center px-5 md:px-8 py-3 md:py-4 rounded-full transition-all duration-500 ${scrolled ? "bg-white/80 backdrop-blur-xl shadow-xl border border-white/20" : "bg-transparent"}`}>
-            <div className="flex items-center gap-2 md:gap-3 group cursor-pointer">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-600 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-black text-lg md:text-xl shadow-lg shadow-orange-200" onClick={handleSecretClick}>A</div>
+            <div className="flex items-center gap-2 md:gap-3 group cursor-pointer" onClick={handleSecretClick}>
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-600 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-black text-lg md:text-xl shadow-lg shadow-orange-200">A</div>
               <h1 className="text-xl md:text-2xl font-black tracking-tighter uppercase">Aswath <span className="text-orange-600 hidden xs:inline">Bricks</span></h1>
             </div>
 
@@ -289,80 +352,6 @@ const AswathBricksPro: React.FC = () => {
                 </div>
               </motion.div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* TESTIMONIALS SECTION */}
-      <section className="py-20 md:py-40 px-4 md:px-6 bg-[#fafafa]">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-12 md:gap-16 items-center">
-           <div className="lg:col-span-1 text-center lg:text-left">
-              <h2 className="text-orange-600 font-black tracking-[0.4em] uppercase text-xs mb-4">Client Stories</h2>
-              <h3 className="text-4xl md:text-5xl font-black tracking-tighter italic uppercase leading-tight mb-6 md:mb-8">Voices of <br /> Satisfaction.</h3>
-              <div className="flex justify-center lg:justify-start gap-2 text-orange-500">
-                {[...Array(5)].map((_, i) => <Star key={i} fill="currentColor" size={20} />)}
-              </div>
-           </div>
-           <div className="lg:col-span-2 grid md:grid-cols-2 gap-6 md:gap-8">
-              {testimonials.map((t, i) => (
-                <div key={i} className="bg-white p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden group">
-                  <p className="text-slate-600 text-base md:text-lg font-medium leading-relaxed mb-8 relative z-10 italic">"{t.text}"</p>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-400">{t.name[0]}</div>
-                    <div>
-                      <h5 className="font-black text-slate-900 uppercase text-xs">{t.name}</h5>
-                      <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">{t.role}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-           </div>
-        </div>
-      </section>
-
-      {/* CONTACT SECTION */}
-      <section id="contact" className="py-20 md:py-40 px-4 md:px-6 bg-white">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-10 md:gap-12">
-          <div className="lg:w-1/2 bg-slate-950 rounded-[2.5rem] md:rounded-[4rem] p-8 md:p-16 text-white relative overflow-hidden shadow-2xl order-2 lg:order-1">
-            <h3 className="text-4xl md:text-6xl font-black italic uppercase leading-none mb-12 md:mb-16">Project <br /> Site <br /> <span className="text-orange-500">Support.</span></h3>
-            <div className="space-y-10 md:space-y-12">
-              <div className="flex gap-6 md:gap-8">
-                <MapPin className="text-orange-500 shrink-0" size={24} />
-                <div>
-                  <h6 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Corporate HQ</h6>
-                  <p className="font-bold text-lg md:text-xl leading-tight">SS Tower, Pandian Nagar, Tiruppur</p>
-                </div>
-              </div>
-              <div className="flex gap-6 md:gap-8">
-                <Phone className="text-orange-500 shrink-0" size={24} />
-                <div>
-                  <h6 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Primary Line</h6>
-                  <p className="font-bold text-2xl md:text-3xl">+91 98420 48181</p>
-                </div>
-              </div>
-              <div className="flex gap-6 md:gap-8">
-                <Mail className="text-orange-500 shrink-0" size={24} />
-                <div>
-                  <h6 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Inquiry</h6>
-                  <p className="font-bold text-lg md:text-xl leading-tight">maswath55@gmail.com</p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-12 md:mt-16 flex gap-4">
-              {[Instagram, Facebook, Linkedin].map((Icon, idx) => (
-                <a key={idx} href="#" className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center hover:bg-orange-600 transition-all border border-white/10"><Icon size={18}/></a>
-              ))}
-            </div>
-          </div>
-          <div className="lg:w-1/2 order-1 lg:order-2">
-            <div className="h-[300px] md:h-full min-h-[400px] rounded-[2.5rem] md:rounded-[4rem] overflow-hidden grayscale border-4 md:border-8 border-slate-50 shadow-xl">
-              <iframe 
-                title="Office Location"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d125322.4415312762!2d77.25114798547363!3d11.10933454238711!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ba9079979420083%3A0xc3c5f496350d534!2sTiruppur%2C%20Tamil%20Nadu!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin" 
-                className="w-full h-full border-none" 
-                loading="lazy" 
-              />
-            </div>
           </div>
         </div>
       </section>
