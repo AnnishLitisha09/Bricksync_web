@@ -1,18 +1,19 @@
 // Import db models
 const db = require("../models");
-const { sequelize, VehicleService, Vehicle, ServiceShop } = db; // include all models you need
+const { sequelize, VehicleService, Vehicle, ServiceShop } = db;
+const { Op } = require("sequelize");
 
-// Create vehicle service
+/* =========================================================
+   CREATE VEHICLE SERVICE
+========================================================= */
 exports.createVehicleService = async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
     const { serviceShopId, amount } = req.body;
 
-    // Create vehicle service
     const service = await VehicleService.create(req.body, { transaction });
 
-    // Update service shop amount
     const shop = await ServiceShop.findByPk(serviceShopId, { transaction });
 
     if (!shop) {
@@ -20,7 +21,10 @@ exports.createVehicleService = async (req, res) => {
       return res.status(404).json({ message: "Service shop not found" });
     }
 
-    await shop.update({ amount: shop.amount + amount }, { transaction });
+    await shop.update(
+      { amount: shop.amount + amount },
+      { transaction }
+    );
 
     await transaction.commit();
 
@@ -36,47 +40,98 @@ exports.createVehicleService = async (req, res) => {
   }
 };
 
-// Get all services for a specific vehicle
+
+/* =========================================================
+   GET SERVICES BY VEHICLE ID
+========================================================= */
 exports.getServicesByVehicleId = async (req, res) => {
   try {
     const services = await VehicleService.findAll({
       where: { vehicleId: req.params.vehicleId },
       order: [["date", "DESC"]],
     });
+
     res.json(services);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Get vehicle with its services
+
+/* =========================================================
+   GET VEHICLE WITH SERVICES
+========================================================= */
 exports.getVehicleWithServices = async (req, res) => {
   try {
     const vehicle = await Vehicle.findByPk(req.params.id, {
       include: [{ model: VehicleService, as: "services" }],
     });
 
-    if (!vehicle) {
+    if (!vehicle)
       return res.status(404).json({ message: "Vehicle not found" });
-    }
 
     res.json(vehicle);
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// 🔹 New: Get all vehicle services
+
+/* =========================================================
+   ⭐ PAGINATED + SEARCH + DATE FILTER
+   GET ALL VEHICLE SERVICES
+========================================================= */
 exports.getAllVehicleServices = async (req, res) => {
   try {
-    const services = await VehicleService.findAll({
-      order: [["date", "DESC"]],
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const offset = (page - 1) * limit;
+
+    const { vehicleNumber, startDate, endDate } = req.query;
+
+    /* -------- Date Filter -------- */
+    let whereClause = {};
+
+    if (startDate && endDate) {
+      whereClause.date = {
+        [Op.between]: [new Date(startDate), new Date(endDate)],
+      };
+    }
+
+    /* -------- Vehicle Search Include -------- */
+    let vehicleInclude = {
+      model: Vehicle,
+      as: "vehicle",
+    };
+
+    if (vehicleNumber) {
+      vehicleInclude.where = {
+        vehicleNumber: {
+          [Op.like]: `%${vehicleNumber}%`,
+        },
+      };
+    }
+
+    const { count, rows } = await VehicleService.findAndCountAll({
+      where: whereClause,
       include: [
-        { model: Vehicle, as: "vehicle" },
+        vehicleInclude,
         { model: ServiceShop, as: "serviceShop" },
       ],
+      order: [["date", "DESC"]],
+      limit,
+      offset,
     });
-    res.json(services);
+
+    res.json({
+      totalRecords: count,
+      currentPage: page,
+      totalPages: Math.ceil(count / limit),
+      data: rows,
+    });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

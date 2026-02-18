@@ -7,24 +7,22 @@ const {
   createVehicleService,
   getServicesByVehicleId,
   getVehicleWithServices,
-  getAllVehicleServices, // new
+  getAllVehicleServices,
 } = require("../controllers/vehicleServiceController");
 
-/**
- * 🔐 Protect all routes with JWT
- */
+/* Protect all routes */
 router.use(authMiddleware);
 
-// Add service to vehicle
+/* Create */
 router.post("/", createVehicleService);
 
-// Get all services of a vehicle
+/* Vehicle specific */
 router.get("/vehicle/:vehicleId", getServicesByVehicleId);
 
-// Get vehicle + services
+/* Vehicle + services */
 router.get("/vehicle-with-services/:id", getVehicleWithServices);
 
-// 🔹 New: Get all vehicle services
+/* ⭐ Pagination + Search + Date Filter */
 router.get("/", getAllVehicleServices);
 
 module.exports = router;
