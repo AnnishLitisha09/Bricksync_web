@@ -33,8 +33,15 @@ app.use("/api/fuel-statements", require("./routes/fuelStatementRouters"));
 app.use("/api/service-shops", require("./routes/serviceShopRouters"));
 app.use("/api/service-statements", require("./routes/serviceStatementRoutes"));
 app.use("/api/contact", require("./routes/contactRoutes"));
+app.use("/api/offices", require("./routes/officeRoutes"));
+app.use("/api/products", require("./routes/productRoutes"));
+app.use("/api/stock", require("./routes/stockRoutes"));
+app.use("/api/production", require("./routes/productionRoutes"));
+app.use("/api/employees", require("./routes/employeeRoutes"));
 app.use("/api/attendance", require("./routes/attendanceRoutes"));
+
 app.use("/wallet", require("./routes/walletRoutes"));
+
 
 
 
@@ -58,16 +65,16 @@ function getLocalIP() {
 const PORT = process.env.PORT || 5000;
 
 db.sequelize.authenticate()
-.then(() => {
-  console.log("✅ DB Connected");
+  .then(() => {
+    console.log("✅ DB Connected");
 
-  const ip = getLocalIP();
+    const ip = getLocalIP();
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`👉 Local: http://localhost:${PORT}`);
-    console.log(`👉 Network: http://${ip}:${PORT}`);
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`👉 Local: http://localhost:${PORT}`);
+      console.log(`👉 Network: http://${ip}:${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error("❌ DB Connection Failed:", err);
   });
-})
-.catch(err => {
-  console.error("❌ DB Connection Failed:", err);
-});
