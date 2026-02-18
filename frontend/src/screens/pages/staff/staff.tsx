@@ -10,7 +10,8 @@ import {
   ShieldCheck,
   Trash2,
   User,
-  Users
+  Users,
+  Fingerprint
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -114,7 +115,7 @@ const Staff: React.FC = () => {
           
           <button
             onClick={() => navigate("/driver/add")}
-            className="flex items-center gap-3 px-8 py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[2rem] transition-all shadow-xl shadow-indigo-100 active:scale-95 font-bold"
+            className="flex items-center gap-3 px-8 py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[2rem] shadow-xl shadow-indigo-100 active:scale-95 font-bold"
           >
             <Plus size={20} />
             Add New Member
@@ -125,14 +126,14 @@ const Staff: React.FC = () => {
       {/* --- Search Bar --- */}
       <div className="relative group max-w-2xl">
         <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
-          <Search className="text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={22} />
+          <Search className="text-slate-300 group-focus-within:text-indigo-500" size={22} />
         </div>
         <input
           type="text"
           placeholder="Search by name, role, or ID..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-16 pr-8 py-6 rounded-3xl border border-slate-200 bg-white shadow-sm focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all font-semibold text-slate-700 text-lg"
+          className="w-full pl-16 pr-8 py-6 rounded-3xl border border-slate-200 bg-white shadow-sm focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-lg"
         />
       </div>
 
@@ -147,13 +148,13 @@ const Staff: React.FC = () => {
           {filteredDrivers.map((driver) => (
             <div
               key={driver._id}
-              className="bg-white rounded-[2.5rem] border border-slate-200 flex flex-col overflow-hidden hover:shadow-2xl hover:shadow-indigo-500/5 transition-all duration-500 group"
+              className="bg-white rounded-[2.5rem] border border-slate-200 flex flex-col overflow-hidden hover:shadow-2xl hover:shadow-indigo-500/5 group"
             >
-              {/* Top Section: Profile Header */}
+              {/* Top Profile Section */}
               <div className="p-8 pb-4 flex items-start justify-between">
                 <div className="flex items-center gap-5">
                   <div className="relative">
-                    <div className="w-20 h-20 rounded-3xl overflow-hidden ring-4 ring-slate-50">
+                    <div className="w-20 h-20 rounded-3xl overflow-hidden ring-4 ring-slate-50 bg-slate-100 flex items-center justify-center">
                       {driver.imageUrl ? (
                         <img
                           src={`${FILE_BASE_URL}${driver.imageUrl}`}
@@ -161,15 +162,15 @@ const Staff: React.FC = () => {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300">
+                        <div className="text-slate-300">
                           <User size={32} />
                         </div>
                       )}
                     </div>
-                    <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white ${driver.status === 'Inactive' ? 'bg-slate-300' : 'bg-emerald-500'}`} />
+                    <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white ${driver.status === 'Inactive' ? 'bg-amber-400' : 'bg-emerald-500'}`} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors truncate max-w-[150px]">
+                    <h3 className="text-xl font-black text-slate-900 group-hover:text-indigo-600 truncate max-w-[150px]">
                       {driver.name}
                     </h3>
                     <p className="text-indigo-500 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
@@ -185,7 +186,7 @@ const Staff: React.FC = () => {
                       e.stopPropagation();
                       setActiveMenu(activeMenu === driver._id ? null : driver._id);
                     }}
-                    className="p-3 rounded-2xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-all"
+                    className="p-3 rounded-2xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-900"
                   >
                     <MoreVertical size={20} />
                   </button>
@@ -208,27 +209,31 @@ const Staff: React.FC = () => {
                 </div>
               </div>
 
-              {/* Middle Section: Contact Info */}
+              {/* Middle Section: Contact & Identity */}
               <div className="px-8 space-y-3 py-4">
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                  <Mail size={16} className="text-slate-400" />
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 group/item hover:border-indigo-200">
+                  <Mail size={16} className="text-slate-400 group-hover/item:text-indigo-500" />
                   <span className="text-slate-600 font-semibold text-sm truncate">{driver.email || "No email registered"}</span>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                  <Phone size={16} className="text-slate-400" />
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 group/item hover:border-indigo-200">
+                  <Phone size={16} className="text-slate-400 group-hover/item:text-indigo-500" />
                   <span className="text-slate-600 font-semibold text-sm">{driver.phoneNumber || "No phone connected"}</span>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 group/item hover:border-indigo-200">
+                  <Fingerprint size={16} className="text-slate-400 group-hover/item:text-indigo-500" />
+                  <span className="text-slate-600 font-semibold text-sm">Identity Verified</span>
                 </div>
               </div>
 
-              {/* Bottom Section: Footer/Action */}
-              <div className="mt-auto p-8 pt-4 flex items-center justify-between">
+              {/* Bottom Section: Card Footer */}
+              <div className="mt-auto p-8 pt-4 flex items-center justify-between border-t border-slate-50">
                 <div>
                   <p className="text-[10px] font-bold text-slate-300 uppercase">System ID</p>
                   <p className="text-sm font-black text-slate-900">#{driver.userid?.toString().slice(-6) || "N/A"}</p>
                 </div>
                 <button
                   onClick={() => navigate(`/driver/view/${driver.userid}`)}
-                  className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-indigo-600 transition-all shadow-lg shadow-slate-100"
+                  className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-indigo-600 shadow-lg shadow-slate-100"
                 >
                   View Profile
                   <ExternalLink size={14} />
@@ -241,12 +246,12 @@ const Staff: React.FC = () => {
 
       {/* --- Empty State --- */}
       {!loading && filteredDrivers.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
+        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-slate-200 text-center">
           <div className="bg-slate-50 p-10 rounded-full mb-6 text-slate-200">
             <Search size={64} />
           </div>
           <h2 className="text-2xl font-black text-slate-800">No Records Found</h2>
-          <p className="text-slate-400 font-medium mt-2">Adjust your filters or add a new personnel member.</p>
+          <p className="text-slate-400 font-medium mt-2">No results match your current search criteria.</p>
           <button 
             onClick={() => setSearch("")}
             className="mt-6 text-indigo-600 font-bold underline decoration-2 underline-offset-4"

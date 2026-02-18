@@ -54,9 +54,9 @@ const menu: MenuItem[] = [
     icon: Users,
     path: "/customers",
     children: [
-      { name: "View Customers", path: "/customers/view" },
+      // { name: "View Customers", path: "/customers/view" },
       { name: "Contact", path: "/contact" },
-      { name: "Edit Customer", path: "/customers/edit" },
+      // { name: "Edit Customer", path: "/customers/edit" },
     ],
   },
   {

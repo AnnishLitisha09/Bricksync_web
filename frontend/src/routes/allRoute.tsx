@@ -29,12 +29,17 @@ import AddServicePage from "../screens/pages/Vehicles/service/AddServicePage";
 import ServicePage from "../screens/pages/Vehicles/service/ServicePage";
 
 // --- MATERIAL SHOP IMPORTS ---
-import MaterialManagement from "../screens/pages/shops/material/MaterialManagement"; // This is your ShopLedgerPage
+import MaterialManagement from "../screens/pages/shops/material/MaterialManagement";
 import AddShopPage from "../screens/pages/shops/material/AddShopPage";
 import MaterialHistoryPage from "../screens/pages/shops/material/MaterialHistoryPage";
 import StockInventory from "../screens/pages/stock/StockInventory";
 import AddProductPage from "../screens/pages/stock/AddProductPage";
 import ProductionHistoryPage from "../screens/pages/stock/ProductionHistoryPage";
+import CustomerHub from "../screens/pages/customers/CustomerPage";
+import CustomerDetails from "../screens/pages/customers/LedgerDetail";
+
+// --- CUSTOMER & LEDGER IMPORTS ---
+
 
 const privateRoutes = [
   {
@@ -102,15 +107,24 @@ const privateRoutes = [
   // --- MATERIAL SHOP LEDGER ROUTES ---
   {
     path: "/shop/materials",
-    element: <MaterialManagement />, // Main Listing
+    element: <MaterialManagement />,
   },
   {
-    path: "/shop/ledger/add", // Matches the 'Register Merchant' button
+    path: "/shop/ledger/add",
     element: <AddShopPage />,
   },
   {
-    path: "/shop/ledger/history", // Matches the Card click navigation
+    path: "/shop/ledger/history",
     element: <MaterialHistoryPage />,
+  },
+  // --- CUSTOMER ROUTES ---
+  {
+    path: "/customers",
+    element: <CustomerHub />, // The main grid/list of clients
+  },
+  {
+    path: "/customer/details/:id",
+    element: <CustomerDetails />, // The individual ledger view
   },
   // --- STAFF & OTHERS ---
   {
@@ -145,12 +159,11 @@ const privateRoutes = [
     path: "/contact",
     element: <ContactPage />,
   },
-
   {
     path: "/inventory/history",
     element: <ProductionHistoryPage />,
   },
-    {
+  {
     path: "/inventory/add",
     element: <AddProductPage />,
   },
