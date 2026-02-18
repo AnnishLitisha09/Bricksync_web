@@ -39,7 +39,7 @@ export const generateFuelHistoryPDF = async (
   summary: { totalFuel: number; totalPaid: number; outstanding: number }
 ) => {
   const doc = new jsPDF();
-  const pdf = doc as any; // access internal safely
+  const pdf = doc as any; 
   const timestamp = new Date().toLocaleDateString('en-IN');
 
   const logoUrl =
@@ -49,7 +49,6 @@ export const generateFuelHistoryPDF = async (
     /* ---------------- WATERMARK ---------------- */
     const addWatermark = () => {
       const totalPages = pdf.internal.getNumberOfPages();
-
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
         doc.saveGraphicsState();
@@ -105,11 +104,8 @@ export const generateFuelHistoryPDF = async (
     /* ---------------- TABLE DATA ---------------- */
     const tableData = transactions.map((t, index) => {
       const isFuel = t.type === 'fuel';
-
       const rawDate = t.date || t.createdAt;
-      const formattedDate = rawDate
-        ? new Date(rawDate).toLocaleDateString('en-IN')
-        : '-';
+      const formattedDate = rawDate ? new Date(rawDate).toLocaleDateString('en-IN') : '-';
 
       return [
         index + 1,
@@ -117,8 +113,9 @@ export const generateFuelHistoryPDF = async (
         isFuel ? (t.vehicle?.vehicleNumber || 'N/A') : '-',
         isFuel ? `${t.volume ?? 0} L` : '-',
         isFuel ? 'FUEL' : 'PAYMENT',
-        isFuel ? `₹${t.amount.toLocaleString('en-IN')}` : '-',
-        !isFuel ? `₹${t.amount.toLocaleString('en-IN')}` : '-',
+        // Changed ₹ to Rs. for compatibility
+        isFuel ? `Rs. ${t.amount.toLocaleString('en-IN')}` : '-',
+        !isFuel ? `Rs. ${t.amount.toLocaleString('en-IN')}` : '-',
       ];
     });
 
@@ -128,7 +125,6 @@ export const generateFuelHistoryPDF = async (
       head: [['SL.NO', 'DATE', 'VEHICLE NO', 'VOLUME', 'TYPE', 'DEBIT (DR)', 'CREDIT (CR)']],
       body: tableData,
       theme: 'striped',
-
       headStyles: {
         fillColor: [41, 128, 185],
         textColor: 255,
@@ -136,30 +132,26 @@ export const generateFuelHistoryPDF = async (
         halign: 'center',
         fontStyle: 'bold'
       },
-
       styles: {
         fontSize: 8,
         cellPadding: 4,
         valign: 'middle'
       },
-
       columnStyles: {
         0: { halign: 'center' },
         4: { fontStyle: 'bold', halign: 'center' },
         5: { halign: 'right' },
         6: { halign: 'right' }
       },
-
       didParseCell: (data) => {
-        if (data.section === 'body' && data.column.index === 5 && data.cell.text[0] !== '-') {
+        // Updated logic to check if the cell contains "Rs." instead of just checking index 0
+        if (data.section === 'body' && data.column.index === 5 && String(data.cell.text).includes('Rs.')) {
           data.cell.styles.textColor = [180, 0, 0];
         }
-        if (data.section === 'body' && data.column.index === 6 && data.cell.text[0] !== '-') {
+        if (data.section === 'body' && data.column.index === 6 && String(data.cell.text).includes('Rs.')) {
           data.cell.styles.textColor = [0, 120, 0];
         }
       },
-
-      // ✅ FIXED: no unused parameter + correct page number
       didDrawPage: (hookData) => {
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
@@ -168,7 +160,7 @@ export const generateFuelHistoryPDF = async (
     });
 
     /* ---------------- SUMMARY ---------------- */
-    const finalY = pdf.lastAutoTable.finalY + 10;
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
 
     doc.setDrawColor(200, 200, 200);
     doc.setFillColor(252, 252, 252);
@@ -184,24 +176,28 @@ export const generateFuelHistoryPDF = async (
     doc.setFont("helvetica", "normal");
 
     doc.text(`Total Fuel (DR):`, 130, finalY + 15);
-    doc.text(`₹${summary.totalFuel.toLocaleString('en-IN')}`, 190, finalY + 15, { align: 'right' });
+    doc.text(`Rs. ${summary.totalFuel.toLocaleString('en-IN')}`, 190, finalY + 15, { align: 'right' });
 
     doc.text(`Total Paid (CR):`, 130, finalY + 21);
-    doc.text(`₹${summary.totalPaid.toLocaleString('en-IN')}`, 190, finalY + 21, { align: 'right' });
+    doc.text(`Rs. ${summary.totalPaid.toLocaleString('en-IN')}`, 190, finalY + 21, { align: 'right' });
 
     doc.setLineWidth(0.2);
     doc.line(130, finalY + 24, 192, finalY + 24);
 
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(summary.outstanding > 0 ? 180 : 0, summary.outstanding > 0 ? 0 : 120, 0);
+    // Text color based on outstanding amount
+    if (summary.outstanding > 0) {
+      doc.setTextColor(180, 0, 0); // Red
+    } else {
+      doc.setTextColor(0, 120, 0); // Green
+    }
 
     doc.text(`Outstanding:`, 130, finalY + 29);
-    doc.text(`₹${summary.outstanding.toLocaleString('en-IN')}`, 190, finalY + 29, { align: 'right' });
+    doc.text(`Rs. ${summary.outstanding.toLocaleString('en-IN')}`, 190, finalY + 29, { align: 'right' });
 
-    /* ---------------- WATERMARK ---------------- */
+    /* ---------------- WATERMARK & FOOTER ---------------- */
     addWatermark();
 
-    /* ---------------- FOOTER ---------------- */
     doc.setTextColor(150, 150, 150);
     doc.setFontSize(7);
     doc.setFont("helvetica", "italic");
