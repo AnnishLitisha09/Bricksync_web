@@ -222,7 +222,7 @@ export default function FuelHistoryPage() {
           <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
           <div className="relative z-10 p-5 bg-orange-50 rounded-3xl text-orange-600"><Fuel size={40} strokeWidth={2.5} /></div>
           <div className="relative z-10 flex-1">
-            <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] mb-1">Filling Station</p>
+            <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] mb-1">Filling </p>
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">{bunkName}</h1>
             <div className="flex items-center gap-4 mt-2">
                 <p className="text-slate-400 font-bold text-xs">Total Fuel: <span className="text-slate-900">₹{summary.totalFuel.toLocaleString()}</span></p>
