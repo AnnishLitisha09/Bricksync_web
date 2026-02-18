@@ -4,6 +4,7 @@ import {
     Building2,
     CheckCircle2,
     CreditCard,
+    Download, // Added Icon
     Droplets,
     Fuel,
     History,
@@ -22,9 +23,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { BASE_URL, getAuthHeader } from "../../../../api/base";
 import { useBankStore } from "../../../../store/bankStore";
-import { useFuelStore } from "../../../../store/fuel/useFuelStore"; // Assuming store path
+import { generateFuelHistoryPDF } from "./fuelHistoryPdfTemplate";
 
-// --- TYPES & INTERFACES ---
+// --- TYPES ---
 type TabType = 'all' | 'logs' | 'statements';
 
 interface Vehicle {
@@ -54,7 +55,7 @@ export default function FuelHistoryPage() {
   const navigate = useNavigate();
   
   const bunkId = searchParams.get("bunkId");
-  const bunkName = searchParams.get("bunkName");
+  const bunkName = searchParams.get("bunkName") || "Unknown Station";
 
   const { banks, fetchBanks } = useBankStore();
 
@@ -110,7 +111,6 @@ export default function FuelHistoryPage() {
     if (!bunkId) return;
     try {
       setLoading(true);
-      // TARGETED FETCH: Using your specific cURL endpoint for Bunk Search
       const [fuelRes, statementRes] = await Promise.all([
         fetch(`${BASE_URL}/vehicle-fuels/search/by-bunk-id?bunkId=${bunkId}`, { headers: getAuthHeader() }),
         fetch(`${BASE_URL}/fuel-statements/`, { headers: getAuthHeader() })
@@ -119,14 +119,11 @@ export default function FuelHistoryPage() {
       const fuelData = await fuelRes.json();
       const statementData = await statementRes.json();
 
-      // The search endpoint returns an array of fuels directly based on your cURL example
       const logsArray = Array.isArray(fuelData) ? fuelData : (fuelData.fuels || []);
-
       const filteredLogs: Transaction[] = logsArray.map((item: any) => ({ 
         ...item, 
         type: 'fuel', 
         sortDate: new Date(item.date),
-        // Ensure vehicle data is mapped from the nested object in your cURL
         vehicle: item.vehicle 
       }));
       
@@ -158,10 +155,13 @@ export default function FuelHistoryPage() {
     }
   };
 
+  const handleDownloadPdf = () => {
+    generateFuelHistoryPDF(bunkName, combinedTimeline, summary);
+  };
+
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!paymentForm.bankId || !paymentForm.amount || !paymentForm.payment_mode) return;
-
     try {
       setIsSubmitting(true);
       const payload = {
@@ -171,15 +171,12 @@ export default function FuelHistoryPage() {
         payment_mode: paymentForm.payment_mode,
         description: paymentForm.description
       };
-
       const response = await fetch(`${BASE_URL}/fuel-statements/`, {
         method: 'POST',
         headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-
       if (!response.ok) throw new Error("Payment failed");
-
       setIsModalOpen(false);
       setPaymentForm({ amount: "", bankId: "", payment_mode: "", description: "" });
       fetchData(); 
@@ -200,10 +197,19 @@ export default function FuelHistoryPage() {
           Back to Network
         </button>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* PDF DOWNLOAD BUTTON */}
+          <button 
+            onClick={handleDownloadPdf}
+            className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all shadow-sm"
+          >
+            <Download size={16} className="text-orange-600" /> PDF Report
+          </button>
+
           <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100">
             <Wallet size={16} /> Record Payment
           </button>
+          
           <button onClick={() => navigate("/vehicles/fuel/add")} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-orange-600 transition-all shadow-xl shadow-slate-200">
             <Plus size={16} /> New Fuel Entry
           </button>
@@ -280,7 +286,7 @@ export default function FuelHistoryPage() {
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Receiving Station</label>
                         <div className="relative">
-                            <input disabled value={bunkName || ""} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800" />
+                            <input disabled value={bunkName} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-800" />
                             <Building2 className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                         </div>
                     </div>
@@ -369,7 +375,7 @@ export default function FuelHistoryPage() {
   );
 }
 
-// --- SUB-COMPONENTS ---
+// --- SUB-COMPONENTS REMAIN THE SAME ---
 function FuelLogRow({ log, idx }: { log: Transaction; idx: number }) {
     const date = log.sortDate;
     return (
