@@ -1,72 +1,63 @@
 import { motion } from "framer-motion";
-import { 
-  ArrowLeft, 
-  Search, 
-  Calendar, 
-  Store, 
-  Users, 
-  Layers, 
+import {
+  ArrowLeft,
+  Search,
+  Calendar,
+  Store,
+  Users,
+  Layers,
   HardHat,
   Filter
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getProductionHistory } from "../../../api/inventory";
 
 interface ProductionLog {
-  id: string;
-  date: string;
-  shopId: string;
-  materialName: string;
-  qtyProduced: number;
-  cementBags: number;
-  staffNames: string[];
+  production_id: number;
+  production_date: string;
+  unit_produced: string;
+  cement_used: string;
+  product: {
+    product_name: string;
+  };
+  office: {
+    office_name: string;
+  };
+  employees: {
+    employee: {
+      name: string;
+    };
+  }[];
 }
+
 
 export default function ProductionHistoryPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [history, setHistory] = useState<ProductionLog[]>([]);
+  // const [loading, setLoading] = useState(true);
 
-  // Mock Data
-  const [history] = useState<ProductionLog[]>([
-    {
-      id: "LOG-001",
-      date: "2024-05-20",
-      shopId: "shop1",
-      materialName: "Hollow Blocks (6 inch)",
-      qtyProduced: 500,
-      cementBags: 12,
-      staffNames: ["Alex Johnson", "Mike Ross"],
-    },
-    {
-      id: "LOG-002",
-      date: "2024-05-19",
-      shopId: "shop2",
-      materialName: "Paving Stones",
-      qtyProduced: 1200,
-      cementBags: 8,
-      staffNames: ["Sarah Smith", "Donna Paulsen"],
-    },
-    {
-      id: "LOG-003",
-      date: "2024-05-18",
-      shopId: "shop1",
-      materialName: "Solid Bricks",
-      qtyProduced: 850,
-      cementBags: 15,
-      staffNames: ["Harvey Specter"],
-    },
-  ]);
+  useEffect(() => {
+    getProductionHistory()
+      .then(setHistory)
+      .catch(console.error);
+    // .finally(() => setLoading(false));
+  }, []);
+
 
   const filteredHistory = useMemo(() => {
-    return history.filter(log => 
-      log.materialName.toLowerCase().includes(search.toLowerCase()) ||
-      log.shopId.toLowerCase().includes(search.toLowerCase()) ||
-      log.staffNames.some(s => s.toLowerCase().includes(search.toLowerCase()))
+    return history.filter(log =>
+      log.product.product_name.toLowerCase().includes(search.toLowerCase()) ||
+      log.office.office_name.toLowerCase().includes(search.toLowerCase()) ||
+      log.employees.some(e => e.employee?.name.toLowerCase().includes(search.toLowerCase()))
     );
   }, [search, history]);
 
+
+
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       className="min-h-screen bg-gray-50/50 p-4 md:p-8 space-y-6"
@@ -120,45 +111,46 @@ export default function ProductionHistoryPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filteredHistory.map((log) => (
-                <tr key={log.id} className="group hover:bg-orange-50/30 transition-colors">
+                <tr key={log.production_id} className="group hover:bg-orange-50/30 transition-colors">
                   <td className="px-6 py-5 whitespace-nowrap">
                     <div className="flex items-center gap-2 text-slate-600 font-bold text-xs">
                       <Calendar size={14} className="text-orange-500" />
-                      {new Date(log.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {new Date(log.production_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </div>
                   </td>
                   <td className="px-6 py-5">
                     <span className="flex items-center gap-1.5 font-black text-[11px] text-slate-500 uppercase">
                       <Store size={14} className="text-slate-400" />
-                      {log.shopId}
+                      {log.office.office_name}
                     </span>
                   </td>
                   <td className="px-6 py-5">
                     <div className="font-black text-slate-800 text-sm uppercase flex items-center gap-2">
                       <Layers size={14} className="text-orange-500" />
-                      {log.materialName}
+                      {log.product.product_name}
                     </div>
                   </td>
                   <td className="px-6 py-5 text-center">
                     <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-xl text-xs font-black">
-                      {log.qtyProduced}
+                      {log.unit_produced}
                     </span>
                   </td>
                   <td className="px-6 py-5 text-center">
                     <div className="flex items-center justify-center gap-1.5 text-slate-700 font-black text-xs">
                       <HardHat size={14} className="text-orange-600" />
-                      {log.cementBags}
+                      {log.cement_used}
                     </div>
                   </td>
                   <td className="px-6 py-5 text-right">
                     <div className="flex flex-wrap justify-end gap-1">
-                      {log.staffNames.map((staff, idx) => (
-                        <span 
-                          key={idx} 
+                      {log.employees?.map((emp, idx) => (
+                        <span
+                          key={idx}
                           className="bg-white border border-gray-100 text-[10px] font-bold text-slate-500 px-2 py-1 rounded-lg shadow-sm flex items-center gap-1"
                         >
                           <Users size={10} />
-                          {staff}
+                          {emp.employee?.name}
+
                         </span>
                       ))}
                     </div>
@@ -166,6 +158,7 @@ export default function ProductionHistoryPage() {
                 </tr>
               ))}
             </tbody>
+
           </table>
         </div>
 

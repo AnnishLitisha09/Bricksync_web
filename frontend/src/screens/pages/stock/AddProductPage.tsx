@@ -1,30 +1,40 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ArrowLeft, 
-  Package, 
-  Tag, 
-  Store, 
-  Upload, 
+import {
+  ArrowLeft,
+  Package,
+  Tag,
+  Store,
+  Upload,
   FileText,
   Boxes,
   Save,
   Loader2,
   X
 } from "lucide-react";
+import { getAllOffices, createProduct } from "../../../api/inventory";
+
+interface Office {
+  office_id: number;
+  office_name: string;
+}
+
 
 const labelClass = "text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 mb-1 block";
-const inputClass = 
+const inputClass =
   "w-full bg-gray-50 border-2 border-transparent rounded-2xl px-4 py-3 text-sm font-bold " +
   "focus:bg-white focus:ring-0 focus:border-orange-500 transition-all outline-none text-slate-700";
+
+import toast from "react-hot-toast";
 
 export default function AddProductPage() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [offices, setOffices] = useState<Office[]>([]);
 
   const [form, setForm] = useState({
     name: "",
@@ -33,6 +43,10 @@ export default function AddProductPage() {
     qty: "",
     description: "",
     imageFile: null as File | null,
+  });
+
+  useState(() => {
+    getAllOffices().then(setOffices).catch(console.error);
   });
 
   const handleChange = (
@@ -70,22 +84,29 @@ export default function AddProductPage() {
     }
 
     try {
-      // Here you would typically use FormData for file uploads
-      // const formData = new FormData();
-      // formData.append('file', form.imageFile);
-      
-      console.log("Submitting Data:", form);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      navigate("/inventory");
+      const formData = new FormData();
+      formData.append("product_name", form.name);
+      formData.append("category", form.category);
+      formData.append("office_id", form.shopId);
+      formData.append("quantity", form.qty);
+      formData.append("description", form.description);
+      if (form.imageFile) {
+        formData.append("image", form.imageFile);
+      }
+
+      await createProduct(formData);
+      toast.success("Product created successfully!");
+      navigate("/stock");
     } catch (error) {
       console.error(error);
+      toast.error("Failed to create product. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-3xl mx-auto p-4 md:p-8"
@@ -104,11 +125,11 @@ export default function AddProductPage() {
           </h1>
           <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Inventory Management</p>
         </div>
-        <div className="w-10" /> 
+        <div className="w-10" />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        
+
         {/* SECTION 1: IDENTITY & STORE */}
         <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -137,8 +158,9 @@ export default function AddProductPage() {
                 className={inputClass}
               >
                 <option value="">Choose Store</option>
-                <option value="shop1">Shop 1 (Main Branch)</option>
-                <option value="shop2">Shop 2 (Service Center)</option>
+                {offices.map(o => (
+                  <option key={o.office_id} value={o.office_id}>{o.office_name}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -151,14 +173,17 @@ export default function AddProductPage() {
               <label className={labelClass}>
                 <Tag size={12} className="inline mr-1" /> Category
               </label>
-              <input
-                type="text"
+              <select
                 name="category"
                 value={form.category}
                 onChange={handleChange}
-                placeholder="e.g. Electronics"
                 className={inputClass}
-              />
+              >
+                <option value="">Select Category</option>
+                <option value="bricks">Bricks</option>
+                <option value="sand">Sand</option>
+                <option value="cement">Cement</option>
+              </select>
             </div>
 
             <div className="space-y-1">
@@ -182,10 +207,10 @@ export default function AddProductPage() {
           <label className={labelClass}>
             <Upload size={12} className="inline mr-1" /> Product Image
           </label>
-          
+
           <div className="mt-2">
             {!imagePreview ? (
-              <div 
+              <div
                 onClick={() => fileInputRef.current?.click()}
                 className="group w-full aspect-video md:aspect-[21/9] bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 hover:bg-orange-50/30 transition-all"
               >
@@ -199,7 +224,7 @@ export default function AddProductPage() {
               <div className="relative w-full aspect-video md:aspect-[21/9] rounded-[2rem] overflow-hidden group">
                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <button 
+                  <button
                     type="button"
                     onClick={removeImage}
                     className="p-3 bg-red-500 text-white rounded-2xl shadow-xl hover:bg-red-600 transition-all active:scale-90"
@@ -209,12 +234,12 @@ export default function AddProductPage() {
                 </div>
               </div>
             )}
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileChange} 
-              accept="image/*" 
-              className="hidden" 
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              className="hidden"
             />
           </div>
         </div>
