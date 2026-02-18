@@ -1,12 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowDownLeft,
   ArrowLeft,
   ArrowUpRight,
-  ArrowDownLeft,
   CalendarDays,
-  CreditCard,
   Download,
-  Filter,
   History,
   Info,
   Plus,
@@ -16,9 +14,8 @@ import {
   TrendingUp,
   X
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import toast, { Toaster } from "react-hot-toast";
 
 // --- TYPES ---
 interface Transaction {
@@ -58,14 +55,17 @@ export default function MaterialHistoryPage() {
   const totalPaid = transactions.filter(t => t.type === "PAYMENT").reduce((acc, curr) => acc + curr.amount, 0);
   const balanceOutstanding = totalPurchases - totalPaid;
 
+  const handleRequestStatement = () => {
+    // Toast removed as requested
+    console.log("Statement requested");
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
       className="min-h-screen bg-gray-50/50 p-4 md:p-8 space-y-8 font-sans"
     >
-      <Toaster position="top-right" />
-
       {/* HEADER */}
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
@@ -142,7 +142,10 @@ export default function MaterialHistoryPage() {
               <h3 className="text-xl font-black text-slate-800 uppercase italic">Recent Ledger Activity</h3>
               <p className="text-xs text-slate-400 font-medium leading-relaxed">System tracking is active. All financial logs are verified and synced with cloud backups.</p>
            </div>
-           <button className="w-full mt-6 py-4 bg-slate-50 text-indigo-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-600 hover:text-white transition-all">
+           <button 
+             onClick={handleRequestStatement}
+             className="w-full mt-6 py-4 bg-slate-50 text-indigo-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-600 hover:text-white transition-all"
+           >
               Request Statement
            </button>
         </div>
@@ -233,6 +236,43 @@ export default function MaterialHistoryPage() {
           )}
         </div>
       </div>
+
+      {/* MODAL OVERLAY */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-black uppercase italic tracking-tight">New Entry</h3>
+                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <X size={20} className="text-slate-400" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <p className="text-xs text-slate-500 font-medium italic">Modal form fields would go here...</p>
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                >
+                  Save Transaction
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

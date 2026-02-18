@@ -15,7 +15,7 @@ import {
   X
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import toast, { Toaster } from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
 // --- INTERFACES ---

@@ -11,7 +11,6 @@ import {
   ShieldCheck,
   Trash2,
   User,
-  X,
   Briefcase // Added for role visualization
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";

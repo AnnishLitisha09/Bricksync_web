@@ -11,10 +11,7 @@ import {
   Plus,
   Save,
   User,
-  X,
-  Phone,
-  Mail,
-  ShieldCheck
+  X
 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
