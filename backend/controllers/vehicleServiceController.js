@@ -1,4 +1,3 @@
-// Import db models
 const db = require("../models");
 const { sequelize, VehicleService, Vehicle, ServiceShop } = db;
 const { Op } = require("sequelize");
@@ -42,8 +41,98 @@ exports.createVehicleService = async (req, res) => {
 
 
 /* =========================================================
-   GET SERVICES BY VEHICLE ID
+   ⭐ GET SERVICES BY SHOP ID
 ========================================================= */
+exports.getServicesByShopId = async (req, res) => {
+  try {
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const offset = (page - 1) * limit;
+
+    const { startDate, endDate } = req.query;
+
+    let whereClause = {
+      serviceShopId: req.params.serviceShopId,
+    };
+
+    if (startDate && endDate) {
+      whereClause.date = {
+        [Op.between]: [new Date(startDate), new Date(endDate)],
+      };
+    }
+
+    const { count, rows } = await VehicleService.findAndCountAll({
+      where: whereClause,
+      include: [
+        { model: Vehicle, as: "vehicle" },
+        { model: ServiceShop, as: "serviceShop" },
+      ],
+      order: [["date", "DESC"]],
+      limit,
+      offset,
+    });
+
+    res.json({
+      totalRecords: count,
+      currentPage: page,
+      totalPages: Math.ceil(count / limit),
+      data: rows,
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+/* =========================================================
+   DELETE VEHICLE SERVICE
+========================================================= */
+exports.deleteVehicleService = async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const service = await VehicleService.findByPk(req.params.id, {
+      transaction,
+    });
+
+    if (!service) {
+      await transaction.rollback();
+      return res.status(404).json({ message: "Service not found" });
+    }
+
+    const shop = await ServiceShop.findByPk(service.serviceShopId, {
+      transaction,
+    });
+
+    if (shop) {
+      await shop.update(
+        { amount: shop.amount - service.amount },
+        { transaction }
+      );
+    }
+
+    await service.destroy({ transaction });
+
+    await transaction.commit();
+
+    res.json({
+      success: true,
+      message: "Vehicle service deleted and shop amount adjusted",
+    });
+
+  } catch (error) {
+    await transaction.rollback();
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+/* =========================================================
+   EXISTING FUNCTIONS (UNCHANGED)
+========================================================= */
+
 exports.getServicesByVehicleId = async (req, res) => {
   try {
     const services = await VehicleService.findAll({
@@ -57,10 +146,6 @@ exports.getServicesByVehicleId = async (req, res) => {
   }
 };
 
-
-/* =========================================================
-   GET VEHICLE WITH SERVICES
-========================================================= */
 exports.getVehicleWithServices = async (req, res) => {
   try {
     const vehicle = await Vehicle.findByPk(req.params.id, {
@@ -77,11 +162,6 @@ exports.getVehicleWithServices = async (req, res) => {
   }
 };
 
-
-/* =========================================================
-   ⭐ PAGINATED + SEARCH + DATE FILTER
-   GET ALL VEHICLE SERVICES
-========================================================= */
 exports.getAllVehicleServices = async (req, res) => {
   try {
 
@@ -91,7 +171,6 @@ exports.getAllVehicleServices = async (req, res) => {
 
     const { vehicleNumber, startDate, endDate } = req.query;
 
-    /* -------- Date Filter -------- */
     let whereClause = {};
 
     if (startDate && endDate) {
@@ -100,7 +179,6 @@ exports.getAllVehicleServices = async (req, res) => {
       };
     }
 
-    /* -------- Vehicle Search Include -------- */
     let vehicleInclude = {
       model: Vehicle,
       as: "vehicle",

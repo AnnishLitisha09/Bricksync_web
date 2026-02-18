@@ -1,49 +1,40 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { 
-  Calendar, ChevronRight, CreditCard, Filter, 
-  MapPin, Plus, Search, Wrench 
+  ChevronLeft, ChevronRight, CreditCard, 
+  Loader2, MapPin, Plus, Search, Trash2, Wrench 
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useVehicleServiceStore } from "../../../../store/useVehicleServiceStore";
-import { useVehicleStore } from "../../../../store/vechicle/useVehicleStore";
+import { useVehicleServiceStore } from "../../../../store/services/useVehicleServiceStore";
 
 export default function ServicePage() {
   const navigate = useNavigate();
-  const { services, fetchServices, loading } = useVehicleServiceStore();
-  const { vehicles, fetchVehicles } = useVehicleStore();
+  const { 
+    services, fetchServices, searchServices, 
+    loading, totalPages, currentPage, deleteService 
+  } = useVehicleServiceStore();
 
   const [search, setSearch] = useState("");
-  const [showFilter, setShowFilter] = useState(false);
-  const [filters, setFilters] = useState({
-    vehicleId: "",
-    type: "",
-    startDate: "",
-    endDate: "",
-  });
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null as number | null });
 
+  // Debounced Search Logic
   useEffect(() => {
-    fetchServices(); // Defaults to page 1
-    fetchVehicles();
-  }, [fetchServices, fetchVehicles]);
+    const delayDebounceFn = setTimeout(() => {
+      if (search) {
+        searchServices(search);
+      } else {
+        fetchServices(1);
+      }
+    }, 500);
+    return () => clearTimeout(delayDebounceFn);
+  }, [search, searchServices, fetchServices]);
 
-  const filteredServices = services.filter((service) => {
-    let match = true;
-    if (search) {
-      const s = search.toLowerCase();
-      match = service.serviceShop.shop_name.toLowerCase().includes(s) ||
-              service.vehicle.vehicleNumber.toLowerCase().includes(s) ||
-              service.serviceShop.phone?.includes(s);
+  const handleDelete = async () => {
+    if (deleteModal.id) {
+      await deleteService(deleteModal.id);
+      setDeleteModal({ show: false, id: null });
     }
-    if (filters.vehicleId) match = match && service.vehicle.id === Number(filters.vehicleId);
-    if (filters.type) match = match && service.serviceShop.type === filters.type;
-    
-    if (filters.startDate && filters.endDate) {
-      const sDate = new Date(service.date).getTime();
-      match = match && sDate >= new Date(filters.startDate).getTime() && 
-                      sDate <= new Date(filters.endDate).getTime();
-    }
-    return match;
-  });
+  };
 
   const typeStyles: Record<string, string> = {
     showroom: "bg-blue-100 text-blue-700 border-blue-200",
@@ -53,130 +44,171 @@ export default function ServicePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-4 md:p-8 space-y-6">
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="min-h-screen bg-gray-50/50 p-4 md:p-8 space-y-6"
+    >
+      {/* DELETE MODAL */}
+      <AnimatePresence>
+        {deleteModal.show && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center">
+              <div className="p-3 bg-red-50 text-red-600 rounded-full w-fit mx-auto mb-4"><Trash2 size={32} /></div>
+              <h3 className="text-xl font-black text-slate-800">Delete Record?</h3>
+              <p className="text-slate-500 text-sm mt-2">This will permanently remove this service record.</p>
+              <div className="flex gap-3 mt-8">
+                <button onClick={() => setDeleteModal({ show: false, id: null })} className="flex-1 py-3 rounded-2xl font-bold text-slate-500 bg-gray-100">Cancel</button>
+                <button onClick={handleDelete} className="flex-1 py-3 rounded-2xl font-bold text-white bg-red-600">Delete</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">
-            SERVICE <span className="text-orange-600">RECORDS</span>
+            SERVICE <span className="text-orange-600 italic">RECORDS</span>
           </h1>
-          <p className="text-slate-500 text-sm">Track maintenance history</p>
+          <p className="text-slate-500 text-sm font-medium">Maintenance & repair history</p>
         </div>
-        <button
+        <button 
           onClick={() => navigate("/vehicles/services/add")}
-          className="flex items-center justify-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-orange-700 transition-all active:scale-95"
+          className="flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-3.5 rounded-2xl font-bold hover:bg-orange-600 transition-all shadow-xl active:scale-95"
         >
           <Plus size={20} /> Add Service
         </button>
       </div>
 
       {/* STATS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-gray-500 text-[10px] font-bold uppercase">Total Records</p>
-          <div className="flex items-center gap-2 mt-1">
-            <Wrench className="text-orange-500" size={18} />
-            <span className="text-lg font-bold text-slate-800">{filteredServices.length}</span>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-gray-500 text-[10px] font-bold uppercase">Total Spent</p>
-          <div className="flex items-center gap-2 mt-1">
-            <CreditCard className="text-green-500" size={18} />
-            <span className="text-lg font-bold text-slate-800">
-              ₹{filteredServices.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0).toLocaleString()}
-            </span>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard 
+          title="Total Count" 
+          value={services.length.toString()} 
+          icon={<Wrench className="text-orange-500" />} 
+        />
+        <StatCard 
+          title="Total Spent" 
+          value={`₹${services.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0).toLocaleString()}`} 
+          icon={<CreditCard className="text-emerald-500" />} 
+        />
+      </div>
+
+      {/* SEARCH BAR */}
+      <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
+        <div className="relative group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={18} />
+          <input
+            type="text"
+            placeholder="Search by Vehicle Number (e.g. TN59)..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value.toUpperCase())}
+            className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border-none rounded-2xl text-sm focus:bg-white focus:ring-2 focus:ring-orange-500 transition-all outline-none"
+          />
         </div>
       </div>
 
-      {/* FILTERS */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-orange-500"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+      {/* TABLE VIEW */}
+      <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+        {loading ? (
+          <div className="py-20 flex flex-col items-center gap-3">
+            <Loader2 className="animate-spin text-orange-500" size={40} />
+            <p className="text-slate-400 font-medium">Fetching records...</p>
           </div>
-          <button
-            onClick={() => setShowFilter(!showFilter)}
-            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all ${
-              showFilter ? "bg-slate-800 text-white" : "bg-gray-100 text-gray-600"
-            }`}
-          >
-            <Filter size={18} /> {showFilter ? "Close" : "Filters"}
-          </button>
-        </div>
-
-        {showFilter && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-dashed">
-             <select
-                value={filters.vehicleId}
-                onChange={(e) => setFilters({ ...filters, vehicleId: e.target.value })}
-                className="bg-gray-50 border-none rounded-lg p-2 text-sm"
-              >
-                <option value="">All Vehicles</option>
-                {vehicles.map((v) => <option key={v.id} value={v.id}>{v.vehicleNumber}</option>)}
-              </select>
-              {/* Add Date Inputs here same as your original code */}
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50/50 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+                <tr>
+                  <th className="px-8 py-5 text-left">Vehicle & Shop</th>
+                  <th className="px-6 py-5 text-left">Type</th>
+                  <th className="px-6 py-5 text-left">Amount</th>
+                  <th className="px-6 py-5 text-left">Service Date</th>
+                  <th className="px-6 py-5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {services.map((service) => (
+                  <tr key={service.id} className="group hover:bg-orange-50/30 transition-colors">
+                    <td className="px-8 py-5">
+                      <div className="font-black text-slate-800 text-sm uppercase">{service.vehicle?.vehicleNumber}</div>
+                      <div className="text-[11px] text-slate-400 font-bold flex items-center gap-1">
+                        <MapPin size={10} /> {service.serviceShop?.shop_name}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase border ${typeStyles[service.serviceShop?.type] || typeStyles.others}`}>
+                        {service.serviceShop?.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 font-black text-slate-700">₹{service.amount.toLocaleString()}</td>
+                    <td className="px-6 py-5 text-slate-500 font-medium text-xs">
+                      {new Date(service.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <div className="flex justify-end gap-2">
+                         <button 
+                          onClick={() => setDeleteModal({ show: true, id: service.id })}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
 
-      {/* TABLE */}
-      <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px]">
-            <tr>
-              <th className="px-6 py-4 text-left">Vehicle & Shop</th>
-              <th className="px-6 py-4 text-left">Type</th>
-              <th className="px-6 py-4 text-left">Amount</th>
-              <th className="px-6 py-4 text-left">Date</th>
-              <th className="px-6 py-4 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {loading ? (
-              <tr><td colSpan={5} className="p-10 text-center animate-pulse">Loading...</td></tr>
-            ) : filteredServices.map((service) => (
-              <tr key={service.id} className="hover:bg-orange-50/30">
-                <td className="px-6 py-4">
-                  <div className="font-bold text-slate-700">{service.vehicle.vehicleNumber}</div>
-                  <div className="text-xs text-slate-400 flex items-center gap-1">
-                    <MapPin size={10} /> {service.serviceShop.shop_name}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase border ${typeStyles[service.serviceShop.type] || typeStyles.others}`}>
-                    {service.serviceShop.type}
-                  </span>
-                </td>
-                <td className="px-6 py-4 font-bold">₹{service.amount}</td>
-                <td className="px-6 py-4 text-slate-500">
-                  {new Date(service.date).toLocaleDateString('en-IN')}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button onClick={() => navigate(`/vehicles/services/${service.id}`)} className="text-orange-600">
-                    <ChevronRight size={20} />
-                  </button>
-                </td>
-              </tr>
+      {/* PAGINATION */}
+      {!loading && !search && totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between bg-white p-4 rounded-3xl shadow-sm border border-gray-100 gap-4">
+          <button 
+            disabled={currentPage === 1} 
+            onClick={() => { fetchServices(currentPage - 1); window.scrollTo(0,0); }} 
+            className="w-full sm:w-auto flex items-center justify-center gap-1 text-sm font-bold text-slate-500 disabled:opacity-30 p-2 hover:bg-gray-50 rounded-xl"
+          >
+            <ChevronLeft size={20} /> Prev
+          </button>
+          
+          <div className="flex gap-2">
+            {[...Array(totalPages)].map((_, i) => (
+              <button 
+                key={i} 
+                onClick={() => { fetchServices(i + 1); window.scrollTo(0,0); }} 
+                className={`w-10 h-10 rounded-xl text-sm font-black transition-all ${currentPage === i + 1 ? "bg-orange-600 text-white shadow-lg" : "bg-gray-50 text-slate-400"}`}
+              >
+                {i + 1}
+              </button>
             ))}
-          </tbody>
-        </table>
-      </div>
-      
-      {/* Fallback for empty state */}
-      {!loading && filteredServices.length === 0 && (
-        <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-100">
-          <p className="text-gray-400">No service records found.</p>
+          </div>
+
+          <button 
+            disabled={currentPage === totalPages} 
+            onClick={() => { fetchServices(currentPage + 1); window.scrollTo(0,0); }} 
+            className="w-full sm:w-auto flex items-center justify-center gap-1 text-sm font-bold text-slate-500 disabled:opacity-30 p-2 hover:bg-gray-50 rounded-xl"
+          >
+            Next <ChevronRight size={20} />
+          </button>
         </div>
       )}
+    </motion.div>
+  );
+}
+
+function StatCard({ title, value, icon }: { title: string, value: string, icon: React.ReactNode }) {
+  return (
+    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-4">
+      <div className="p-3 bg-gray-50 rounded-2xl">{icon}</div>
+      <div>
+        <p className="text-gray-400 text-[10px] font-black uppercase tracking-wider mb-1">{title}</p>
+        <p className="text-xl font-black text-slate-800">{value}</p>
+      </div>
     </div>
   );
 }

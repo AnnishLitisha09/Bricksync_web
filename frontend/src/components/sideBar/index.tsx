@@ -240,7 +240,7 @@ export default function Sidebar({ className }: { className?: string }) {
 
       {/* LOGOUT MODAL */}
       {showLogout && (
-        <div className="fixed inset-0 z-[1000px] flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-99999 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
             <h2 className="text-lg font-semibold text-gray-800">
               Confirm Logout
