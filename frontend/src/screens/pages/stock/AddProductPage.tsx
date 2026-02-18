@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Package,
@@ -212,7 +212,7 @@ export default function AddProductPage() {
             {!imagePreview ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="group w-full aspect-video md:aspect-[21/9] bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 hover:bg-orange-50/30 transition-all"
+                className="group w-full aspect-video md:aspect-21/9 bg-gray-50 border-2 border-dashed border-gray-200 rounded-4xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 hover:bg-orange-50/30 transition-all"
               >
                 <div className="p-4 bg-white rounded-2xl shadow-sm text-slate-400 group-hover:text-orange-600 group-hover:scale-110 transition-all">
                   <Upload size={24} />
@@ -221,7 +221,7 @@ export default function AddProductPage() {
                 <p className="text-[10px] text-slate-300 font-bold">JPG, PNG or WEBP (Max 5MB)</p>
               </div>
             ) : (
-              <div className="relative w-full aspect-video md:aspect-[21/9] rounded-[2rem] overflow-hidden group">
+              <div className="relative w-full aspect-video md:aspect-21/9 rounded-4xl overflow-hidden group">
                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <button
@@ -274,7 +274,7 @@ export default function AddProductPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex-[2] bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-slate-200 hover:bg-orange-600 transition-all active:scale-95 flex items-center justify-center gap-2"
+            className="flex-2 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-slate-200 hover:bg-orange-600 transition-all active:scale-95 flex items-center justify-center gap-2"
           >
             {loading ? (
               <Loader2 className="animate-spin" size={18} />

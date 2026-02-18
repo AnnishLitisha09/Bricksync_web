@@ -82,7 +82,7 @@ export default function ProductionHistoryPage() {
       </div>
 
       {/* SEARCH BAR */}
-      <div className="bg-white p-4 rounded-[2rem] shadow-sm border border-gray-100">
+      <div className="bg-white p-4 rounded-4xl shadow-sm border border-gray-100">
         <div className="relative group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={18} />
           <input

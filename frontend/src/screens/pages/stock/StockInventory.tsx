@@ -188,7 +188,7 @@ export default function StockPage() {
       {/* TODAY'S PRODUCTION MODAL */}
       <AnimatePresence>
         {productionModal && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <motion.div
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -364,7 +364,7 @@ export default function StockPage() {
             <StatCard title="Out of Stock" value={stats.outOfStockCount.toString()} icon={<Package className="text-red-500" />} />
           </div>
 
-          <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 space-y-4">
+          <div className="bg-white p-5 rounded-4xl shadow-sm border border-gray-100 space-y-4">
             <div className="flex bg-gray-100 p-1 rounded-2xl w-fit">
               <button
                 onClick={() => setSelectedShop("all")}
@@ -462,7 +462,7 @@ export default function StockPage() {
 
 function StatCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
   return (
-    <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex items-center gap-5">
+    <div className="bg-white p-6 rounded-4xl shadow-sm border border-gray-100 flex items-center gap-5">
       <div className="p-4 bg-gray-50 rounded-2xl shadow-inner">{icon}</div>
       <div>
         <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">{title}</p>
