@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { 
-  Fuel, 
-  User, 
-  Phone, 
-  MapPin, 
-  Wallet, 
-  ArrowLeft, 
-  Save, 
+import {
+  Fuel,
+  User,
+  Phone,
+  MapPin,
+  Wallet,
+  ArrowLeft,
+  Save,
   Loader2,
   ShieldCheck,
   Info
@@ -50,7 +50,7 @@ export default function AddBunkPage() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-6xl mx-auto p-4 md:p-8"
@@ -67,16 +67,16 @@ export default function AddBunkPage() {
       </button>
 
       <div className="bg-white rounded-[3rem] shadow-2xl shadow-slate-200 overflow-hidden border border-slate-100 flex flex-col lg:flex-row">
-        
+
         {/* LEFT PANEL: INFO & DECORATION */}
         <div className="lg:w-1/3 bg-slate-900 p-8 lg:p-12 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-orange-600/20 rounded-full blur-3xl -mr-32 -mt-32" />
-          
+
           <div className="relative z-10 space-y-8">
             <div className="w-16 h-16 bg-orange-600 rounded-2xl flex items-center justify-center shadow-xl shadow-orange-900/50">
               <Fuel size={32} />
             </div>
-            
+
             <div>
               <h1 className="text-3xl font-black tracking-tight leading-tight">
                 REGISTER <br />
@@ -98,13 +98,13 @@ export default function AddBunkPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="absolute bottom-8 left-8 right-8 p-6 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 hidden lg:block">
             <div className="flex gap-3">
-               <Info className="text-orange-500 shrink-0" size={18} />
-               <p className="text-[10px] text-slate-300 leading-relaxed font-medium">
-                 Ensure the phone number is accurate as it will be used for official payment communication and billing.
-               </p>
+              <Info className="text-orange-500 shrink-0" size={18} />
+              <p className="text-[10px] text-slate-300 leading-relaxed font-medium">
+                Ensure the phone number is accurate as it will be used for official payment communication and billing.
+              </p>
             </div>
           </div>
         </div>
@@ -120,6 +120,7 @@ export default function AddBunkPage() {
                 placeholder="Indian Oil - South Wing"
                 value={form.bunkName}
                 onChange={handleChange}
+                required
               />
 
               <CustomInput
@@ -129,6 +130,7 @@ export default function AddBunkPage() {
                 placeholder="John Doe"
                 value={form.ownerName}
                 onChange={handleChange}
+                required
               />
 
               <CustomInput
@@ -138,6 +140,7 @@ export default function AddBunkPage() {
                 placeholder="+91 98765 43210"
                 value={form.phoneNumber}
                 onChange={handleChange}
+                required
               />
 
               <CustomInput
@@ -148,6 +151,7 @@ export default function AddBunkPage() {
                 placeholder="50,000"
                 value={form.amount}
                 onChange={handleChange}
+                required
               />
             </div>
 
@@ -162,6 +166,7 @@ export default function AddBunkPage() {
                 onChange={handleChange}
                 placeholder="Enter full street address, city, and pincode..."
                 rows={4}
+                required
                 className="w-full bg-slate-50 border-2 border-transparent rounded-[2rem] px-6 py-5 text-sm font-bold focus:bg-white focus:border-orange-500 transition-all outline-none text-slate-700 resize-none shadow-inner"
               />
             </div>
