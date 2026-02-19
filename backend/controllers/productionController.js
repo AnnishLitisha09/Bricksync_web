@@ -4,33 +4,87 @@ const { Op } = require("sequelize");
 
 /* 🔹 Create Production Log */
 exports.createProduction = async (req, res) => {
+    console.log("Creating production log with body:", req.body);
     const t = await sequelize.transaction();
     try {
-        const { office_id, product_id, unit_produced, cement_used, production_date, employee_ids } = req.body;
+        const { office_id, product_id, unit_produced, cement_used, cement_product_id, production_date, employee_ids } = req.body;
+        console.log("Extracted fields:", { office_id, product_id, unit_produced, cement_used, cement_product_id, production_date });
+
+        // 🔹 PRE-VALIDATION: Check Cement Stock Availability
+        if (cement_product_id && cement_used) {
+            const cementStock = await ProductStock.findOne({
+                where: {
+                    office_id: Number(office_id),
+                    product_id: Number(cement_product_id),
+                    is_deleted: false
+                },
+                transaction: t
+            });
+
+            const availableQty = cementStock ? parseFloat(cementStock.quantity) : 0;
+            const requiredQty = parseFloat(cement_used);
+
+            if (requiredQty > availableQty) {
+                await t.rollback();
+                return res.status(400).json({
+                    error: `Insufficient cement stock. Available: ${availableQty}, Required: ${requiredQty}`
+                });
+            }
+        }
 
         const log = await ProductionLog.create(
-            { office_id, product_id, unit_produced, cement_used, production_date },
+            {
+                office_id: Number(office_id),
+                product_id: Number(product_id),
+                unit_produced: parseFloat(unit_produced),
+                cement_used: parseFloat(cement_used || 0),
+                cement_product_id: cement_product_id ? Number(cement_product_id) : null,
+                production_date
+            },
             { transaction: t }
         );
 
         if (employee_ids && employee_ids.length > 0) {
             const empData = employee_ids.map((id) => ({
                 production_id: log.production_id,
-                employee_id: id,
+                employee_id: Number(id),
             }));
             await ProductionEmployee.bulkCreate(empData, { transaction: t });
         }
 
-        // Update Stock automatically
+        // Update Stock automatically for the produced item
         const [stock, created] = await ProductStock.findOrCreate({
-            where: { office_id, product_id },
-            defaults: { quantity: unit_produced },
+            where: { office_id: Number(office_id), product_id: Number(product_id) },
+            defaults: { quantity: 0 },
             transaction: t,
         });
 
-        if (!created) {
-            stock.quantity = parseFloat(stock.quantity) + parseFloat(unit_produced);
-            await stock.save({ transaction: t });
+        stock.quantity = parseFloat(stock.quantity) + parseFloat(unit_produced);
+        await stock.save({ transaction: t });
+
+        // Deduct Cement Stock if cement_used and cement_product_id are provided
+        if (cement_product_id && cement_used) {
+            const cementId = Number(cement_product_id);
+            const cementQty = parseFloat(cement_used);
+
+            if (!isNaN(cementId) && cementId > 0 && !isNaN(cementQty) && cementQty > 0) {
+                console.log("Cement usage detected and validated:", { cementQty, cementId, office_id });
+                const [cementStock, cementCreated] = await ProductStock.findOrCreate({
+                    where: { office_id: Number(office_id), product_id: cementId },
+                    defaults: { quantity: 0 },
+                    transaction: t,
+                });
+
+                if (!cementCreated) {
+                    console.log("Existing cement stock found, quantity was:", cementStock.quantity);
+                }
+
+                cementStock.quantity = parseFloat(cementStock.quantity) - cementQty;
+                console.log("New cement quantity will be:", cementStock.quantity);
+                await cementStock.save({ transaction: t });
+            } else {
+                console.log("Cement validation failed:", { cementId, cementQty });
+            }
         }
 
         await t.commit();
@@ -49,6 +103,7 @@ exports.getProductionHistory = async (req, res) => {
             include: [
                 { model: Office, as: "office" },
                 { model: Product, as: "product" },
+                { model: Product, as: "cementProduct" }, // Added cement product details
                 {
                     model: ProductionEmployee,
                     as: "employees",
@@ -73,6 +128,7 @@ exports.getProductionById = async (req, res) => {
             include: [
                 { model: Office, as: "office" },
                 { model: Product, as: "product" },
+                { model: Product, as: "cementProduct" }, // Added cement product details
                 { model: ProductionEmployee, as: "employees" },
             ],
         });

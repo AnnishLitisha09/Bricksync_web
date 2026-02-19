@@ -11,7 +11,9 @@ import {
   Trash2,
   User,
   Users,
-  Fingerprint
+  Fingerprint,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -29,6 +31,8 @@ const Staff: React.FC = () => {
   const [search, setSearch] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6; // Grid items per page
 
   const drivers = useDriverStore((state) => state.drivers) as InternalDriver[];
   const setDrivers = useDriverStore((state) => state.setDrivers);
@@ -82,9 +86,20 @@ const Staff: React.FC = () => {
     });
   }, [drivers, search]);
 
+  const paginatedDrivers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredDrivers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredDrivers, currentPage]);
+
+  const totalPages = Math.ceil(filteredDrivers.length / itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   return (
     <div className="p-4 sm:p-8 lg:p-12 min-h-screen bg-[#FBFDFF] space-y-8 font-sans">
-      
+
       {/* --- Header Section --- */}
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
         <div className="space-y-4">
@@ -112,7 +127,7 @@ const Staff: React.FC = () => {
               <p className="text-2xl font-black text-slate-900 leading-none">{drivers.length}</p>
             </div>
           </div>
-          
+
           <button
             onClick={() => navigate("/driver/add")}
             className="flex items-center gap-3 px-8 py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[2rem] shadow-xl shadow-indigo-100 active:scale-95 font-bold"
@@ -145,7 +160,7 @@ const Staff: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-8">
-          {filteredDrivers.map((driver) => (
+          {paginatedDrivers.map((driver) => (
             <div
               key={driver._id}
               className="bg-white rounded-[2.5rem] border border-slate-200 flex flex-col overflow-hidden hover:shadow-2xl hover:shadow-indigo-500/5 group"
@@ -181,7 +196,7 @@ const Staff: React.FC = () => {
                 </div>
 
                 <div className="relative">
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setActiveMenu(activeMenu === driver._id ? null : driver._id);
@@ -192,13 +207,13 @@ const Staff: React.FC = () => {
                   </button>
                   {activeMenu === driver._id && (
                     <div className="absolute right-0 mt-3 w-52 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 py-2">
-                      <button 
+                      <button
                         onClick={() => navigate(`/driver/change-password/${driver.userid}`)}
                         className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600"
                       >
                         <KeyRound size={16} /> Security Access
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleDeleteUser(driver.userid)}
                         className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50"
                       >
@@ -252,7 +267,7 @@ const Staff: React.FC = () => {
           </div>
           <h2 className="text-2xl font-black text-slate-800">No Records Found</h2>
           <p className="text-slate-400 font-medium mt-2">No results match your current search criteria.</p>
-          <button 
+          <button
             onClick={() => setSearch("")}
             className="mt-6 text-indigo-600 font-bold underline decoration-2 underline-offset-4"
           >

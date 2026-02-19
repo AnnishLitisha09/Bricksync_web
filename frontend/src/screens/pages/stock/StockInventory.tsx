@@ -1,19 +1,20 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Package,
   Plus,
   Search,
   Trash2,
-  Boxes,
-  TrendingDown,
-  Info,
   Store,
   CalendarDays,
   X,
   Save,
   Users,
   History,
-  HardHat // Added for cement context
+  HardHat, // Added for cement context
+  Pencil,
+  Eye,
+  Package, // Added for placeholder
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 
 import { useState, useMemo, useEffect } from "react";
@@ -21,12 +22,13 @@ import toast from "react-hot-toast";
 
 
 import { useNavigate } from "react-router-dom";
+import AddProductModal from "./AddProductModal";
 import {
   getStock,
   getAllOffices,
   getEmployees,
   logProduction,
-  getLowStock,
+  deleteStock
 } from "../../../api/inventory";
 import { FILE_BASE_URL } from "../../../api/base";
 
@@ -58,6 +60,7 @@ interface Employee {
   employee_name: string;
 }
 
+
 export default function StockPage() {
   const navigate = useNavigate();
 
@@ -68,23 +71,26 @@ export default function StockPage() {
   const [offices, setOffices] = useState<Office[]>([]);
   const [staffList, setStaffList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  // Stats
-  const [stats, setStats] = useState({
-    totalUnits: 0,
-    lowStockCount: 0,
-    outOfStockCount: 0
-  });
 
-  // Modal States
+  // Modal & Selection States
   const [productionModal, setProductionModal] = useState(false);
+  const [viewModal, setViewModal] = useState(false);
+  const [selectedStock, setSelectedStock] = useState<ProductStock | null>(null);
+  const [productModal, setProductModal] = useState(false);
   const [productionForm, setProductionForm] = useState({
     shopId: "",
     productId: "",
     qty: "",
+    cementProductId: "",
     cementBags: "",
+    date: new Date().toISOString().split('T')[0], // Default to today
     selectedStaffIds: [] as number[]
   });
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [idToDelete, setIdToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -93,25 +99,15 @@ export default function StockPage() {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [stockData, officeData, employeeData, lowStockData] = await Promise.all([
+      const [stockData, officeData, employeeData] = await Promise.all([
         getStock(),
         getAllOffices(),
-        getEmployees(),
-        getLowStock()
+        getEmployees()
       ]);
-
       setProducts(stockData);
       setOffices(officeData);
       setStaffList(employeeData);
 
-      const total = stockData.reduce((acc: number, p: ProductStock) => acc + parseFloat(p.quantity), 0);
-      const outOfStock = stockData.filter((p: ProductStock) => parseFloat(p.quantity) === 0).length;
-
-      setStats({
-        totalUnits: total,
-        lowStockCount: lowStockData.length,
-        outOfStockCount: outOfStock
-      });
     } catch (err) {
       console.error("Error fetching data:", err);
     } finally {
@@ -132,6 +128,26 @@ export default function StockPage() {
     });
   }, [search, selectedShop, products]);
 
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredProducts, currentPage]);
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedShop]);
+
+  const cementProducts = useMemo(() => {
+    return products
+      .filter(p => p.office_id === Number(productionForm.shopId) && p.product.category === "cement")
+      .map(p => ({
+        product_id: p.product_id,
+        product_name: p.product.product_name
+      }));
+  }, [productionForm.shopId, products]);
+
   const handleStaffSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = Number(e.target.value);
     if (id && !productionForm.selectedStaffIds.includes(id)) {
@@ -151,23 +167,72 @@ export default function StockPage() {
 
   const handleProductionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (productionForm.selectedStaffIds.length === 0) {
+      toast.error("Please assign at least one staff member.");
+      return;
+    }
+
+    const payload = {
+      office_id: Number(productionForm.shopId),
+      product_id: Number(productionForm.productId),
+      unit_produced: parseFloat(productionForm.qty),
+      cement_used: parseFloat(productionForm.cementBags),
+      cement_product_id: Number(productionForm.cementProductId),
+      production_date: productionForm.date,
+      employee_ids: productionForm.selectedStaffIds
+    };
+
+    console.log("Submitting production with payload:", payload);
+
+    // 🔹 Frontend Validation: Check Cement Stock
+    if (productionForm.cementProductId && productionForm.cementBags) {
+      const cementInStock = products.find(p =>
+        p.product_id === Number(productionForm.cementProductId) &&
+        p.office_id === Number(productionForm.shopId)
+      );
+
+      const available = cementInStock ? parseFloat(cementInStock.quantity) : 0;
+      const required = parseFloat(productionForm.cementBags);
+
+      if (required > available) {
+        toast.error(`Insufficient cement stock! Available: ${available} Bags`);
+        return;
+      }
+    }
+
     try {
-      await logProduction({
-        office_id: Number(productionForm.shopId),
-        product_id: Number(productionForm.productId),
-        unit_produced: parseFloat(productionForm.qty),
-        cement_used: parseFloat(productionForm.cementBags),
-        production_date: new Date().toISOString().split('T')[0],
-        employee_ids: productionForm.selectedStaffIds
-      });
+      await logProduction(payload);
 
       toast.success("Production record saved and inventory updated!");
       setProductionModal(false);
-      setProductionForm({ shopId: "", productId: "", qty: "", cementBags: "", selectedStaffIds: [] });
+      setProductionForm({
+        shopId: "",
+        productId: "",
+        qty: "",
+        cementProductId: "",
+        cementBags: "",
+        date: new Date().toISOString().split('T')[0],
+        selectedStaffIds: []
+      });
       fetchInitialData(); // Refresh data
     } catch (err) {
       toast.error("Failed to log production. Please check your inputs.");
       console.error(err);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (idToDelete) {
+      try {
+        await deleteStock(idToDelete);
+        toast.success("Stock record removed");
+        setDeleteModal(false);
+        setIdToDelete(null);
+        fetchInitialData();
+      } catch (err) {
+        toast.error("Failed to delete stock");
+        console.error(err);
+      }
     }
   };
 
@@ -176,6 +241,14 @@ export default function StockPage() {
     if (qty === 0) return "bg-red-100 text-red-700 border-red-200";
     if (qty < 10) return "bg-amber-100 text-amber-700 border-amber-200";
     return "bg-emerald-100 text-emerald-700 border-emerald-200";
+  };
+
+  const getUnitLabel = (category: string) => {
+    switch (category.toLowerCase()) {
+      case "cement": return "Bags";
+      case "sand": return "Units";
+      default: return "Nos";
+    }
   };
 
 
@@ -205,7 +278,22 @@ export default function StockPage() {
               </div>
 
               <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Production <span className="text-orange-600">Entry</span></h3>
-              <p className="text-slate-500 text-[10px] font-bold mb-8 uppercase tracking-widest">Daily Log for manufacturing units</p>
+              <p className="text-slate-500 text-[10px] font-bold mb-4 uppercase tracking-widest">Daily Log for manufacturing units</p>
+
+              <div className="mb-6 p-4 bg-orange-50/50 border border-orange-100 rounded-2xl flex items-center justify-between">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Production Date</label>
+                  <input
+                    type="date"
+                    value={productionForm.date}
+                    onChange={(e) => setProductionForm({ ...productionForm, date: e.target.value })}
+                    className="bg-transparent text-sm font-black text-slate-700 outline-none border-b-2 border-orange-200 focus:border-orange-500 transition-all cursor-pointer"
+                  />
+                </div>
+                <div className="p-2 bg-white rounded-xl shadow-sm text-orange-600">
+                  <CalendarDays size={20} />
+                </div>
+              </div>
 
               <form onSubmit={handleProductionSubmit} className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
@@ -247,13 +335,40 @@ export default function StockPage() {
                       className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none disabled:opacity-50"
                     >
                       <option value="">{productionForm.shopId ? "Choose Item" : "Select Store"}</option>
-                      {productionProducts.map(p => (
-                        <option key={p.stock_id} value={p.product_id}>{p.product.product_name}</option>
-                      ))}
+                      {productionProducts
+                        .filter(p => p.product.category !== "cement")
+                        .map(p => (
+                          <option key={p.stock_id} value={p.product_id}>{p.product.product_name}</option>
+                        ))}
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">4. Cement Bags</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">4. Cement Type</label>
+                    <select
+                      required
+                      disabled={!productionForm.shopId}
+                      value={productionForm.cementProductId}
+                      onChange={(e) => setProductionForm({ ...productionForm, cementProductId: e.target.value })}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none disabled:opacity-50"
+                    >
+                      <option value="">{productionForm.shopId ? "Select Cement" : "Select Store"}</option>
+                      {cementProducts.map(p => (
+                        <option key={p.product_id} value={p.product_id}>{p.product_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex justify-between items-center ml-1 mb-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">5. Cement Bags</label>
+                      {productionForm.cementProductId && (
+                        <span className="text-[9px] font-black text-orange-500 bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-100">
+                          stock: {products.find(p => p.product_id === Number(productionForm.cementProductId) && p.office_id === Number(productionForm.shopId))?.quantity || 0}
+                        </span>
+                      )}
+                    </div>
                     <div className="relative">
                       <HardHat className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                       <input
@@ -266,13 +381,10 @@ export default function StockPage() {
                       />
                     </div>
                   </div>
-                </div>
-
-                {/* STAFF MULTI-SELECT */}
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">5. Assign Staff</label>
-                  <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">6. Assign Staff</label>
                     <select
+                      required
                       onChange={handleStaffSelect}
                       className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
                     >
@@ -281,30 +393,33 @@ export default function StockPage() {
                         <option key={emp.employee_id} value={emp.employee_id}>{emp.employee_name}</option>
                       ))}
                     </select>
+                  </div>
+                </div>
 
-                    <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
-                      {productionForm.selectedStaffIds.length === 0 && (
-                        <span className="text-[10px] text-slate-300 font-bold uppercase p-2">No staff selected</span>
-                      )}
-                      {productionForm.selectedStaffIds.map(id => {
-                        const staff = staffList.find(s => s.employee_id === id);
-                        return (
-                          <motion.span
-                            layout
-                            initial={{ scale: 0.8 }}
-                            animate={{ scale: 1 }}
-                            key={id}
-                            className="flex items-center gap-1.5 bg-white border border-slate-100 text-slate-700 px-3 py-1.5 rounded-xl text-[11px] font-black shadow-sm"
-                          >
-                            <Users size={12} className="text-orange-500" />
-                            {staff?.employee_name}
-                            <button type="button" onClick={() => removeStaff(id)} className="hover:text-red-500 ml-1">
-                              <X size={14} />
-                            </button>
-                          </motion.span>
-                        );
-                      })}
-                    </div>
+                {/* STAFF SELECTED LIST */}
+                <div>
+                  <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                    {productionForm.selectedStaffIds.length === 0 && (
+                      <span className="text-[10px] text-red-400 font-black uppercase p-2">* Select at least one staff member</span>
+                    )}
+                    {productionForm.selectedStaffIds.map(id => {
+                      const staff = staffList.find(s => s.employee_id === id);
+                      return (
+                        <motion.span
+                          layout
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                          key={id}
+                          className="flex items-center gap-1.5 bg-white border border-slate-100 text-slate-700 px-3 py-1.5 rounded-xl text-[11px] font-black shadow-sm"
+                        >
+                          <Users size={12} className="text-orange-500" />
+                          {staff?.employee_name}
+                          <button type="button" onClick={() => removeStaff(id)} className="hover:text-red-500 ml-1">
+                            <X size={14} />
+                          </button>
+                        </motion.span>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -336,13 +451,18 @@ export default function StockPage() {
             <History size={16} className="text-slate-400" /> History
           </button>
           <button
-            onClick={() => setProductionModal(true)}
+            onClick={() => {
+              setProductionModal(true);
+              if (selectedShop !== "all") {
+                setProductionForm({ ...productionForm, shopId: selectedShop });
+              }
+            }}
             className="flex items-center justify-center gap-2 bg-white text-slate-800 border-2 border-slate-100 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:border-orange-500 transition-all active:scale-95 shadow-sm"
           >
             <CalendarDays size={16} className="text-orange-600" /> Today's Product
           </button>
           <button
-            onClick={() => navigate("/inventory/add")}
+            onClick={() => { setSelectedStock(null); setProductModal(true); }}
             className="flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-600 transition-all shadow-lg active:scale-95"
           >
             <Plus size={18} /> Add Product
@@ -357,12 +477,6 @@ export default function StockPage() {
         </div>
       ) : (
         <>
-          {/* QUICK STATS */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <StatCard title="Total Units" value={stats.totalUnits.toLocaleString()} icon={<Boxes className="text-blue-500" />} />
-            <StatCard title="Low Stock" value={stats.lowStockCount.toString()} icon={<TrendingDown className="text-amber-500" />} />
-            <StatCard title="Out of Stock" value={stats.outOfStockCount.toString()} icon={<Package className="text-red-500" />} />
-          </div>
 
           <div className="bg-white p-5 rounded-4xl shadow-sm border border-gray-100 space-y-4">
             <div className="flex bg-gray-100 p-1 rounded-2xl w-fit">
@@ -410,16 +524,20 @@ export default function StockPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filteredProducts.map((product) => (
+                  {paginatedProducts.map((product) => (
                     <tr key={product.stock_id} className="group hover:bg-orange-50/30 transition-colors">
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-white">
-                            <img
-                              src={product.product.image_url?.startsWith("/images/") ? `${FILE_BASE_URL}${product.product.image_url}` : product.product.image_url}
-                              className="w-full h-full object-cover"
-                              alt=""
-                            />
+                          <div className="h-12 w-12 rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-white flex items-center justify-center">
+                            {product.product.image_url ? (
+                              <img
+                                src={product.product.image_url.startsWith("/images/") ? `${FILE_BASE_URL}${product.product.image_url}` : product.product.image_url}
+                                className="w-full h-full object-cover"
+                                alt=""
+                              />
+                            ) : (
+                              <Package size={20} className="text-slate-200" />
+                            )}
                           </div>
 
                           <div>
@@ -439,13 +557,29 @@ export default function StockPage() {
                       </td>
                       <td className="px-6 py-5">
                         <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase border ${getStockStyle(parseFloat(product.quantity))}`}>
-                          {parseFloat(product.quantity) === 0 ? "Out of Stock" : `${product.quantity} Units`}
+                          {parseFloat(product.quantity) === 0 ? "Out of Stock" : `${product.quantity} ${getUnitLabel(product.product.category)}`}
                         </span>
                       </td>
                       <td className="px-6 py-5 text-right">
                         <div className="flex justify-end gap-2">
-                          <button className="p-2 text-slate-400 hover:text-orange-600 hover:bg-white rounded-xl transition-all shadow-sm"><Info size={18} /></button>
-                          <button className="p-2 text-slate-400 hover:text-red-600 hover:bg-white rounded-xl transition-all shadow-sm"><Trash2 size={18} /></button>
+                          <button
+                            onClick={() => { setSelectedStock(product); setViewModal(true); }}
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all shadow-sm"
+                          >
+                            <Eye size={18} />
+                          </button>
+                          <button
+                            onClick={() => { setSelectedStock(product); setProductModal(true); }}
+                            className="p-2 text-slate-400 hover:text-orange-600 hover:bg-white rounded-xl transition-all shadow-sm"
+                          >
+                            <Pencil size={18} />
+                          </button>
+                          <button
+                            onClick={() => { setIdToDelete(product.stock_id); setDeleteModal(true); }}
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-white rounded-xl transition-all shadow-sm"
+                          >
+                            <Trash2 size={18} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -453,21 +587,150 @@ export default function StockPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="bg-slate-50/50 px-8 py-4 border-t border-gray-50 flex items-center justify-between">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredProducts.length)} of {filteredProducts.length} items
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 bg-white rounded-xl border border-gray-100 text-slate-400 disabled:opacity-30 hover:text-orange-600 transition-all shadow-sm"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-8 h-8 rounded-xl text-[10px] font-black transition-all ${currentPage === page
+                        ? "bg-slate-900 text-white shadow-lg"
+                        : "bg-white text-slate-400 border border-gray-100 hover:border-orange-500 hover:text-orange-600 shadow-sm"
+                        }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 bg-white rounded-xl border border-gray-100 text-slate-400 disabled:opacity-30 hover:text-orange-600 transition-all shadow-sm"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
-    </motion.div>
-  );
-}
+      {/* VIEW MODAL */}
+      <AnimatePresence>
+        {viewModal && selectedStock && (
+          <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-[2.5rem] p-8 w-full max-w-lg shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                  <Eye size={24} />
+                </div>
+                <button onClick={() => setViewModal(false)} className="text-slate-400 hover:text-red-500 transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+              <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{selectedStock.product.product_name}</h3>
+              <p className="text-slate-500 text-[10px] font-bold mb-6 uppercase tracking-widest">{selectedStock.product.category} Inventory Detail</p>
 
-function StatCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
-  return (
-    <div className="bg-white p-6 rounded-4xl shadow-sm border border-gray-100 flex items-center gap-5">
-      <div className="p-4 bg-gray-50 rounded-2xl shadow-inner">{icon}</div>
-      <div>
-        <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">{title}</p>
-        <p className="text-2xl font-black text-slate-800 tracking-tight">{value}</p>
-      </div>
-    </div>
+              <div className="space-y-4">
+                {/* Product Image Preview */}
+                <div className="bg-gray-50 rounded-[2rem] p-2 aspect-video flex items-center justify-center border border-gray-100 overflow-hidden mb-2 shadow-inner">
+                  {selectedStock.product.image_url ? (
+                    <img
+                      src={selectedStock.product.image_url.startsWith("/images/") ? `${FILE_BASE_URL}${selectedStock.product.image_url}` : selectedStock.product.image_url}
+                      className="w-full h-full object-cover rounded-2xl"
+                      alt={selectedStock.product.product_name}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Package size={48} className="text-slate-200" />
+                      <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No Image Provided</span>
+                    </div>
+                  )}
+                </div>
+                <div className="bg-gray-50 p-4 rounded-2xl">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Current Stock</p>
+                  <p className="text-xl font-black text-slate-800">{selectedStock.quantity} {getUnitLabel(selectedStock.product.category)}</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-2xl">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Location</p>
+                  <div className="flex items-center gap-2">
+                    <Store size={14} className="text-slate-400" />
+                    <p className="text-sm font-bold text-slate-700">{selectedStock.office.office_name}</p>
+                  </div>
+                </div>
+                {selectedStock.product.description && (
+                  <div className="bg-gray-50 p-4 rounded-2xl">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Description</p>
+                    <p className="text-sm text-slate-600 font-medium">{selectedStock.product.description}</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {deleteModal && (
+          <div className="fixed inset-0 z-120 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl text-center"
+            >
+              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <Trash2 size={32} />
+              </div>
+              <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Are you sure?</h3>
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-8">This action cannot be undone</p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setDeleteModal(false)}
+                  className="py-4 bg-gray-50 text-slate-400 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-100 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-700 shadow-lg shadow-red-200 transition-all"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* PRODUCT MODAL (ADD/EDIT) */}
+      <AddProductModal
+        isOpen={productModal}
+        onClose={() => { setProductModal(false); setSelectedStock(null); }}
+        onSuccess={fetchInitialData}
+        editData={selectedStock}
+      />
+    </motion.div>
   );
 }

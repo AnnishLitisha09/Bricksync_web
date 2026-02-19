@@ -4,6 +4,7 @@ const verifyToken = require("../middleware/authMiddleware");
 const {
     getAllStock,
     manualUpdateStock,
+    updateStockById,
     deleteStock,
     restoreStock,
     getLowStock,
@@ -14,6 +15,7 @@ router.get("/", verifyToken, getAllStock);
 router.get("/low-stock", verifyToken, getLowStock); // Dashboard stat
 router.get("/cement-usage", verifyToken, getCementUsage); // Dashboard stat
 router.put("/manual-update", verifyToken, manualUpdateStock);
+router.put("/:id", verifyToken, updateStockById);
 router.delete("/:id", verifyToken, deleteStock);
 router.patch("/:id/restore", verifyToken, restoreStock);
 

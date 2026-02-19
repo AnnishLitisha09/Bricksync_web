@@ -41,6 +41,25 @@ exports.manualUpdateStock = async (req, res) => {
     }
 };
 
+/* 🔹 Update Stock by ID */
+exports.updateStockById = async (req, res) => {
+    try {
+        const { quantity } = req.body;
+        const stock = await ProductStock.findByPk(req.params.id);
+
+        if (!stock) {
+            return res.status(404).json({ message: "Stock record not found" });
+        }
+
+        stock.quantity = quantity;
+        await stock.save();
+
+        res.json({ message: "Stock quantity updated", stock });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 /* 🔹 Soft Delete Stock Record */
 exports.deleteStock = async (req, res) => {
     try {

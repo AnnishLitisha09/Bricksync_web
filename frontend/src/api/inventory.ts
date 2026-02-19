@@ -38,6 +38,18 @@ export const createProduct = async (formData: FormData) => {
     return await res.json();
 };
 
+export const updateProduct = async (productId: number, formData: FormData) => {
+    const res = await fetch(`${BASE_URL}/products/${productId}`, {
+        method: "PUT",
+        headers: {
+            ...getAuthHeader(),
+        },
+        body: formData,
+    });
+    if (!res.ok) throw new Error("Failed to update product");
+    return await res.json();
+};
+
 /* 📊 STOCK */
 export const getStock = async (office_id?: string) => {
     const url = office_id ? `${BASE_URL}/stock?office_id=${office_id}` : `${BASE_URL}/stock`;
@@ -100,5 +112,29 @@ export const getEmployees = async () => {
         headers: { ...getAuthHeader() },
     });
     if (!res.ok) throw new Error("Failed to fetch staff");
+    return await res.json();
+};
+
+export const deleteStock = async (stockId: number) => {
+    const res = await fetch(`${BASE_URL}/stock/${stockId}`, {
+        method: "DELETE",
+        headers: {
+            ...getAuthHeader(),
+        },
+    });
+    if (!res.ok) throw new Error("Failed to delete stock");
+    return await res.json();
+};
+
+export const updateStock = async (stockId: number, quantity: number) => {
+    const res = await fetch(`${BASE_URL}/stock/${stockId}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeader(),
+        },
+        body: JSON.stringify({ quantity }),
+    });
+    if (!res.ok) throw new Error("Failed to update stock");
     return await res.json();
 };

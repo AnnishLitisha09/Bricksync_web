@@ -17,6 +17,10 @@ module.exports = (sequelize, DataTypes) => {
             },
             unit_produced: DataTypes.DECIMAL(10, 2),
             cement_used: DataTypes.DECIMAL(10, 2),
+            cement_product_id: {
+                type: DataTypes.INTEGER,
+                allowNull: true,
+            },
             production_date: DataTypes.DATEONLY,
             is_deleted: {
                 type: DataTypes.BOOLEAN,
@@ -40,6 +44,10 @@ module.exports = (sequelize, DataTypes) => {
         ProductionLog.belongsTo(models.Product, {
             foreignKey: "product_id",
             as: "product",
+        });
+        ProductionLog.belongsTo(models.Product, {
+            foreignKey: "cement_product_id",
+            as: "cementProduct",
         });
         ProductionLog.hasMany(models.ProductionEmployee, {
             foreignKey: "production_id",
