@@ -7,7 +7,9 @@ import {
   Receipt,
   Search,
   Store,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -26,9 +28,11 @@ export default function MaterialHistoryPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const shopName = searchParams.get("shopName") || "Merchant Ledger";
-  
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // --- SAMPLE DATA ---
   const [logs] = useState<MaterialLog[]>([
@@ -39,24 +43,31 @@ export default function MaterialHistoryPage() {
   ]);
 
   const filteredLogs = useMemo(() => {
-    return logs.filter(l => 
+    return logs.filter(l =>
       l.material.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.invoiceNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.unitSize.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm, logs]);
 
+  const paginatedLogs = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredLogs.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredLogs, currentPage]);
+
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="min-h-screen bg-gray-50/50 p-4 md:p-8 space-y-8 font-sans"
     >
       {/* HEADER */}
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
-          <button 
-            onClick={() => navigate(-1)} 
+          <button
+            onClick={() => navigate(-1)}
             className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-indigo-50 transition-all group"
           >
             <ArrowLeft size={20} className="text-slate-400 group-hover:text-indigo-600 group-hover:-translate-x-1 transition-all" />
@@ -74,7 +85,7 @@ export default function MaterialHistoryPage() {
           <button className="hidden sm:flex items-center gap-2 px-5 py-3.5 bg-white border border-slate-200 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all">
             <Download size={16} /> Export Report
           </button>
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-slate-300 hover:bg-indigo-600 transition-all active:scale-95"
           >
@@ -90,12 +101,12 @@ export default function MaterialHistoryPage() {
             <div className="p-2 bg-indigo-100 rounded-lg"><Receipt size={18} className="text-indigo-600" /></div>
             Procurement Ledger
           </h3>
-          
+
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input 
-              type="text" 
-              placeholder="Filter M-Sand, 9 Field..." 
+            <input
+              type="text"
+              placeholder="Filter M-Sand, 9 Field..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="bg-white border border-slate-200 rounded-2xl py-3 pl-12 pr-6 shadow-sm focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-xs w-full sm:w-64"
@@ -116,8 +127,8 @@ export default function MaterialHistoryPage() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 <AnimatePresence mode="popLayout">
-                  {filteredLogs.map((l) => (
-                    <motion.tr 
+                  {paginatedLogs.map((l) => (
+                    <motion.tr
                       layout
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -137,18 +148,18 @@ export default function MaterialHistoryPage() {
                       </td>
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-2">
-                           <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                           <p className="text-xs font-black text-slate-700 uppercase">{l.material}</p>
+                          <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                          <p className="text-xs font-black text-slate-700 uppercase">{l.material}</p>
                         </div>
                       </td>
                       <td className="px-8 py-6">
                         <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-500">
-                           {l.unitSize}
+                          {l.unitSize}
                         </div>
                       </td>
                       <td className="px-8 py-6 text-right">
                         <p className="text-lg font-black tabular-nums text-slate-800">
-                           ₹{l.amount.toLocaleString()}
+                          ₹{l.amount.toLocaleString()}
                         </p>
                       </td>
                     </motion.tr>
@@ -157,11 +168,50 @@ export default function MaterialHistoryPage() {
               </tbody>
             </table>
           </div>
-          
+
           {filteredLogs.length === 0 && (
             <div className="py-20 text-center">
               <Search size={40} className="text-slate-200 mx-auto mb-4" />
               <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">No material entries found</p>
+            </div>
+          )}
+
+          {/* --- Pagination Controls --- */}
+          {totalPages > 1 && (
+            <div className="bg-slate-50/50 px-8 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredLogs.length)} of {filteredLogs.length} supply records
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 bg-white rounded-xl border border-slate-100 text-slate-400 disabled:opacity-30 hover:text-indigo-600 transition-all shadow-sm"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 rounded-xl text-[10px] font-black transition-all ${currentPage === page
+                      ? "bg-slate-900 text-white shadow-lg"
+                      : "bg-white text-slate-400 border border-slate-100 hover:border-indigo-500 hover:text-indigo-600 shadow-sm"
+                      }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 bg-white rounded-xl border border-slate-100 text-slate-400 disabled:opacity-30 hover:text-indigo-600 transition-all shadow-sm"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -171,14 +221,14 @@ export default function MaterialHistoryPage() {
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -217,7 +267,7 @@ export default function MaterialHistoryPage() {
                   <input type="number" placeholder="0.00" className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500/20" />
                 </div>
 
-                <button 
+                <button
                   onClick={() => setIsModalOpen(false)}
                   className="w-full mt-4 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all"
                 >

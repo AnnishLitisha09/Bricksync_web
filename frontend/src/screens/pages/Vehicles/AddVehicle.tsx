@@ -73,9 +73,8 @@ export default function AddVehicle() {
     return (
       <div className="flex flex-col gap-2">
         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">{label}</label>
-        <div className={`relative group h-32 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl transition-all ${
-          file ? "border-orange-500 bg-orange-50/30" : "border-gray-200 hover:border-orange-400 bg-gray-50/50"
-        }`}>
+        <div className={`relative group h-32 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl transition-all ${file ? "border-orange-500 bg-orange-50/30" : "border-gray-200 hover:border-orange-400 bg-gray-50/50"
+          }`}>
           {previewUrl ? (
             <div className="relative w-full h-full p-2">
               <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-xl shadow-sm" />
@@ -97,10 +96,10 @@ export default function AddVehicle() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] py-8 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto">
-        
+
         {/* Top Navigation & Header */}
         <div className="mb-8">
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-gray-500 hover:text-orange-600 transition-colors mb-4 group"
           >
@@ -130,14 +129,14 @@ export default function AddVehicle() {
               </div>
               <h2 className="text-lg font-bold text-gray-800 uppercase tracking-tight">Basic Details</h2>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input label="Vehicle Name" name="vehicleName" placeholder="e.g. BharatBenz 3523R" value={form.vehicleName} onChange={handleChange} required />
               <Input label="Vehicle Number" name="vehicleNumber" placeholder="e.g. DL-01-CA-1234" value={form.vehicleNumber} onChange={handleChange} required />
-              <Input label="Odometer Reading (KM)" name="kilometer" type="number" placeholder="Enter current KM" value={form.kilometer} onChange={handleChange} />
-              <Input label="RC Expiry" name="rcDate" type="date" value={form.rcDate} onChange={handleChange} />
-              <Input label="Insurance Expiry" name="insurance" type="date" value={form.insurance} onChange={handleChange} />
-              <Input label="Pollution Expiry" name="pollution" type="date" value={form.pollution} onChange={handleChange} />
+              <Input label="Odometer Reading (KM)" name="kilometer" type="number" placeholder="Enter current KM" value={form.kilometer} onChange={handleChange} required />
+              <Input label="RC Expiry" name="rcDate" type="date" value={form.rcDate} onChange={handleChange} required />
+              <Input label="Insurance Expiry" name="insurance" type="date" value={form.insurance} onChange={handleChange} required />
+              <Input label="Pollution Expiry" name="pollution" type="date" value={form.pollution} onChange={handleChange} required />
             </div>
           </div>
 

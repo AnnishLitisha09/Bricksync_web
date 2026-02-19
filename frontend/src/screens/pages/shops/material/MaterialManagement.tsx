@@ -12,9 +12,10 @@ import {
   Search,
   Store,
   User,
-  X
+  X,
+  ChevronLeft
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -26,7 +27,7 @@ interface ShopEntry {
   phoneNumber: string;
   address: string;
   category: string;
-  balance: number; 
+  balance: number;
   date: string;
 }
 
@@ -70,6 +71,8 @@ export default function ShopLedgerPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilter, setShowFilter] = useState(false);
   const [activeCategory, setActiveCategory] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   const categories = ["ALL", "Retail", "Wholesale", "Distributor", "Contractor"];
 
@@ -84,6 +87,17 @@ export default function ShopLedgerPage() {
     });
   }, [entries, searchTerm, activeCategory]);
 
+  const paginatedEntries = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredEntries.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredEntries, currentPage]);
+
+  const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeCategory]);
+
   // Navigation Handler
   const handleViewHistory = (shop: ShopEntry) => {
     // Navigates to the history page with query parameters
@@ -91,9 +105,9 @@ export default function ShopLedgerPage() {
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="min-h-screen bg-gray-50/50 p-4 md:p-8 space-y-10 font-sans"
     >
       <Toaster position="top-right" />
@@ -102,12 +116,12 @@ export default function ShopLedgerPage() {
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-end justify-between gap-8">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-             <div className="p-2 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-200">
-                <Store className="text-white" size={24} />
-             </div>
-             <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-                SHOP <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500 italic">LEDGER</span>
-             </h1>
+            <div className="p-2 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-200">
+              <Store className="text-white" size={24} />
+            </div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+              SHOP <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500 italic">LEDGER</span>
+            </h1>
           </div>
           <p className="text-slate-400 text-xs font-black uppercase tracking-[0.3em] pl-1">Merchant Credit Directory</p>
         </div>
@@ -145,7 +159,7 @@ export default function ShopLedgerPage() {
       {/* DYNAMIC CATEGORY CHIPS */}
       <AnimatePresence>
         {showFilter && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -169,114 +183,153 @@ export default function ShopLedgerPage() {
       {/* CONTENT AREA */}
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 gap-8">
-            <AnimatePresence mode="popLayout">
-                {filteredEntries.map((shop, idx) => {
-                const isHighBalance = shop.balance > 50000;
+          <AnimatePresence mode="popLayout">
+            {paginatedEntries.map((shop, idx) => {
+              const isHighBalance = shop.balance > 50000;
 
-                return (
-                    <motion.div
-                        layout
-                        key={shop.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ delay: idx * 0.05 }}
-                        onClick={() => handleViewHistory(shop)}
-                        className="group relative bg-white rounded-[3rem] p-2 pr-8 shadow-sm border border-slate-100 hover:shadow-2xl hover:shadow-slate-200/50 transition-all overflow-hidden cursor-pointer"
-                    >
-                        {isHighBalance && <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full -mr-16 -mt-16" />}
+              return (
+                <motion.div
+                  layout
+                  key={shop.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ delay: idx * 0.05 }}
+                  onClick={() => handleViewHistory(shop)}
+                  className="group relative bg-white rounded-[3rem] p-2 pr-8 shadow-sm border border-slate-100 hover:shadow-2xl hover:shadow-slate-200/50 transition-all overflow-hidden cursor-pointer"
+                >
+                  {isHighBalance && <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full -mr-16 -mt-16" />}
 
-                        <div className="flex flex-col md:flex-row items-center gap-8">
-                            {/* ICON BOX */}
-                            <div className="relative w-full md:w-56 h-44 bg-slate-50 rounded-[2.5rem] overflow-hidden border border-slate-100 flex items-center justify-center m-2 shrink-0">
-                                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900/5 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                                    <div className="bg-white p-3 rounded-full shadow-xl">
-                                        <ExternalLink size={20} className="text-indigo-600" />
-                                    </div>
-                                </div>
-                                <div className="w-20 h-20 bg-white rounded-3xl shadow-inner flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                                    <Store size={40} className="text-indigo-100 group-hover:text-indigo-500 transition-colors" />
-                                </div>
-                                <div className="absolute bottom-4 flex gap-1">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-300" />
-                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-100" />
-                                </div>
-                            </div>
-
-                            {/* CORE DETAILS */}
-                            <div className="flex-1 w-full py-4 space-y-6">
-                                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-3">
-                                            <h2 className="text-2xl font-black text-slate-800 tracking-tighter uppercase group-hover:text-indigo-600 transition-colors">{shop.shopName}</h2>
-                                            <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-indigo-100">
-                                                {shop.category}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-slate-400">
-                                            <User size={14} className="text-indigo-500" />
-                                            <span className="text-[10px] font-bold uppercase tracking-widest">Managed by {shop.ownerName}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-5">
-                                        <div className="text-right">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Outstanding Balance</p>
-                                            <div className="flex items-center gap-2">
-                                                <CreditCard size={18} className="text-slate-300" />
-                                                <span className="text-3xl font-black tabular-nums text-slate-900">
-                                                    ₹{shop.balance.toLocaleString()}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="p-4 bg-slate-50 rounded-2xl text-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                                            <ArrowUpRight size={20} />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* INFO GRID */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 group-hover:bg-white transition-all">
-                                        <div className="p-2 bg-white shadow-sm rounded-xl text-indigo-500">
-                                            <Phone size={14} />
-                                        </div>
-                                        <p className="text-xs font-black text-slate-600 tracking-tight">{shop.phoneNumber}</p>
-                                    </div>
-
-                                    <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 group-hover:bg-white transition-all">
-                                        <div className="p-2 bg-white shadow-sm rounded-xl text-teal-500">
-                                            <MapPin size={14} />
-                                        </div>
-                                        <p className="text-xs font-black text-slate-600 tracking-tight truncate max-w-[200px]">{shop.address}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* SIDE ACTIONS */}
-                            <div className="hidden lg:flex flex-col gap-2">
-                                <div className="p-2 text-slate-200 group-hover:text-indigo-200 transition-colors">
-                                    <Info size={20} />
-                                </div>
-                                <div className="p-2 text-slate-200 group-hover:text-indigo-500 transition-colors">
-                                    <ChevronRight size={24} />
-                                </div>
-                            </div>
+                  <div className="flex flex-col md:flex-row items-center gap-8">
+                    {/* ICON BOX */}
+                    <div className="relative w-full md:w-56 h-44 bg-slate-50 rounded-[2.5rem] overflow-hidden border border-slate-100 flex items-center justify-center m-2 shrink-0">
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900/5 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                        <div className="bg-white p-3 rounded-full shadow-xl">
+                          <ExternalLink size={20} className="text-indigo-600" />
                         </div>
-                    </motion.div>
-                );
-                })}
-            </AnimatePresence>
-
-            {filteredEntries.length === 0 && (
-                <div className="text-center py-24 bg-white rounded-[3rem] border-4 border-dashed border-slate-100">
-                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <X size={32} className="text-slate-300" />
+                      </div>
+                      <div className="w-20 h-20 bg-white rounded-3xl shadow-inner flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                        <Store size={40} className="text-indigo-100 group-hover:text-indigo-500 transition-colors" />
+                      </div>
+                      <div className="absolute bottom-4 flex gap-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-300" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-100" />
+                      </div>
                     </div>
-                    <p className="text-slate-400 font-black uppercase tracking-widest text-sm">No merchants found</p>
-                </div>
-            )}
+
+                    {/* CORE DETAILS */}
+                    <div className="flex-1 w-full py-4 space-y-6">
+                      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-3">
+                            <h2 className="text-2xl font-black text-slate-800 tracking-tighter uppercase group-hover:text-indigo-600 transition-colors">{shop.shopName}</h2>
+                            <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-indigo-100">
+                              {shop.category}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-slate-400">
+                            <User size={14} className="text-indigo-500" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Managed by {shop.ownerName}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-5">
+                          <div className="text-right">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Outstanding Balance</p>
+                            <div className="flex items-center gap-2">
+                              <CreditCard size={18} className="text-slate-300" />
+                              <span className="text-3xl font-black tabular-nums text-slate-900">
+                                ₹{shop.balance.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="p-4 bg-slate-50 rounded-2xl text-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                            <ArrowUpRight size={20} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* INFO GRID */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 group-hover:bg-white transition-all">
+                          <div className="p-2 bg-white shadow-sm rounded-xl text-indigo-500">
+                            <Phone size={14} />
+                          </div>
+                          <p className="text-xs font-black text-slate-600 tracking-tight">{shop.phoneNumber}</p>
+                        </div>
+
+                        <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 group-hover:bg-white transition-all">
+                          <div className="p-2 bg-white shadow-sm rounded-xl text-teal-500">
+                            <MapPin size={14} />
+                          </div>
+                          <p className="text-xs font-black text-slate-600 tracking-tight truncate max-w-[200px]">{shop.address}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SIDE ACTIONS */}
+                    <div className="hidden lg:flex flex-col gap-2">
+                      <div className="p-2 text-slate-200 group-hover:text-indigo-200 transition-colors">
+                        <Info size={20} />
+                      </div>
+                      <div className="p-2 text-slate-200 group-hover:text-indigo-500 transition-colors">
+                        <ChevronRight size={24} />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+
+          {/* --- Pagination Controls --- */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-8 border-t border-slate-100 mt-10">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center sm:text-left">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredEntries.length)} of {filteredEntries.length} MERCHANTS
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="p-3 bg-white rounded-2xl border border-slate-200 text-slate-400 disabled:opacity-30 hover:text-indigo-600 transition-all shadow-sm"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-12 h-12 rounded-2xl text-[11px] font-black transition-all ${currentPage === page
+                        ? "bg-indigo-600 text-white shadow-xl shadow-indigo-100"
+                        : "bg-white text-slate-400 border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 shadow-sm"
+                      }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="p-3 bg-white rounded-2xl border border-slate-200 text-slate-400 disabled:opacity-30 hover:text-indigo-600 transition-all shadow-sm"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {filteredEntries.length === 0 && (
+            <div className="text-center py-24 bg-white rounded-[3rem] border-4 border-dashed border-slate-100">
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <X size={32} className="text-slate-300" />
+              </div>
+              <p className="text-slate-400 font-black uppercase tracking-widest text-sm">No merchants found</p>
+            </div>
+          )}
         </div>
       </div>
     </motion.div>

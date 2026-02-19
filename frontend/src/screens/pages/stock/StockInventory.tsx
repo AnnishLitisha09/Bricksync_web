@@ -637,7 +637,7 @@ export default function StockPage() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-[2.5rem] p-8 w-full max-w-lg shadow-2xl"
+              className="bg-white rounded-4xl p-8 w-full max-w-lg shadow-2xl"
             >
               <div className="flex justify-between items-center mb-6">
                 <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
@@ -697,7 +697,7 @@ export default function StockPage() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl text-center"
+              className="bg-white rounded-4xl p-8 w-full max-w-sm shadow-2xl text-center"
             >
               <div className="w-16 h-16 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
                 <Trash2 size={32} />

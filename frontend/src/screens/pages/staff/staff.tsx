@@ -259,6 +259,45 @@ const Staff: React.FC = () => {
         </div>
       )}
 
+      {/* Pagination Controls */}
+      {!loading && totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-8 border-t border-slate-100">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDrivers.length)} of {filteredDrivers.length} PERSONNEL
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-3 bg-white rounded-2xl border border-slate-200 text-slate-400 disabled:opacity-30 hover:text-indigo-600 transition-all shadow-sm"
+            >
+              <ChevronLeft size={20} />
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-12 h-12 rounded-2xl text-[11px] font-black transition-all ${currentPage === page
+                    ? "bg-indigo-600 text-white shadow-xl shadow-indigo-100"
+                    : "bg-white text-slate-400 border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 shadow-sm"
+                  }`}
+              >
+                {page}
+              </button>
+            ))}
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="p-3 bg-white rounded-2xl border border-slate-200 text-slate-400 disabled:opacity-30 hover:text-indigo-600 transition-all shadow-sm"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* --- Empty State --- */}
       {!loading && filteredDrivers.length === 0 && (
         <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-slate-200 text-center">

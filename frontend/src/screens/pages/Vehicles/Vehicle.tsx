@@ -1,5 +1,5 @@
-import { AlertCircle, ArrowRight, Calendar, Car, Check, Gauge, Plus, Search, Sliders } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { AlertCircle, ArrowLeft, ArrowRight, Calendar, Car, Check, ChevronLeft, ChevronRight, Gauge, Plus, Search, Sliders } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FILE_BASE_URL } from "../../../api/base";
 import { encryptId } from "../../../utils/functions";
@@ -10,7 +10,7 @@ const getStatus = (vehicle: Vehicle) => {
   if (!vehicle.insurance || !vehicle.pollution || !vehicle.rcDate) return "Inactive";
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   return (
     new Date(vehicle.insurance) >= today &&
     new Date(vehicle.pollution) >= today &&
@@ -41,6 +41,8 @@ export default function VehicleList() {
   const [selectedStatuses, setSelectedStatuses] = useState<("Active" | "Inactive")[]>([]);
   const [showFilter, setShowFilter] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 4;
 
   useEffect(() => {
     fetchVehicles();
@@ -56,12 +58,25 @@ export default function VehicleList() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredVehicles = vehicles.filter((v) => {
-    const status = getStatus(v);
-    const matchesSearch = (v.vehicleNumber ?? "").toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(status);
-    return matchesSearch && matchesStatus;
-  });
+  const filteredVehicles = useMemo(() => {
+    return vehicles.filter((v) => {
+      const status = getStatus(v);
+      const matchesSearch = (v.vehicleNumber ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(status);
+      return matchesSearch && matchesStatus;
+    });
+  }, [vehicles, searchTerm, selectedStatuses]);
+
+  const paginatedVehicles = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredVehicles.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredVehicles, currentPage]);
+
+  const totalPages = Math.ceil(filteredVehicles.length / itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedStatuses]);
 
   if (error) return (
     <div className="max-w-7xl mx-auto p-4">
@@ -75,7 +90,7 @@ export default function VehicleList() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 animate-in fade-in duration-500">
-      
+
       {/* HEADER */}
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -84,7 +99,7 @@ export default function VehicleList() {
           </h1>
           <p className="text-gray-400 text-[10px] md:text-sm font-bold uppercase tracking-widest">{vehicles.length} Total Assets</p>
         </div>
-        
+
         <button
           onClick={() => navigate("/add-vehicle")}
           className="flex items-center justify-center bg-orange-500 text-white w-12 h-12 md:w-auto md:px-6 md:py-4 rounded-xl md:rounded-2xl transition-all shadow-lg shadow-orange-100 active:scale-95"
@@ -110,9 +125,8 @@ export default function VehicleList() {
         <div className="relative" ref={filterRef}>
           <button
             onClick={() => setShowFilter((prev) => !prev)}
-            className={`flex items-center justify-center w-12 h-12 md:w-auto md:px-6 md:py-4 rounded-xl md:rounded-2xl border transition-all font-bold ${
-              showFilter ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-100 shadow-sm"
-            }`}
+            className={`flex items-center justify-center w-12 h-12 md:w-auto md:px-6 md:py-4 rounded-xl md:rounded-2xl border transition-all font-bold ${showFilter ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-100 shadow-sm"
+              }`}
           >
             <Sliders className="w-5 h-5 md:w-4 md:h-4" />
             <span className="hidden md:block ml-2">Filter</span>
@@ -142,8 +156,8 @@ export default function VehicleList() {
       <div className="grid grid-cols-1 gap-4 md:gap-6">
         {loading ? (
           [1, 2, 3].map((i) => <VehicleSkeleton key={i} />)
-        ) : filteredVehicles.length > 0 ? (
-          filteredVehicles.map((v) => {
+        ) : paginatedVehicles.length > 0 ? (
+          paginatedVehicles.map((v) => {
             const status = getStatus(v);
             return (
               <div
@@ -206,6 +220,45 @@ export default function VehicleList() {
           </div>
         )}
       </div>
+
+      {/* --- Pagination Controls --- */}
+      {!loading && totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-8 border-t border-gray-100 mt-10">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center sm:text-left">
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredVehicles.length)} of {filteredVehicles.length} assets
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-3 bg-white rounded-2xl border border-gray-100 text-gray-400 disabled:opacity-30 hover:text-orange-500 transition-all shadow-sm"
+            >
+              <ChevronLeft size={20} />
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-12 h-12 rounded-2xl text-[11px] font-black transition-all ${currentPage === page
+                  ? "bg-orange-500 text-white shadow-xl shadow-orange-100"
+                  : "bg-white text-gray-400 border border-gray-100 hover:border-orange-500 hover:text-orange-500 shadow-sm"
+                  }`}
+              >
+                {page}
+              </button>
+            ))}
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="p-3 bg-white rounded-2xl border border-gray-100 text-gray-400 disabled:opacity-30 hover:text-orange-500 transition-all shadow-sm"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

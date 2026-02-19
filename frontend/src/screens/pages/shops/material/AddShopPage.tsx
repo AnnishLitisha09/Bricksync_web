@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Store, 
-  User, 
-  Phone, 
-  MapPin, 
-  CreditCard, 
-  ArrowLeft, 
-  Save, 
+import {
+  Store,
+  User,
+  Phone,
+  MapPin,
+  CreditCard,
+  ArrowLeft,
+  Save,
   Loader2,
   ShieldCheck,
   Info,
@@ -74,10 +74,10 @@ export default function AddShopPage() {
   const addOptionToField = (id: number) => {
     setCustomFields(customFields.map(f => {
       if (f.id === id && f.newOptionText.trim() !== "") {
-        return { 
-          ...f, 
-          options: [...f.options, f.newOptionText.trim()], 
-          newOptionText: "" 
+        return {
+          ...f,
+          options: [...f.options, f.newOptionText.trim()],
+          newOptionText: ""
         };
       }
       return f;
@@ -102,7 +102,7 @@ export default function AddShopPage() {
         customFields: customFields.map(f => ({ title: f.title, value: f.selectedValue }))
       };
       console.log("Saving Shop with Custom Fields:", finalData);
-      
+
       toast.success("Merchant registered successfully!");
       navigate("/shop/ledger");
     } catch (error) {
@@ -113,7 +113,7 @@ export default function AddShopPage() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-6xl mx-auto p-4 md:p-8 font-sans"
@@ -129,7 +129,7 @@ export default function AddShopPage() {
       </button>
 
       <div className="bg-white rounded-[3rem] shadow-2xl shadow-slate-200 overflow-hidden border border-slate-100 flex flex-col lg:flex-row">
-        
+
         {/* LEFT PANEL */}
         <div className="lg:w-1/3 bg-slate-900 p-8 lg:p-12 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl -mr-32 -mt-32" />
@@ -166,6 +166,7 @@ export default function AddShopPage() {
                 placeholder="Global Build-Mart"
                 value={form.shopName}
                 onChange={handleChange}
+                required
               />
 
               <CustomInput
@@ -175,6 +176,7 @@ export default function AddShopPage() {
                 placeholder="Michael Scott"
                 value={form.ownerName}
                 onChange={handleChange}
+                required
               />
 
               <div className="space-y-2">
@@ -202,6 +204,7 @@ export default function AddShopPage() {
                 placeholder="0.00"
                 value={form.balance}
                 onChange={handleChange}
+                required
               />
             </div>
 
@@ -212,6 +215,7 @@ export default function AddShopPage() {
               placeholder="+91 90000 00000"
               value={form.phoneNumber}
               onChange={handleChange}
+              required
             />
 
             <div className="space-y-2">
@@ -225,6 +229,7 @@ export default function AddShopPage() {
                 onChange={handleChange}
                 placeholder="Enter complete business location details..."
                 rows={3}
+                required
                 className="w-full bg-slate-50 border-2 border-transparent rounded-[2rem] px-6 py-5 text-sm font-bold focus:bg-white focus:border-indigo-500 transition-all outline-none text-slate-700 resize-none shadow-inner"
               />
             </div>
@@ -236,7 +241,7 @@ export default function AddShopPage() {
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-500">Additional Information Fields</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {customFields.map((field) => (
-                      <motion.div 
+                      <motion.div
                         key={field.id}
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -244,7 +249,7 @@ export default function AddShopPage() {
                         className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-4"
                       >
                         <div className="flex justify-between items-center">
-                          <input 
+                          <input
                             placeholder="Field Title (e.g. GST Type)"
                             className="bg-transparent border-b-2 border-slate-200 focus:border-indigo-500 outline-none font-black text-xs uppercase tracking-widest text-slate-700 pb-1 w-2/3"
                             value={field.title}
@@ -257,13 +262,13 @@ export default function AddShopPage() {
 
                         {/* Add Option Input */}
                         <div className="flex gap-2">
-                          <input 
+                          <input
                             placeholder="Add Option..."
                             className="flex-1 bg-white rounded-xl px-4 py-2 text-xs font-bold outline-none border border-slate-200 focus:border-indigo-500"
                             value={field.newOptionText}
                             onChange={(e) => handleOptionInput(field.id, e.target.value)}
                           />
-                          <button 
+                          <button
                             type="button"
                             onClick={() => addOptionToField(field.id)}
                             className="p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700"
@@ -275,7 +280,7 @@ export default function AddShopPage() {
                         {/* Final Dropdown Preview */}
                         <div className="space-y-1">
                           <label className="text-[9px] font-black text-slate-400 uppercase">Field Preview</label>
-                          <select 
+                          <select
                             className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold outline-none"
                             value={field.selectedValue}
                             onChange={(e) => {
