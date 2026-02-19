@@ -2,13 +2,21 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useVehicleStore } from "../../../store/vechicle/useVehicleStore";
 import toast from "react-hot-toast";
-import { ArrowLeft, Car, UploadCloud, CheckCircle2, FileText, Image as ImageIcon, X } from "lucide-react";
+import { ArrowLeft, Car, UploadCloud, CheckCircle2, FileText, Image as ImageIcon, X, AlertCircle } from "lucide-react";
 import Input from "../../../components/InputBox";
+
+// Define the shape of our validation errors
+interface FormErrors {
+  vehicleName?: string;
+  vehicleNumber?: string;
+  kilometer?: string;
+}
 
 export default function AddVehicle() {
   const navigate = useNavigate();
   const { addVehicle } = useVehicleStore();
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
 
   const [form, setForm] = useState({
     vehicleName: "",
@@ -24,8 +32,23 @@ export default function AddVehicle() {
     speedImage: null as File | null,
   });
 
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+    if (!form.vehicleName.trim()) newErrors.vehicleName = "Vehicle name is required";
+    if (!form.vehicleNumber.trim()) newErrors.vehicleNumber = "Vehicle number is required";
+    if (!form.kilometer) newErrors.kilometer = "Odometer reading is required";
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+    // Clear error when user starts typing
+    if (errors[name as keyof FormErrors]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,9 +64,15 @@ export default function AddVehicle() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    
+    if (!validateForm()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
 
+    setLoading(true);
     const data = new FormData();
+    
     Object.entries(form).forEach(([key, value]) => {
       if (value !== null && value !== "") {
         data.append(key, value as any);
@@ -62,6 +91,15 @@ export default function AddVehicle() {
     }
   };
 
+  const renderError = (message?: string) => {
+    if (!message) return null;
+    return (
+      <p className="flex items-center gap-1 mt-1 text-xs font-medium text-red-500 animate-in fade-in slide-in-from-top-1">
+        <AlertCircle size={12} /> {message}
+      </p>
+    );
+  };
+
   const FileUploadCard = ({ name, label }: { name: keyof typeof form; label: string }) => {
     const file = form[name] as File | null;
     const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
@@ -72,7 +110,7 @@ export default function AddVehicle() {
 
     return (
       <div className="flex flex-col gap-2">
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">{label}</label>
+        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">{label} <span className="text-gray-300 font-normal text-[9px]">(Optional)</span></label>
         <div className={`relative group h-32 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl transition-all ${
           file ? "border-orange-500 bg-orange-50/30" : "border-gray-200 hover:border-orange-400 bg-gray-50/50"
         }`}>
@@ -132,9 +170,18 @@ export default function AddVehicle() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input label="Vehicle Name" name="vehicleName" placeholder="e.g. BharatBenz 3523R" value={form.vehicleName} onChange={handleChange} required />
-              <Input label="Vehicle Number" name="vehicleNumber" placeholder="e.g. DL-01-CA-1234" value={form.vehicleNumber} onChange={handleChange} required />
-              <Input label="Odometer Reading (KM)" name="kilometer" type="number" placeholder="Enter current KM" value={form.kilometer} onChange={handleChange} />
+              <div>
+                <Input label="Vehicle Name *" name="vehicleName" placeholder="e.g. BharatBenz 3523R" value={form.vehicleName} onChange={handleChange} />
+                {renderError(errors.vehicleName)}
+              </div>
+              <div>
+                <Input label="Vehicle Number *" name="vehicleNumber" placeholder="e.g. DL-01-CA-1234" value={form.vehicleNumber} onChange={handleChange} />
+                {renderError(errors.vehicleNumber)}
+              </div>
+              <div>
+                <Input label="Odometer Reading (KM) *" name="kilometer" type="number" placeholder="Enter current KM" value={form.kilometer} onChange={handleChange} />
+                {renderError(errors.kilometer)}
+              </div>
               <Input label="RC Expiry" name="rcDate" type="date" value={form.rcDate} onChange={handleChange} />
               <Input label="Insurance Expiry" name="insurance" type="date" value={form.insurance} onChange={handleChange} />
               <Input label="Pollution Expiry" name="pollution" type="date" value={form.pollution} onChange={handleChange} />
