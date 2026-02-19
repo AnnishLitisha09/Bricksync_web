@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  UserPlus, Mail, Phone, Lock, IndianRupee, 
-  Calendar, FileText, ChevronLeft, Save, 
-  UploadCloud, X, CheckCircle2, UserCircle, Briefcase 
+import {
+  UserPlus, Mail, Phone, Lock, IndianRupee,
+  Calendar, FileText, ChevronLeft, Save,
+  UploadCloud, X, CheckCircle2, UserCircle, Briefcase
 } from "lucide-react";
 import { BASE_URL, getAuthHeader } from "../../../api/base";
 
@@ -53,17 +53,17 @@ export default function AddDriverPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.phoneNumber) {
-      alert("Please fill in the core details.");
+    if (!form.name || !form.email || !form.phoneNumber || !form.password || !form.amount || !form.drivingLicenceValidity) {
+      alert("Please fill in all required fields.");
       return;
     }
 
     setLoading(true);
     const formData = new FormData();
-    
+
     // Append text fields
     Object.entries(form).forEach(([key, value]) => formData.append(key, value));
-    
+
     // Append files
     Object.entries(files).forEach(([key, file]) => {
       if (file) formData.append(key, file);
@@ -73,7 +73,7 @@ export default function AddDriverPage() {
       // Updated endpoint to match your cURL: /api/auth/create-driver
       const res = await fetch(`${BASE_URL}/auth/create-driver`, {
         method: "POST",
-        headers: { ...getAuthHeader() }, 
+        headers: { ...getAuthHeader() },
         body: formData,
       });
 
@@ -103,7 +103,7 @@ export default function AddDriverPage() {
 
       <div className="max-w-6xl mx-auto p-4 md:p-10">
         {/* Desktop Header */}
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="hidden lg:flex items-center gap-2 text-slate-400 hover:text-indigo-600 font-bold transition-all mb-8 group"
         >
@@ -120,30 +120,31 @@ export default function AddDriverPage() {
               <div className="w-20 h-20 bg-slate-900 rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl shadow-slate-200 mb-6">
                 <UserPlus size={36} />
               </div>
-              <h1 className="text-4xl font-black text-slate-900 leading-tight">Personnel<br/>Onboarding</h1>
+              <h1 className="text-4xl font-black text-slate-900 leading-tight">Personnel<br />Onboarding</h1>
               <p className="text-slate-500 font-medium">Assign roles and verify documents for your operational team.</p>
             </div>
 
             <div className="flex lg:flex-col items-center lg:items-start justify-between lg:justify-start gap-4 lg:gap-6 bg-white lg:bg-transparent p-4 lg:p-0 rounded-3xl border border-slate-100 lg:border-none shadow-sm lg:shadow-none">
-              <StepItem icon={<UserCircle size={18}/>} title="Identity" active />
+              <StepItem icon={<UserCircle size={18} />} title="Identity" active />
               <div className="h-px flex-1 lg:hidden bg-slate-100" />
-              <StepItem icon={<FileText size={18}/>} title="Docs" active />
+              <StepItem icon={<FileText size={18} />} title="Docs" active />
               <div className="h-px flex-1 lg:hidden bg-slate-100" />
-              <StepItem icon={<CheckCircle2 size={18}/>} title="Done" />
+              <StepItem icon={<CheckCircle2 size={18} />} title="Done" />
             </div>
           </div>
 
           {/* Form */}
           <div className="lg:col-span-8 space-y-6 pb-20 lg:pb-0">
             <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
-              
+
               <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-sm transition-all hover:shadow-md">
                 <SectionHeader number="01" title="General Details" />
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
-                  <Input 
-                    icon={<UserPlus size={18}/>} label="Full Name" name="name" 
-                    placeholder="E.g. Rahul Kumar" value={form.name} onChange={handleChange} 
+                  <Input
+                    icon={<UserPlus size={18} />} label="Full Name" name="name"
+                    placeholder="E.g. Rahul Kumar" value={form.name} onChange={handleChange}
+                    required
                   />
 
                   {/* Staff Role Selection */}
@@ -151,7 +152,7 @@ export default function AddDriverPage() {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Staff Role</label>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
-                        <Briefcase size={18}/>
+                        <Briefcase size={18} />
                       </div>
                       <select
                         name="staffRole"
@@ -168,25 +169,30 @@ export default function AddDriverPage() {
                     </div>
                   </div>
 
-                  <Input 
-                    icon={<Mail size={18}/>} label="Email Address" name="email" 
-                    type="email" placeholder="rahul@example.com" value={form.email} onChange={handleChange} 
+                  <Input
+                    icon={<Mail size={18} />} label="Email Address" name="email"
+                    type="email" placeholder="rahul@example.com" value={form.email} onChange={handleChange}
+                    required
                   />
-                  <Input 
-                    icon={<Phone size={18}/>} label="Phone Number" name="phoneNumber" 
-                    placeholder="12345678" value={form.phoneNumber} onChange={handleChange} 
+                  <Input
+                    icon={<Phone size={18} />} label="Phone Number" name="phoneNumber"
+                    placeholder="12345678" value={form.phoneNumber} onChange={handleChange}
+                    required
                   />
-                  <Input 
-                    icon={<Lock size={18}/>} label="Portal Password" name="password" 
-                    type="password" placeholder="******" value={form.password} onChange={handleChange} 
+                  <Input
+                    icon={<Lock size={18} />} label="Portal Password" name="password"
+                    type="password" placeholder="******" value={form.password} onChange={handleChange}
+                    required
                   />
-                  <Input 
-                    icon={<IndianRupee size={18}/>} label="Base Salary" name="amount" 
-                    type="number" placeholder="Salary amount" value={form.amount} onChange={handleChange} 
+                  <Input
+                    icon={<IndianRupee size={18} />} label="Base Salary" name="amount"
+                    type="number" placeholder="Salary amount" value={form.amount} onChange={handleChange}
+                    required
                   />
-                  <Input 
-                    icon={<Calendar size={18}/>} label="License/ID Validity" name="drivingLicenceValidity" 
-                    type="date" value={form.drivingLicenceValidity} onChange={handleChange} 
+                  <Input
+                    icon={<Calendar size={18} />} label="License/ID Validity" name="drivingLicenceValidity"
+                    type="date" value={form.drivingLicenceValidity} onChange={handleChange}
+                    required
                   />
                 </div>
               </div>
