@@ -30,7 +30,6 @@ import ServicePage from "../screens/pages/Vehicles/service/ServicePage";
 
 // --- MATERIAL SHOP IMPORTS ---
 import MaterialManagement from "../screens/pages/shops/material/MaterialManagement";
-import AddShopPage from "../screens/pages/shops/material/AddShopPage";
 import MaterialHistoryPage from "../screens/pages/shops/material/MaterialHistoryPage";
 import StockInventory from "../screens/pages/stock/StockInventory";
 import AddProductPage from "../screens/pages/stock/AddProductPage";
@@ -104,17 +103,12 @@ const privateRoutes = [
     path: "/shop/services/history",
     element: <ServiceHistoryPage />,
   },
-  // --- MATERIAL SHOP LEDGER ROUTES ---
   {
     path: "/shop/materials",
     element: <MaterialManagement />,
   },
   {
-    path: "/shop/ledger/add",
-    element: <AddShopPage />,
-  },
-  {
-    path: "/shop/ledger/history",
+    path: "/shop/materials/history",
     element: <MaterialHistoryPage />,
   },
   // --- CUSTOMER ROUTES ---

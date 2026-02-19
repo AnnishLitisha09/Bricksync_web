@@ -117,7 +117,7 @@ export default function ShopPage() {
                     </div>
                   </div>
 
-                  <div className="flex-grow">
+                  <div className="grow">
                     <p className={`text-[10px] font-black uppercase tracking-[0.2em] mb-2 ${theme.text}`}>
                       {item.stats}
                     </p>

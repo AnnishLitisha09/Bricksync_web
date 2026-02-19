@@ -36,7 +36,7 @@ const SignUp = () => {
 
     try {
       // REGISTER
-      const res = await fetch(`${BASE_URL}/auth/register`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, phoneNumber, password, amount: 5000 }),
@@ -171,9 +171,8 @@ const SignUp = () => {
               </div>
               {confirmPassword && (
                 <p
-                  className={`mt-1 text-sm ${
-                    passwordsMatch ? "text-green-600" : "text-red-600"
-                  }`}
+                  className={`mt-1 text-sm ${passwordsMatch ? "text-green-600" : "text-red-600"
+                    }`}
                 >
                   {passwordsMatch ? "Passwords match ✅" : "Passwords do not match ❌"}
                 </p>

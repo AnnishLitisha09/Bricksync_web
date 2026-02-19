@@ -1,54 +1,152 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  CalendarDays,
-  Download,
   Plus,
   Receipt,
   Search,
   Store,
-  X,
-  ChevronLeft,
-  ChevronRight
+  CreditCard,
+  Download
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
+
+// NEW COMPONENTS
+import SummaryCards from "./components/SummaryCards";
+import TransactionTable from "./components/TransactionTable";
+import Pagination from "./components/Pagination";
+import EntryModal from "./components/modals/EntryModal";
+import PaymentModal from "./components/modals/PaymentModal";
+import ExportModal from "./components/modals/ExportModal";
 
 // --- TYPES ---
-interface MaterialLog {
-  id: string;
+interface MaterialEntryField {
+  field_name: string;
+  field_value: string;
+}
+
+interface MaterialEntry {
+  id: number;
   date: string;
-  material: "M-Sand" | "P-Sand" | "Aggregates" | "Cement";
-  unitSize: "9 Field" | "6 Field" | "4 Field" | "Standard";
-  amount: number;
-  invoiceNo?: string;
+  product_id: number;
+  units: string | number;
+  amount: string | number;
+  product?: { product_name: string };
+  office?: { office_name: string };
+  fields: MaterialEntryField[];
+}
+
+interface MaterialStatement {
+  id: number;
+  amount: string | number;
+  payment_mode: string;
+  description: string;
+  createdAt: string;
+  bank?: { name: string };
 }
 
 export default function MaterialHistoryPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const shopId = searchParams.get("shopId");
   const shopName = searchParams.get("shopName") || "Merchant Ledger";
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [entries, setEntries] = useState<MaterialEntry[]>([]);
+  const [statements, setStatements] = useState<MaterialStatement[]>([]);
+  const [supplier, setSupplier] = useState<any>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-  // --- SAMPLE DATA ---
-  const [logs] = useState<MaterialLog[]>([
-    { id: "1", date: "2024-03-15", material: "M-Sand", unitSize: "9 Field", amount: 45000, invoiceNo: "INV-8821" },
-    { id: "2", date: "2024-03-12", material: "P-Sand", unitSize: "6 Field", amount: 22000, invoiceNo: "INV-8810" },
-    { id: "3", date: "2024-03-10", material: "M-Sand", unitSize: "9 Field", amount: 45000, invoiceNo: "INV-8790" },
-    { id: "4", date: "2024-03-05", material: "Aggregates", unitSize: "6 Field", amount: 15000, invoiceNo: "INV-8750" },
-  ]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
+  const [editingEntry, setEditingEntry] = useState<MaterialEntry | null>(null);
+  const [editingStatement, setEditingStatement] = useState<MaterialStatement | null>(null);
+
+  useEffect(() => {
+    if (shopId) {
+      fetchData();
+    }
+  }, [shopId]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const [entriesRes, statementsRes, supplierRes] = await Promise.all([
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/entries/supplier/${shopId}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        }),
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/statements/supplier/${shopId}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        }),
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/suppliers/${shopId}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        })
+      ]);
+
+      const entriesData = await entriesRes.json();
+      const statementsData = await statementsRes.json();
+      const supplierData = await supplierRes.json();
+
+      if (entriesData.success) setEntries(entriesData.data);
+      if (statementsData.success) setStatements(statementsData.data);
+      if (supplierData.success) setSupplier(supplierData.data);
+    } catch (error) {
+      console.error("Failed to fetch history:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (type: 'ENTRY' | 'STATEMENT', id: number) => {
+    if (!window.confirm(`Are you sure you want to delete this ${type === 'ENTRY' ? 'procurement entry' : 'payment statement'}? Stock and balances will be reversed.`)) return;
+
+    try {
+      const endpoint = type === 'ENTRY' ? `/api/materials/entries/${id}` : `/api/materials/statements/${id}`;
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${endpoint}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success("Deleted successfully");
+        fetchData();
+      } else {
+        toast.error(result.message || "Deletion failed");
+      }
+    } catch (err) {
+      toast.error("An error occurred");
+    }
+  };
+
+  const allLogs = useMemo(() => {
+    const procurement = entries.map(e => ({
+      ...e,
+      type: 'ENTRY',
+      sortDate: new Date(e.date).getTime()
+    }));
+    const payments = statements.map(s => ({
+      ...s,
+      type: 'STATEMENT',
+      sortDate: new Date(s.createdAt).getTime()
+    }));
+    return [...procurement, ...payments].sort((a, b) => b.sortDate - a.sortDate);
+  }, [entries, statements]);
 
   const filteredLogs = useMemo(() => {
-    return logs.filter(l =>
-      l.material.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.invoiceNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.unitSize.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm, logs]);
+    return allLogs.filter((l: any) => {
+      const term = searchTerm.toLowerCase();
+      if (l.type === 'ENTRY') {
+        return (l as any).product?.product_name.toLowerCase().includes(term);
+      }
+      return (l as any).payment_mode.toLowerCase().includes(term) || (l as any).description?.toLowerCase().includes(term);
+    });
+  }, [searchTerm, allLogs]);
 
   const paginatedLogs = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -82,8 +180,17 @@ export default function MaterialHistoryPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button className="hidden sm:flex items-center gap-2 px-5 py-3.5 bg-white border border-slate-200 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all">
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="hidden sm:flex items-center gap-2 px-5 py-3.5 bg-white text-slate-600 border border-slate-200 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all shadow-sm"
+          >
             <Download size={16} /> Export Report
+          </button>
+          <button
+            onClick={() => setIsPaymentModalOpen(true)}
+            className="hidden sm:flex items-center gap-2 px-5 py-3.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-100 transition-all"
+          >
+            <CreditCard size={16} /> Record Payment
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
@@ -94,7 +201,15 @@ export default function MaterialHistoryPage() {
         </div>
       </div>
 
-      {/* TRANSACTION LIST - Full Width Focus */}
+      {/* SUMMARY CARDS */}
+      <SummaryCards
+        supplier={supplier}
+        entriesCount={entries.length}
+        statementsCount={statements.length}
+        onExportClick={() => setIsExportModalOpen(true)}
+      />
+
+      {/* TRANSACTION LIST */}
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h3 className="text-xl font-black uppercase italic tracking-tight flex items-center gap-2">
@@ -106,7 +221,7 @@ export default function MaterialHistoryPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Filter M-Sand, 9 Field..."
+              placeholder="Search history..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="bg-white border border-slate-200 rounded-2xl py-3 pl-12 pr-6 shadow-sm focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-xs w-full sm:w-64"
@@ -115,169 +230,56 @@ export default function MaterialHistoryPage() {
         </div>
 
         <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100">
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Date & Info</th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Material</th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Units (Size)</th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                <AnimatePresence mode="popLayout">
-                  {paginatedLogs.map((l) => (
-                    <motion.tr
-                      layout
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      key={l.id}
-                      className="group hover:bg-slate-50/50 transition-colors"
-                    >
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2.5 bg-slate-100 rounded-xl text-slate-400 group-hover:bg-white group-hover:shadow-sm transition-all">
-                            <CalendarDays size={18} />
-                          </div>
-                          <div>
-                            <p className="text-sm font-black text-slate-800 tabular-nums">{l.date}</p>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{l.invoiceNo || 'PENDING BILL'}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                          <p className="text-xs font-black text-slate-700 uppercase">{l.material}</p>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-500">
-                          {l.unitSize}
-                        </div>
-                      </td>
-                      <td className="px-8 py-6 text-right">
-                        <p className="text-lg font-black tabular-nums text-slate-800">
-                          ₹{l.amount.toLocaleString()}
-                        </p>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
-              </tbody>
-            </table>
-          </div>
+          <TransactionTable
+            logs={paginatedLogs}
+            loading={loading}
+            onEdit={(l) => {
+              if (l.type === 'ENTRY') setEditingEntry(l);
+              else setEditingStatement(l);
+            }}
+            onDelete={handleDelete}
+          />
 
-          {filteredLogs.length === 0 && (
-            <div className="py-20 text-center">
-              <Search size={40} className="text-slate-200 mx-auto mb-4" />
-              <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">No material entries found</p>
-            </div>
-          )}
-
-          {/* --- Pagination Controls --- */}
-          {totalPages > 1 && (
-            <div className="bg-slate-50/50 px-8 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredLogs.length)} of {filteredLogs.length} supply records
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 bg-white rounded-xl border border-slate-100 text-slate-400 disabled:opacity-30 hover:text-indigo-600 transition-all shadow-sm"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 rounded-xl text-[10px] font-black transition-all ${currentPage === page
-                      ? "bg-slate-900 text-white shadow-lg"
-                      : "bg-white text-slate-400 border border-slate-100 hover:border-indigo-500 hover:text-indigo-600 shadow-sm"
-                      }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="p-2 bg-white rounded-xl border border-slate-100 text-slate-400 disabled:opacity-30 hover:text-indigo-600 transition-all shadow-sm"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredLogs.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            label="supply records"
+          />
         </div>
       </div>
 
-      {/* MODAL OVERLAY */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-black uppercase italic tracking-tight">Add Material Entry</h3>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                  <X size={20} className="text-slate-400" />
-                </button>
-              </div>
-
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Select Material</label>
-                  <select className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500/20">
-                    <option>M-Sand</option>
-                    <option>P-Sand</option>
-                    <option>Aggregates</option>
-                    <option>Cement</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Unit Size</label>
-                  <select className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500/20">
-                    <option>9 Field</option>
-                    <option>6 Field</option>
-                    <option>4 Field</option>
-                    <option>Standard</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Total Amount (₹)</label>
-                  <input type="number" placeholder="0.00" className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500/20" />
-                </div>
-
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="w-full mt-4 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all"
-                >
-                  Save Entry
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* MODALS */}
+      <EntryModal
+        isOpen={isModalOpen || !!editingEntry}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingEntry(null);
+        }}
+        onSuccess={fetchData}
+        supplierId={shopId || ""}
+        predefinedFields={supplier?.additionalFields || []}
+        editData={editingEntry}
+      />
+      <PaymentModal
+        isOpen={isPaymentModalOpen || !!editingStatement}
+        onClose={() => {
+          setIsPaymentModalOpen(false);
+          setEditingStatement(null);
+        }}
+        onSuccess={fetchData}
+        supplierId={shopId || ""}
+        editData={editingStatement}
+      />
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        supplier={supplier}
+        allLogs={allLogs}
+      />
     </motion.div>
   );
 }
+

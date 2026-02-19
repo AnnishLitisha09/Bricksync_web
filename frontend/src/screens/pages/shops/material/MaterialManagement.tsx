@@ -1,72 +1,87 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowUpRight,
-  ChevronRight,
-  CreditCard,
-  ExternalLink,
   Filter,
-  Info,
-  MapPin,
-  Phone,
   Plus,
   Search,
   Store,
-  User,
-  X,
-  ChevronLeft
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+
+// NEW COMPONENTS
+import MerchantCard from "./components/MerchantCard";
+import MerchantModal from "./components/modals/MerchantModal";
+import CategoryFilter from "./components/CategoryFilter";
+import DeleteConfirmationModal from "./components/modals/DeleteConfirmationModal";
+import Pagination from "./components/Pagination";
 
 // --- INTERFACES ---
 interface ShopEntry {
   id: number;
-  shopName: string;
-  ownerName: string;
-  phoneNumber: string;
+  shop_name: string;
+  owner_name: string;
+  phone_no: string;
   address: string;
   category: string;
-  balance: number;
-  date: string;
+  balance: string | number;
+  createdAt: string;
 }
+
 
 export default function ShopLedgerPage() {
   const navigate = useNavigate();
+  const [entries, setEntries] = useState<ShopEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // --- SAMPLE DATA (Replace with useShopStore) ---
-  const [entries] = useState<ShopEntry[]>([
-    {
-      id: 1,
-      shopName: "Global Hardware & Tools",
-      ownerName: "John Doe",
-      phoneNumber: "+91 98765 43210",
-      address: "123 Main St, Industrial Area",
-      category: "Wholesale",
-      balance: 45000,
-      date: "2024-03-15"
-    },
-    {
-      id: 2,
-      shopName: "City Paints & Decor",
-      ownerName: "Jane Smith",
-      phoneNumber: "+91 88888 77777",
-      address: "45 Business Park, West Wing",
-      category: "Retail",
-      balance: 3200,
-      date: "2024-03-14"
-    },
-    {
-      id: 3,
-      shopName: "Metro Build-Mart",
-      ownerName: "Mike Ross",
-      phoneNumber: "+91 90000 12345",
-      address: "Shop 12, South Plaza",
-      category: "Distributor",
-      balance: 125000,
-      date: "2024-03-12"
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
+
+  const fetchSuppliers = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/suppliers`, {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const result = await response.json();
+      if (result.success) {
+        setEntries(result.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch suppliers:", error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingShopId) return;
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/suppliers/${deletingShopId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success("Merchant deleted successfully");
+        fetchSuppliers();
+        setDeletingShopId(null);
+      } else {
+        toast.error(result.message || "Failed to delete merchant");
+      }
+    } catch (error) {
+      toast.error("An error occurred");
+    }
+  };
+
+  const [editingShop, setEditingShop] = useState<ShopEntry | null>(null);
+  const [isMerchantModalOpen, setIsMerchantModalOpen] = useState(false);
+  const [deletingShopId, setDeletingShopId] = useState<number | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilter, setShowFilter] = useState(false);
@@ -80,8 +95,8 @@ export default function ShopLedgerPage() {
   const filteredEntries = useMemo(() => {
     return entries.filter((s) => {
       const matchSearch =
-        s.shopName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.ownerName.toLowerCase().includes(searchTerm.toLowerCase());
+        s.shop_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.owner_name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchCategory = activeCategory === "ALL" || s.category.toUpperCase() === activeCategory.toUpperCase();
       return matchSearch && matchCategory;
     });
@@ -100,8 +115,7 @@ export default function ShopLedgerPage() {
 
   // Navigation Handler
   const handleViewHistory = (shop: ShopEntry) => {
-    // Navigates to the history page with query parameters
-    navigate(`/shop/ledger/history?shopId=${shop.id}&shopName=${encodeURIComponent(shop.shopName)}`);
+    navigate(`/shop/materials/history?shopId=${shop.id}&shopName=${encodeURIComponent(shop.shop_name)}`);
   };
 
   return (
@@ -120,7 +134,7 @@ export default function ShopLedgerPage() {
               <Store className="text-white" size={24} />
             </div>
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-              SHOP <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500 italic">LEDGER</span>
+              SHOP <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-violet-500 italic">LEDGER</span>
             </h1>
           </div>
           <p className="text-slate-400 text-xs font-black uppercase tracking-[0.3em] pl-1">Merchant Credit Directory</p>
@@ -147,7 +161,10 @@ export default function ShopLedgerPage() {
           </button>
 
           <button
-            onClick={() => navigate("/shop/ledger/add")}
+            onClick={() => {
+              setEditingShop(null);
+              setIsMerchantModalOpen(true);
+            }}
             className="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-slate-300 hover:bg-indigo-600 hover:shadow-indigo-200 transition-all active:scale-95 group"
           >
             <Plus size={18} className="group-hover:rotate-90 transition-transform" />
@@ -156,181 +173,72 @@ export default function ShopLedgerPage() {
         </div>
       </div>
 
-      {/* DYNAMIC CATEGORY CHIPS */}
-      <AnimatePresence>
-        {showFilter && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="max-w-7xl mx-auto overflow-hidden"
-          >
-            <div className="bg-white/40 backdrop-blur-sm p-4 rounded-3xl border border-white flex flex-wrap gap-3">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] transition-all border ${activeCategory === cat ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white border-slate-100 text-slate-400 hover:border-indigo-200'}`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <CategoryFilter
+        show={showFilter}
+        categories={categories}
+        activeCategory={activeCategory}
+        onCategoryChange={setActiveCategory}
+      />
 
       {/* CONTENT AREA */}
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 gap-8">
-          <AnimatePresence mode="popLayout">
-            {paginatedEntries.map((shop, idx) => {
-              const isHighBalance = shop.balance > 50000;
-
-              return (
-                <motion.div
-                  layout
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-32 space-y-4">
+            <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Loading Merchants...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-8">
+            <AnimatePresence mode="popLayout">
+              {paginatedEntries.map((shop, idx) => (
+                <MerchantCard
                   key={shop.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: idx * 0.05 }}
-                  onClick={() => handleViewHistory(shop)}
-                  className="group relative bg-white rounded-[3rem] p-2 pr-8 shadow-sm border border-slate-100 hover:shadow-2xl hover:shadow-slate-200/50 transition-all overflow-hidden cursor-pointer"
-                >
-                  {isHighBalance && <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full -mr-16 -mt-16" />}
+                  shop={shop}
+                  idx={idx}
+                  onViewHistory={handleViewHistory}
+                  onEdit={(s) => {
+                    setEditingShop(s);
+                    setIsMerchantModalOpen(true);
+                  }}
+                  onDelete={setDeletingShopId}
+                />
+              ))}
+            </AnimatePresence>
 
-                  <div className="flex flex-col md:flex-row items-center gap-8">
-                    {/* ICON BOX */}
-                    <div className="relative w-full md:w-56 h-44 bg-slate-50 rounded-[2.5rem] overflow-hidden border border-slate-100 flex items-center justify-center m-2 shrink-0">
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900/5 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                        <div className="bg-white p-3 rounded-full shadow-xl">
-                          <ExternalLink size={20} className="text-indigo-600" />
-                        </div>
-                      </div>
-                      <div className="w-20 h-20 bg-white rounded-3xl shadow-inner flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                        <Store size={40} className="text-indigo-100 group-hover:text-indigo-500 transition-colors" />
-                      </div>
-                      <div className="absolute bottom-4 flex gap-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-300" />
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-100" />
-                      </div>
-                    </div>
+            <MerchantModal
+              isOpen={isMerchantModalOpen}
+              onClose={() => {
+                setIsMerchantModalOpen(false);
+                setEditingShop(null);
+              }}
+              shop={editingShop}
+              onSuccess={fetchSuppliers}
+            />
 
-                    {/* CORE DETAILS */}
-                    <div className="flex-1 w-full py-4 space-y-6">
-                      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-3">
-                            <h2 className="text-2xl font-black text-slate-800 tracking-tighter uppercase group-hover:text-indigo-600 transition-colors">{shop.shopName}</h2>
-                            <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-indigo-100">
-                              {shop.category}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-slate-400">
-                            <User size={14} className="text-indigo-500" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">Managed by {shop.ownerName}</span>
-                          </div>
-                        </div>
+            <DeleteConfirmationModal
+              isOpen={!!deletingShopId}
+              onClose={() => setDeletingShopId(null)}
+              onConfirm={confirmDelete}
+              title="Delete Merchant"
+              message="Are you sure you want to remove this merchant? This action cannot be undone and will only proceed if there are no existing transactions."
+            />
 
-                        <div className="flex items-center gap-5">
-                          <div className="text-right">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Outstanding Balance</p>
-                            <div className="flex items-center gap-2">
-                              <CreditCard size={18} className="text-slate-300" />
-                              <span className="text-3xl font-black tabular-nums text-slate-900">
-                                ₹{shop.balance.toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="p-4 bg-slate-50 rounded-2xl text-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                            <ArrowUpRight size={20} />
-                          </div>
-                        </div>
-                      </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredEntries.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              label="merchants"
+            />
 
-                      {/* INFO GRID */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 group-hover:bg-white transition-all">
-                          <div className="p-2 bg-white shadow-sm rounded-xl text-indigo-500">
-                            <Phone size={14} />
-                          </div>
-                          <p className="text-xs font-black text-slate-600 tracking-tight">{shop.phoneNumber}</p>
-                        </div>
-
-                        <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 group-hover:bg-white transition-all">
-                          <div className="p-2 bg-white shadow-sm rounded-xl text-teal-500">
-                            <MapPin size={14} />
-                          </div>
-                          <p className="text-xs font-black text-slate-600 tracking-tight truncate max-w-[200px]">{shop.address}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* SIDE ACTIONS */}
-                    <div className="hidden lg:flex flex-col gap-2">
-                      <div className="p-2 text-slate-200 group-hover:text-indigo-200 transition-colors">
-                        <Info size={20} />
-                      </div>
-                      <div className="p-2 text-slate-200 group-hover:text-indigo-500 transition-colors">
-                        <ChevronRight size={24} />
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-
-          {/* --- Pagination Controls --- */}
-          {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-8 border-t border-slate-100 mt-10">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center sm:text-left">
-                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredEntries.length)} of {filteredEntries.length} MERCHANTS
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="p-3 bg-white rounded-2xl border border-slate-200 text-slate-400 disabled:opacity-30 hover:text-indigo-600 transition-all shadow-sm"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-12 h-12 rounded-2xl text-[11px] font-black transition-all ${currentPage === page
-                        ? "bg-indigo-600 text-white shadow-xl shadow-indigo-100"
-                        : "bg-white text-slate-400 border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 shadow-sm"
-                      }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="p-3 bg-white rounded-2xl border border-slate-200 text-slate-400 disabled:opacity-30 hover:text-indigo-600 transition-all shadow-sm"
-                >
-                  <ChevronRight size={20} />
-                </button>
+            {filteredEntries.length === 0 && (
+              <div className="text-center py-24 bg-white rounded-[3rem] border-4 border-dashed border-slate-100 italic">
+                <p className="text-slate-400 font-black uppercase tracking-widest text-sm">No merchants found</p>
               </div>
-            </div>
-          )}
-
-          {filteredEntries.length === 0 && (
-            <div className="text-center py-24 bg-white rounded-[3rem] border-4 border-dashed border-slate-100">
-              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <X size={32} className="text-slate-300" />
-              </div>
-              <p className="text-slate-400 font-black uppercase tracking-widest text-sm">No merchants found</p>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </motion.div>
   );

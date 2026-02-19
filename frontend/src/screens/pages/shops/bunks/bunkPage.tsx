@@ -287,8 +287,8 @@ export default function BunkPage() {
                     key={page}
                     onClick={() => setCurrentPage(page)}
                     className={`w-12 h-12 rounded-2xl text-[11px] font-black transition-all ${currentPage === page
-                        ? "bg-orange-600 text-white shadow-xl shadow-orange-100"
-                        : "bg-white text-slate-400 border border-slate-200 hover:border-orange-500 hover:text-orange-600 shadow-sm"
+                      ? "bg-orange-600 text-white shadow-xl shadow-orange-100"
+                      : "bg-white text-slate-400 border border-slate-200 hover:border-orange-500 hover:text-orange-600 shadow-sm"
                       }`}
                   >
                     {page}

@@ -105,7 +105,7 @@ export default function StockPage() {
         getEmployees()
       ]);
       setProducts(stockData);
-      setOffices(officeData);
+      setOffices(officeData.success ? officeData.data : (Array.isArray(officeData) ? officeData : []));
       setStaffList(employeeData);
 
     } catch (err) {
@@ -652,7 +652,7 @@ export default function StockPage() {
 
               <div className="space-y-4">
                 {/* Product Image Preview */}
-                <div className="bg-gray-50 rounded-[2rem] p-2 aspect-video flex items-center justify-center border border-gray-100 overflow-hidden mb-2 shadow-inner">
+                <div className="bg-gray-50 rounded-4xl p-2 aspect-video flex items-center justify-center border border-gray-100 overflow-hidden mb-2 shadow-inner">
                   {selectedStock.product.image_url ? (
                     <img
                       src={selectedStock.product.image_url.startsWith("/images/") ? `${FILE_BASE_URL}${selectedStock.product.image_url}` : selectedStock.product.image_url}

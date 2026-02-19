@@ -48,19 +48,21 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, editData }
 
     useEffect(() => {
         if (isOpen) {
-            getAllOffices().then(setOffices).catch(console.error);
+            getAllOffices()
+                .then(data => setOffices(data.success ? data.data : (Array.isArray(data) ? data : [])))
+                .catch(console.error);
 
             if (editData) {
                 // Pre-fill for edit mode
                 setForm({
-                    name: editData.product.product_name,
-                    category: editData.product.category,
-                    shopId: editData.office_id.toString(),
-                    qty: editData.quantity.toString(),
-                    description: editData.product.description || "",
+                    name: editData.product?.product_name || "",
+                    category: editData.product?.category || "",
+                    shopId: editData.office_id?.toString() || "",
+                    qty: editData.quantity?.toString() || "",
+                    description: editData.product?.description || "",
                     imageFile: null,
                 });
-                setImagePreview(editData.product.image_url);
+                setImagePreview(editData.product?.image_url || null);
             } else {
                 // Reset for add mode
                 setForm({
@@ -258,7 +260,7 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, editData }
                                         ) : (
                                             <div className="relative w-full aspect-video rounded-4xl overflow-hidden group">
                                                 <img
-                                                    src={imagePreview.startsWith('data:') || imagePreview.startsWith('http') ? imagePreview : `http://localhost:3002${imagePreview}`}
+                                                    src={imagePreview?.startsWith('data:') || imagePreview?.startsWith('http') ? imagePreview : `http://localhost:3002${imagePreview}`}
                                                     alt="Preview"
                                                     className="w-full h-full object-cover"
                                                 />

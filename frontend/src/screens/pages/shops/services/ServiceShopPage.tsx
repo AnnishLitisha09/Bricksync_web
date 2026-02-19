@@ -45,21 +45,21 @@ export default function ServiceShopPage() {
   });
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="min-h-screen bg-gray-50/50 p-4 md:p-8 space-y-10"
     >
       {/* PREMIUM HEADER SECTION */}
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-end justify-between gap-8">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-             <div className="p-2 bg-emerald-600 rounded-xl shadow-lg shadow-emerald-100">
-                <Wrench className="text-white" size={24} />
-             </div>
-             <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-                SERVICE <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 italic">HUBS</span>
-             </h1>
+            <div className="p-2 bg-emerald-600 rounded-xl shadow-lg shadow-emerald-100">
+              <Wrench className="text-white" size={24} />
+            </div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+              SERVICE <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 italic">HUBS</span>
+            </h1>
           </div>
           <p className="text-slate-400 text-xs font-black uppercase tracking-[0.3em] pl-1">Maintenance & Workshop Network</p>
         </div>
@@ -97,7 +97,7 @@ export default function ServiceShopPage() {
       {/* GLASSMOPHISM FILTER CHIPS */}
       <AnimatePresence>
         {showFilter && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -129,7 +129,7 @@ export default function ServiceShopPage() {
 
         <div className="grid grid-cols-1 gap-6">
           {loading ? (
-            [1,2,3].map(i => <div key={i} className="h-44 bg-white/50 animate-pulse rounded-[3rem]" />)
+            [1, 2, 3].map(i => <div key={i} className="h-44 bg-white/50 animate-pulse rounded-[3rem]" />)
           ) : (
             <AnimatePresence mode="popLayout">
               {filteredShops.map((s, idx) => (
@@ -149,9 +149,9 @@ export default function ServiceShopPage() {
                       <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <Wrench size={48} className="text-slate-200 group-hover:text-emerald-500 group-hover:scale-110 transition-all duration-500" />
                       <div className="absolute bottom-3 flex gap-1">
-                         <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                         <div className="w-1 h-1 rounded-full bg-emerald-300" />
-                         <div className="w-1 h-1 rounded-full bg-emerald-100" />
+                        <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                        <div className="w-1 h-1 rounded-full bg-emerald-300" />
+                        <div className="w-1 h-1 rounded-full bg-emerald-100" />
                       </div>
                     </div>
 
@@ -164,57 +164,57 @@ export default function ServiceShopPage() {
                               {s.shop_name}
                             </h2>
                             <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">
-                               {s.type || 'General'}
+                              {s.type || 'General'}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 text-slate-400">
-                             <User size={14} className="text-emerald-500" />
-                             <span className="text-[10px] font-bold uppercase tracking-widest">Managed by {s.owner}</span>
+                            <User size={14} className="text-emerald-500" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Managed by {s.owner}</span>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-5">
-                            <div className="text-right">
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Dues Outstanding</p>
-                                <div className="flex items-center gap-2">
-                                    <Hammer size={16} className="text-slate-300" />
-                                    <span className="text-3xl font-black text-slate-900 tabular-nums">
-                                        ₹{s.amount.toLocaleString()}
-                                    </span>
-                                </div>
+                          <div className="text-right">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Dues Outstanding</p>
+                            <div className="flex items-center gap-2">
+                              <Hammer size={16} className="text-slate-300" />
+                              <span className="text-3xl font-black text-slate-900 tabular-nums">
+                                ₹{s.amount.toLocaleString()}
+                              </span>
                             </div>
-                            <div className="p-4 bg-slate-50 rounded-2xl text-slate-300 group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                                <ArrowUpRight size={20} />
-                            </div>
+                          </div>
+                          <div className="p-4 bg-slate-50 rounded-2xl text-slate-300 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                            <ArrowUpRight size={20} />
+                          </div>
                         </div>
                       </div>
 
                       {/* INFO GRID */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 group-hover:bg-white transition-all">
-                           <div className="p-2 bg-white shadow-sm rounded-xl text-emerald-500">
-                              <Phone size={14} />
-                           </div>
-                           <span className="text-xs font-black text-slate-600 tracking-tight">{s.phone}</span>
+                          <div className="p-2 bg-white shadow-sm rounded-xl text-emerald-500">
+                            <Phone size={14} />
+                          </div>
+                          <span className="text-xs font-black text-slate-600 tracking-tight">{s.phone}</span>
                         </div>
 
                         <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 group-hover:bg-white transition-all">
-                           <div className="p-2 bg-white shadow-sm rounded-xl text-teal-500">
-                              <MapPin size={14} />
-                           </div>
-                           <span className="text-xs font-black text-slate-600 tracking-tight truncate max-w-[200px]">{s.address}</span>
+                          <div className="p-2 bg-white shadow-sm rounded-xl text-teal-500">
+                            <MapPin size={14} />
+                          </div>
+                          <span className="text-xs font-black text-slate-600 tracking-tight truncate max-w-[200px]">{s.address}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* HIDDEN ACTIONS ON DESKTOP */}
                     <div className="hidden lg:flex flex-col gap-2">
-                         <div className="p-2 text-slate-200 group-hover:text-emerald-200 transition-colors">
-                            <Settings size={20} />
-                         </div>
-                         <div className="p-2 text-slate-200 group-hover:text-emerald-500 transition-colors">
-                            <ChevronRight size={24} />
-                         </div>
+                      <div className="p-2 text-slate-200 group-hover:text-emerald-200 transition-colors">
+                        <Settings size={20} />
+                      </div>
+                      <div className="p-2 text-slate-200 group-hover:text-emerald-500 transition-colors">
+                        <ChevronRight size={24} />
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -224,10 +224,10 @@ export default function ServiceShopPage() {
 
           {filteredShops.length === 0 && !loading && (
             <div className="text-center py-24 bg-white rounded-[3rem] border-4 border-dashed border-slate-100">
-               <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <X size={32} className="text-slate-300" />
-               </div>
-               <p className="text-slate-400 font-black uppercase tracking-widest text-sm">No workshops found</p>
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <X size={32} className="text-slate-300" />
+              </div>
+              <p className="text-slate-400 font-black uppercase tracking-widest text-sm">No workshops found</p>
             </div>
           )}
         </div>

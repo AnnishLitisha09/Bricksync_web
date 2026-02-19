@@ -1,12 +1,13 @@
-const { Product, ProductStock } = require("../models");
+const { Product, ProductStock, sequelize } = require("../models");
+const { Op } = require("sequelize");
 
 /* 🔹 Get All Products */
 exports.getAllProducts = async (req, res) => {
     try {
         const products = await Product.findAll({
-            where: { is_deleted: false },
+            where: { is_deleted: { [Op.ne]: true } },
         });
-        res.json(products);
+        res.json({ success: true, data: products });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -16,10 +17,10 @@ exports.getAllProducts = async (req, res) => {
 exports.getProductById = async (req, res) => {
     try {
         const product = await Product.findOne({
-            where: { product_id: req.params.id, is_deleted: false },
+            where: { product_id: req.params.id, is_deleted: { [Op.ne]: true } },
         });
         if (!product) return res.status(404).json({ message: "Product not found" });
-        res.json(product);
+        res.json({ success: true, data: product });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -48,7 +49,7 @@ exports.createProduct = async (req, res) => {
             });
         }
 
-        res.status(201).json(product);
+        res.status(201).json({ success: true, data: product });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -64,11 +65,11 @@ exports.updateProduct = async (req, res) => {
 
 
         const [updated] = await Product.update(updateData, {
-            where: { product_id: req.params.id, is_deleted: false },
+            where: { product_id: req.params.id, is_deleted: { [Op.ne]: true } },
         });
         if (!updated) return res.status(404).json({ message: "Product not found" });
         const product = await Product.findByPk(req.params.id);
-        res.json(product);
+        res.json({ success: true, data: product });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

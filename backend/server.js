@@ -39,6 +39,7 @@ app.use("/api/stock", require("./routes/stockRoutes"));
 app.use("/api/production", require("./routes/productionRoutes"));
 app.use("/api/employees", require("./routes/employeeRoutes"));
 app.use("/api/attendance", require("./routes/attendanceRoutes"));
+app.use("/api/materials", require("./routes/materialRoutes"));
 
 app.use("/wallet", require("./routes/walletRoutes"));
 

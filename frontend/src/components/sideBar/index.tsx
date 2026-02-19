@@ -81,7 +81,7 @@ const menu: MenuItem[] = [
   },
   {
     name: "Shop",
-    icon: ShoppingCart, 
+    icon: ShoppingCart,
     path: "/shop",
     children: [
       { name: "Bunks", path: "/shop/bunks" },
@@ -120,9 +120,9 @@ export default function Sidebar({ className }: { className?: string }) {
   return (
     <>
       <aside
-        className={`relative w-64 bg-white flex flex-col gap-5 px-4 py-6 rounded-2xl overflow-scroll ${className}`}
+        className={`relative w-64 bg-white flex flex-col gap-5 px-4 py-6 rounded-2xl ${className}`}
       >
-        
+
         {isOpen && (
           <div
             className="absolute right-3 top-5 cursor-pointer p-1"
@@ -132,11 +132,11 @@ export default function Sidebar({ className }: { className?: string }) {
           </div>
         )}
         {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/30 translate-x-64 lg:hidden" 
-          onClick={toggle}
-        />
-      )}
+          <div
+            className="fixed inset-0 bg-black/30 translate-x-64 lg:hidden"
+            onClick={toggle}
+          />
+        )}
 
         {/* BRAND */}
         <div className="flex items-center gap-3 px-2">
@@ -166,7 +166,7 @@ export default function Sidebar({ className }: { className?: string }) {
         </div>
 
         {/* NAV */}
-        <nav className="space-y-1 h-[calc(100vh-5px)] overflow-y-scroll scrollbar-none">
+        <nav className="space-y-1 flex-1 overflow-y-scroll no-scrollbar">
           <div className="text-xs uppercase text-slate-500 px-2">
             All pages
           </div>
@@ -224,25 +224,25 @@ export default function Sidebar({ className }: { className?: string }) {
               </div>
             );
           })}
+          <div
+            onClick={() => navigate("/settings")}
+            className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 cursor-pointer"
+          >
+            <Settings size={18} />
+            <p>Settings</p>
+          </div>
+
+          {/* LOGOUT */}
+          <div
+            onClick={() => setShowLogout(true)}
+            className="flex items-center gap-3 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 cursor-pointer"
+          >
+            <LogOut size={18} />
+            <p>Logout</p>
+          </div>
         </nav>
 
         {/* SETTINGS */}
-        <div
-          onClick={() => navigate("/settings")}
-          className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 cursor-pointer"
-        >
-          <Settings size={18} />
-          <p>Settings</p>
-        </div>
-
-        {/* LOGOUT */}
-        <div
-          onClick={() => setShowLogout(true)}
-          className="flex items-center gap-3 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 cursor-pointer"
-        >
-          <LogOut size={18} />
-          <p>Logout</p>
-        </div>
       </aside>
 
       {/* LOGOUT MODAL */}

@@ -7,7 +7,7 @@ exports.getAllOffices = async (req, res) => {
         const offices = await Office.findAll({
             where: { is_deleted: false },
         });
-        res.json(offices);
+        res.json({ success: true, data: offices });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -20,7 +20,7 @@ exports.getOfficeById = async (req, res) => {
             where: { office_id: req.params.id, is_deleted: false },
         });
         if (!office) return res.status(404).json({ message: "Office not found" });
-        res.json(office);
+        res.json({ success: true, data: office });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -31,7 +31,7 @@ exports.createOffice = async (req, res) => {
     try {
         const { office_name, location } = req.body;
         const office = await Office.create({ office_name, location });
-        res.status(201).json(office);
+        res.status(201).json({ success: true, data: office });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -93,7 +93,7 @@ exports.getOfficeSummary = async (req, res) => {
             ],
         });
         // Further aggregation can be done here if specific format is required
-        res.json(summary);
+        res.json({ success: true, data: summary });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
