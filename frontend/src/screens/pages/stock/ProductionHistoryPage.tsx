@@ -99,7 +99,7 @@ export default function ProductionHistoryPage() {
             placeholder="Search by material, shop, or staff name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-orange-500 transition-all outline-none"
+            className="w-full pl-12 pr-4 py-4 border-none rounded-2xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-orange-500 transition-all outline-none"
           />
         </div>
       </div>

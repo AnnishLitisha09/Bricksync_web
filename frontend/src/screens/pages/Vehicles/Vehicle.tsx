@@ -103,16 +103,14 @@ export default function VehicleList() {
             placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3.5 md:py-4 bg-white border border-gray-100 rounded-xl md:rounded-2xl focus:ring-2 focus:ring-orange-500/10 outline-none font-medium text-sm md:text-base shadow-sm transition-all"
+            className="w-full pl-10 pr-4 py-3.5 md:py-4 rounded-xl md:rounded-2xl focus:ring-2 focus:ring-orange-500/10 outline-none font-medium text-sm md:text-base shadow-sm transition-all"
           />
         </div>
 
         <div className="relative" ref={filterRef}>
           <button
             onClick={() => setShowFilter((prev) => !prev)}
-            className={`flex items-center justify-center w-12 h-12 md:w-auto md:px-6 md:py-4 rounded-xl md:rounded-2xl border transition-all font-bold ${
-              showFilter ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-100 shadow-sm"
-            }`}
+            className={`flex items-center justify-center w-12 h-12 md:w-auto md:px-6 md:py-4 rounded-xl md:rounded-2xl transition-all font-bold`}
           >
             <Sliders className="w-5 h-5 md:w-4 md:h-4" />
             <span className="hidden md:block ml-2">Filter</span>

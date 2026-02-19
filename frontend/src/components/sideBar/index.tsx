@@ -120,8 +120,9 @@ export default function Sidebar({ className }: { className?: string }) {
   return (
     <>
       <aside
-        className={`relative w-64 bg-white flex flex-col gap-5 px-4 py-6 rounded-2xl ${className}`}
+        className={`relative w-64 bg-white flex flex-col gap-5 px-4 py-6 rounded-2xl overflow-scroll ${className}`}
       >
+        
         {isOpen && (
           <div
             className="absolute right-3 top-5 cursor-pointer p-1"
@@ -130,6 +131,12 @@ export default function Sidebar({ className }: { className?: string }) {
             <X />
           </div>
         )}
+        {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/30 translate-x-64 lg:hidden" 
+          onClick={toggle}
+        />
+      )}
 
         {/* BRAND */}
         <div className="flex items-center gap-3 px-2">
@@ -147,7 +154,7 @@ export default function Sidebar({ className }: { className?: string }) {
         </div>
 
         {/* SEARCH */}
-        <div className="relative">
+        <div className="relative z-0">
           <Search
             size={18}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -159,7 +166,7 @@ export default function Sidebar({ className }: { className?: string }) {
         </div>
 
         {/* NAV */}
-        <nav className="flex-1 space-y-1">
+        <nav className="space-y-1 h-[calc(100vh-5px)] overflow-y-scroll scrollbar-none">
           <div className="text-xs uppercase text-slate-500 px-2">
             All pages
           </div>

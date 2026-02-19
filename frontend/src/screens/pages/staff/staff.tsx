@@ -133,7 +133,7 @@ const Staff: React.FC = () => {
           placeholder="Search by name, role, or ID..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-16 pr-8 py-6 rounded-3xl border border-slate-200 bg-white shadow-sm focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-lg"
+          className="w-full pl-16 pr-8 py-6 rounded-3xl border border-slate-200 shadow-sm focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-lg"
         />
       </div>
 

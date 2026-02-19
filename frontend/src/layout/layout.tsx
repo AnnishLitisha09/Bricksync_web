@@ -44,12 +44,7 @@ const Layout = () => {
           <Outlet />
         </main>
       </div>
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/30 z-20 lg:hidden" 
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      
     </div>
 
 
