@@ -4,7 +4,6 @@ import {
   ArrowRight, Award, Clock,
   Facebook,
   Instagram, Linkedin,
-  Loader2,
   Mail,
   MapPin,
   Menu,
@@ -12,13 +11,14 @@ import {
   Phone,
   Send,
   ShieldCheck,
-  Star,
   Truck,
   X,
-  CheckCircle2
+  CheckCircle2,
+  ExternalLink
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+// Note: Ensure your BASE_URL is correctly exported from your api file
 import { BASE_URL } from "../../../api/base";
 
 // --- Configuration & Data ---
@@ -37,17 +37,12 @@ const products = [
   { id: "06", name: "Premium Cement", icon: "💎", size: "Grade 53/43", description: "Authorized distribution of Dalmia Gold and Maha Cement for long-lasting structural life.", imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80" },
 ];
 
-const testimonials = [
-  { name: "Rajesh Kumar", role: "Structural Engineer", text: "Aswath Bricks has been our go-to supplier for 5 years. Their consistency in block size saves us a lot on mortar costs." },
-  { name: "Senthil Prabhu", role: "Home Owner", text: "The delivery was surprisingly fast. Even in Tiruppur traffic, they reached my site exactly when promised." }
-];
-
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } 
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
   }
 };
 
@@ -57,10 +52,9 @@ const AswathBricksPro: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [formData, setFormData] = useState({ name: "", phone: "", email: "" });
   const [errors, setErrors] = useState({ email: "" });
-  
-  // New Loading States
+
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loadingStage, setLoadingStage] = useState(""); 
+  const [loadingStage, setLoadingStage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
   const navigate = useNavigate();
@@ -82,16 +76,13 @@ const AswathBricksPro: React.FC = () => {
       setErrors({ email: "Please enter a valid business email." });
       return;
     }
-    
+
     setErrors({ email: "" });
     setIsSubmitting(true);
-    
-    // Creative Loading Sequence
     setLoadingStage("Verifying Details...");
     await new Promise(r => setTimeout(r, 800));
-    
     setLoadingStage("Notifying Sales Team...");
-    
+
     try {
       const response = await fetch(`${BASE_URL}/contact`, {
         method: 'POST',
@@ -104,7 +95,6 @@ const AswathBricksPro: React.FC = () => {
         await new Promise(r => setTimeout(r, 1000));
         setIsSuccess(true);
         setFormData({ name: "", phone: "", email: "" });
-        // Auto close after 3 seconds
         setTimeout(() => {
           setIsModalOpen(false);
           setIsSuccess(false);
@@ -137,11 +127,11 @@ const AswathBricksPro: React.FC = () => {
   };
 
   return (
-    <div className="bg-[#fafafa] text-slate-950 selection:bg-orange-500 selection:text-white font-sans antialiased overflow-x-hidden">
+    <div className="bg-[#fafafa] text-slate-950 selection:bg-orange-500 selection:text-white font-sans antialiased overflow-x-hidden scroll-smooth">
       <motion.div className="fixed top-0 left-0 right-0 h-[4px] bg-orange-600 z-[2001] origin-left" style={{ scaleX }} />
-      
+
       {/* Floating WhatsApp */}
-      <a href="https://wa.me/919842048181" target="_blank" rel="noreferrer" className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-[1001] bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center gap-2 group">
+      <a href="https://wa.me/919843083521" target="_blank" rel="noreferrer" className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-[1001] bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center gap-2 group">
         <span className="hidden md:block max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 font-bold text-sm whitespace-nowrap px-0 group-hover:px-2">WhatsApp Us</span>
         <MessageCircle size={24} className="md:w-7 md:h-7" />
       </a>
@@ -150,13 +140,11 @@ const AswathBricksPro: React.FC = () => {
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-[2005] flex items-center justify-center p-4 md:p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { if(!isSubmitting) setIsModalOpen(false)}} className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { if (!isSubmitting) setIsModalOpen(false) }} className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" />
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="relative bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden p-8 md:p-14">
-              
               {!isSubmitting && !isSuccess && (
                 <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-950 transition-colors"><X size={24} /></button>
               )}
-
               <AnimatePresence mode="wait">
                 {isSuccess ? (
                   <motion.div key="success" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center text-center py-10">
@@ -169,23 +157,10 @@ const AswathBricksPro: React.FC = () => {
                 ) : isSubmitting ? (
                   <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center py-12">
                     <div className="relative w-24 h-24 mb-8">
-                      <motion.div 
-                        animate={{ rotate: 360 }} 
-                        transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                        className="absolute inset-0 border-4 border-orange-100 border-t-orange-600 rounded-full" 
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Truck className="text-orange-600 animate-bounce" size={32} />
-                      </div>
+                      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }} className="absolute inset-0 border-4 border-orange-100 border-t-orange-600 rounded-full" />
+                      <div className="absolute inset-0 flex items-center justify-center"><Truck className="text-orange-600 animate-bounce" size={32} /></div>
                     </div>
-                    <motion.p 
-                      key={loadingStage}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-orange-600 font-black uppercase tracking-widest text-xs"
-                    >
-                      {loadingStage}
-                    </motion.p>
+                    <motion.p key={loadingStage} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-orange-600 font-black uppercase tracking-widest text-xs">{loadingStage}</motion.p>
                   </motion.div>
                 ) : (
                   <motion.div key="form">
@@ -195,16 +170,16 @@ const AswathBricksPro: React.FC = () => {
                     </div>
                     <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
                       <div className="space-y-1">
-                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Full Name</label>
-                         <input required value={formData.name} type="text" placeholder="John Doe" className="w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm" onChange={e => setFormData({...formData, name: e.target.value})} />
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Full Name</label>
+                        <input required value={formData.name} type="text" placeholder="John Doe" className="w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm" onChange={e => setFormData({ ...formData, name: e.target.value })} />
                       </div>
                       <div className="space-y-1">
-                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Contact Number</label>
-                         <input required value={formData.phone} type="tel" placeholder="+91 00000 00000" className="w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm" onChange={e => setFormData({...formData, phone: e.target.value})} />
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Contact Number</label>
+                        <input required value={formData.phone} type="tel" placeholder="+91 00000 00000" className="w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm" onChange={e => setFormData({ ...formData, phone: e.target.value })} />
                       </div>
                       <div className="space-y-1">
-                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Email Address</label>
-                         <input required value={formData.email} type="email" placeholder="name@company.com" className={`w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm ${errors.email ? 'ring-2 ring-red-500' : ''}`} onChange={e => setFormData({...formData, email: e.target.value})} />
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Email Address</label>
+                        <input required value={formData.email} type="email" placeholder="name@company.com" className={`w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm ${errors.email ? 'ring-2 ring-red-500' : ''}`} onChange={e => setFormData({ ...formData, email: e.target.value })} />
                       </div>
                       <button className="w-full bg-slate-950 text-white py-5 md:py-6 rounded-[1.2rem] md:rounded-[1.5rem] font-black uppercase text-[10px] md:text-xs tracking-[0.2em] hover:bg-orange-600 transition-all flex items-center justify-center gap-3 mt-4">
                         Request Estimate <Send size={16} />
@@ -333,7 +308,7 @@ const AswathBricksPro: React.FC = () => {
             <h2 className="text-orange-500 font-black tracking-[0.5em] uppercase text-[9px] md:text-[11px] mb-4 md:mb-6">Master Inventory</h2>
             <h3 className="text-4xl md:text-[6rem] font-black tracking-tighter italic uppercase leading-none">Forged for <br /> <span className="text-slate-600">Permanence.</span></h3>
           </div>
-          
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
             {products.map((p, i) => (
               <motion.div key={i} whileHover={{ y: -10 }} className="group relative bg-white/[0.03] backdrop-blur-md rounded-[2.5rem] md:rounded-[4rem] p-4 md:p-5 border border-white/10">
@@ -356,14 +331,142 @@ const AswathBricksPro: React.FC = () => {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="py-16 md:py-20 bg-slate-950 text-center relative overflow-hidden px-4">
-        <div className="relative z-10 flex flex-col items-center gap-8 md:gap-10">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center text-white font-black italic text-sm">A</div>
-            <span className="font-black text-white tracking-tighter uppercase text-lg md:text-xl italic">Aswath <span className="text-orange-500">Bricks.</span></span>
+      {/* CONTACT SECTION - NEWLY UPDATED */}
+      <section id="contact" className="py-24 md:py-44 bg-white relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
+          <div className="grid lg:grid-cols-2 gap-20 items-start">
+            <div>
+              <h2 className="text-orange-600 font-black tracking-[0.4em] uppercase text-[10px] md:text-xs mb-6">Dispatch & Logistics</h2>
+              <h3 className="text-5xl md:text-8xl font-black tracking-tighter italic uppercase leading-[0.85] mb-12">Get in <br /> <span className="text-slate-300">Touch.</span></h3>
+
+              <div className="space-y-12">
+                <div className="flex gap-8 group cursor-pointer">
+                  <div className="w-16 h-16 bg-slate-950 text-orange-500 rounded-3xl flex items-center justify-center shrink-0 group-hover:bg-orange-600 group-hover:text-white transition-all duration-500">
+                    <Phone size={28} />
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Sales Hotline</h4>
+                    <p className="text-2xl md:text-3xl font-black italic">+91 98420 48181 , 9843083521</p>
+                    <p className="text-slate-400 font-medium text-sm mt-1">Available Mon-Sat, 7AM - 8PM</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-8 group cursor-pointer">
+                  <div className="w-16 h-16 bg-slate-950 text-orange-500 rounded-3xl flex items-center justify-center shrink-0 group-hover:bg-orange-600 group-hover:text-white transition-all duration-500">
+                    <Mail size={28} />
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Email Inquiry</h4>
+                    <p className="text-2xl md:text-3xl font-black italic">bricksync001@gmail.com</p>
+                    <p className="text-slate-400 font-medium text-sm mt-1">Response within 24 business hours.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-8 group cursor-pointer">
+                  <div className="w-16 h-16 bg-slate-950 text-orange-500 rounded-3xl flex items-center justify-center shrink-0 group-hover:bg-orange-600 group-hover:text-white transition-all duration-500">
+                    <MapPin size={28} />
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Main Plant</h4>
+                    <p className="text-xl md:text-2xl font-black italic leading-tight">SS tower, Pandian nagar bus stop<br /> Pn road, Tiruppur, Tamil Nadu - 641604</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative">
+              {/* Map Container - Matches the rounded style of your icon boxes */}
+              <div className="aspect-square bg-slate-950 rounded-[3rem] md:rounded-[5rem] overflow-hidden border-[12px] md:border-[24px] border-slate-50 relative group shadow-2xl">
+
+                {/* Google Maps Embed pinned at 11.166174, 77.349766 */}
+                <iframe
+                  title="Aswath Bricks Location"
+                  src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3913.626815310706!2d77.349766!3d11.166174!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTHCsDA5JzU4LjIiTiA3N8KwMjAnNTkuMiJF!5e0!3m2!1sen!2sin!4v1708420000000!5m2!1sen!2sin&q=11.166174,77.349766"
+                  className="w-full h-full grayscale contrast-125 opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-1000 scale-105 group-hover:scale-100"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                ></iframe>
+
+                {/* External Link Button - Pinned to the top right */}
+                <div className="absolute top-8 right-8 md:top-12 md:right-12">
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query=11.166174,77.349766"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-16 h-16 bg-orange-600 text-white rounded-3xl flex items-center justify-center shadow-2xl hover:bg-slate-950 hover:scale-110 transition-all duration-500"
+                  >
+                    <ExternalLink size={28} />
+                  </a>
+                </div>
+
+                {/* Interactive Overlay Text */}
+                <div className="absolute bottom-10 left-10 pointer-events-none">
+                  <p className="text-white font-black italic uppercase tracking-tighter text-2xl md:text-3xl opacity-0 group-hover:opacity-100 transition-all duration-700 translate-y-4 group-hover:translate-y-0">
+                    Our <span className="text-orange-500">Location</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Decorative Background Glow */}
+              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-orange-500/20 rounded-full blur-3xl -z-10" />
+            </div>
           </div>
-          <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-slate-600 border-t border-white/5 pt-10 w-full max-w-xs md:max-w-none">© {new Date().getFullYear()} Aswath Bricks & Co. Engineered for Longevity.</p>
+        </div>
+      </section>
+
+      {/* FOOTER - EXPANDED */}
+      <footer className="bg-slate-950 pt-24 pb-12 px-4 md:px-6 overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 md:gap-16 mb-24">
+            <div className="lg:col-span-2">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-12 h-12 bg-orange-600 rounded-2xl flex items-center justify-center text-white font-black italic text-xl">A</div>
+                <span className="font-black text-white tracking-tighter uppercase text-2xl italic">Aswath <span className="text-orange-500">Bricks.</span></span>
+              </div>
+              <p className="text-slate-500 text-lg font-medium max-w-sm mb-8 leading-relaxed">
+                Leading South India's construction material supply chain with quality-certified bricks, stones, and high-grade sands.
+              </p>
+              <div className="flex gap-4">
+                {[<Instagram size={20} />, <Facebook size={20} />, <Linkedin size={20} />].map((icon, i) => (
+                  <a key={i} href="#" className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:bg-orange-600 hover:text-white transition-all">
+                    {icon}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-white font-black uppercase tracking-widest text-xs mb-8">Navigation</h4>
+              <ul className="space-y-4">
+                {navLinks.map(link => (
+                  <li key={link.name}>
+                    <a href={link.href} className="text-slate-500 hover:text-orange-500 font-bold uppercase text-[11px] tracking-widest transition-colors">{link.name}</a>
+                  </li>
+                ))}
+                <li><button onClick={() => setIsModalOpen(true)} className="text-slate-500 hover:text-orange-500 font-bold uppercase text-[11px] tracking-widest transition-colors">Request Quote</button></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-white font-black uppercase tracking-widest text-xs mb-8">Certifications</h4>
+              <ul className="space-y-4">
+                <li className="flex items-center gap-2 text-slate-500 font-bold text-[11px] uppercase tracking-widest"><ShieldCheck size={14} className="text-orange-600" /> ISI Standard 1077</li>
+                <li className="flex items-center gap-2 text-slate-500 font-bold text-[11px] uppercase tracking-widest"><ShieldCheck size={14} className="text-orange-600" /> ISO 9001:2015</li>
+                <li className="flex items-center gap-2 text-slate-500 font-bold text-[11px] uppercase tracking-widest"><ShieldCheck size={14} className="text-orange-600" /> MSME Certified</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-600">
+              © {new Date().getFullYear()} Aswath Bricks & Co. Engineered for Longevity.
+            </p>
+            <div className="flex gap-8">
+              <a href="#" className="text-[10px] font-black uppercase tracking-widest text-slate-700 hover:text-orange-500 transition-colors">Privacy Policy</a>
+              <a href="#" className="text-[10px] font-black uppercase tracking-widest text-slate-700 hover:text-orange-500 transition-colors">Terms of Supply</a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
