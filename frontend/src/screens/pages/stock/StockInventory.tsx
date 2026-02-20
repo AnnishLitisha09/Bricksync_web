@@ -478,45 +478,61 @@ export default function StockPage() {
       ) : (
         <>
 
-          <div className="bg-white p-5 rounded-4xl shadow-sm border border-gray-100 space-y-4">
-            <div className="flex bg-gray-100 p-1 rounded-2xl w-fit">
-              <button
-                onClick={() => setSelectedShop("all")}
-                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedShop === "all" ? "bg-white text-orange-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-                  }`}
-              >
-                All Stores
-              </button>
-              {offices.map((shop) => (
-                <button
-                  key={shop.office_id}
-                  onClick={() => setSelectedShop(shop.office_id.toString())}
-                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedShop === shop.office_id.toString() ? "bg-white text-orange-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-                    }`}
-                >
-                  {shop.office_name}
-                </button>
-              ))}
+          <div className="bg-white p-4 md:p-5 rounded-3xl md:rounded-4xl shadow-sm border border-gray-100 space-y-4">
+            {/* SHOP FILTER - Responsive Horizontal Scroll */}
+            <div className="w-full">
+              <div className="flex bg-gray-100 p-1 rounded-2xl overflow-x-auto no-scrollbar touch-pan-x">
+                <div className="flex flex-nowrap min-w-max gap-1">
+                  <button
+                    onClick={() => setSelectedShop("all")}
+                    className={`px-5 md:px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedShop === "all"
+                        ? "bg-white text-orange-600 shadow-sm"
+                        : "text-slate-400 hover:text-slate-600"
+                      }`}
+                  >
+                    All Stores
+                  </button>
+
+                  {offices.map((shop) => (
+                    <button
+                      key={shop.office_id}
+                      onClick={() => setSelectedShop(shop.office_id.toString())}
+                      className={`px-5 md:px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedShop === shop.office_id.toString()
+                          ? "bg-white text-orange-600 shadow-sm"
+                          : "text-slate-400 hover:text-slate-600"
+                        }`}
+                    >
+                      {shop.office_name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
+
+            {/* SEARCH BAR */}
             <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={18} />
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors"
+                size={18}
+              />
               <input
                 type="text"
                 placeholder="Search by ID or Product Name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-orange-500 transition-all outline-none shadow-sm"
+                className="w-full pl-12 pr-4 py-3.5 md:py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-orange-500 transition-all outline-none shadow-sm"
               />
             </div>
           </div>
 
           {/* TABLE DATA */}
-          <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
+          <div className="bg-white rounded-2xl md:rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+            {/* Horizontal Scroll Wrapper */}
+            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200">
+              <table className="w-full min-w-[700px]"> {/* min-w ensures the table maintains structure on small screens */}
                 <thead className="bg-slate-50/50 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
                   <tr>
-                    <th className="px-8 py-6 text-left">Product Details</th>
+                    <th className="px-6 md:px-8 py-6 text-left">Product Details</th>
                     <th className="px-6 py-6 text-left">ID</th>
                     <th className="px-6 py-6 text-left">Location</th>
                     <th className="px-6 py-6 text-left">Status</th>
@@ -526,9 +542,9 @@ export default function StockPage() {
                 <tbody className="divide-y divide-gray-50">
                   {paginatedProducts.map((product) => (
                     <tr key={product.stock_id} className="group hover:bg-orange-50/30 transition-colors">
-                      <td className="px-8 py-5">
+                      <td className="px-6 md:px-8 py-5 whitespace-nowrap">
                         <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-white flex items-center justify-center">
+                          <div className="h-12 w-12 flex-shrink-0 rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-white flex items-center justify-center">
                             {product.product.image_url ? (
                               <img
                                 src={product.product.image_url.startsWith("/images/") ? `${FILE_BASE_URL}${product.product.image_url}` : product.product.image_url}
@@ -546,21 +562,23 @@ export default function StockPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-5">
-                        <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded text-slate-600 font-bold">PROD-{product.product_id}</span>
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded text-slate-600 font-bold">
+                          PROD-{product.product_id}
+                        </span>
                       </td>
-                      <td className="px-6 py-5 font-bold text-[11px] uppercase text-slate-600">
+                      <td className="px-6 py-5 font-bold text-[11px] uppercase text-slate-600 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           <Store size={14} className="text-orange-500" />
                           {product.office.office_name}
                         </div>
                       </td>
-                      <td className="px-6 py-5">
+                      <td className="px-6 py-5 whitespace-nowrap">
                         <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase border ${getStockStyle(parseFloat(product.quantity))}`}>
                           {parseFloat(product.quantity) === 0 ? "Out of Stock" : `${product.quantity} ${getUnitLabel(product.product.category)}`}
                         </span>
                       </td>
-                      <td className="px-6 py-5 text-right">
+                      <td className="px-6 py-5 text-right whitespace-nowrap">
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => { setSelectedStock(product); setViewModal(true); }}
@@ -590,8 +608,8 @@ export default function StockPage() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="bg-slate-50/50 px-8 py-4 border-t border-gray-50 flex items-center justify-between">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              <div className="bg-slate-50/50 px-4 md:px-8 py-4 border-t border-gray-50 flex flex-col md:flex-row items-center justify-between gap-4">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center md:text-left">
                   Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredProducts.length)} of {filteredProducts.length} items
                 </p>
                 <div className="flex items-center gap-2">
@@ -603,18 +621,20 @@ export default function StockPage() {
                     <ChevronLeft size={16} />
                   </button>
 
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-8 h-8 rounded-xl text-[10px] font-black transition-all ${currentPage === page
-                        ? "bg-slate-900 text-white shadow-lg"
-                        : "bg-white text-slate-400 border border-gray-100 hover:border-orange-500 hover:text-orange-600 shadow-sm"
-                        }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
+                  <div className="flex gap-1 overflow-x-auto max-w-[200px] md:max-w-none px-2 py-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`flex-shrink-0 w-8 h-8 rounded-xl text-[10px] font-black transition-all ${currentPage === page
+                          ? "bg-slate-900 text-white shadow-lg"
+                          : "bg-white text-slate-400 border border-gray-100 hover:border-orange-500 hover:text-orange-600 shadow-sm"
+                          }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
 
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
