@@ -223,7 +223,7 @@ const BusinessNotepad: React.FC = () => {
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px'
               }}>
-                This is a computer generated Note.
+                This is a computer generated Letter.
               </p>
             </div>
           </footer>

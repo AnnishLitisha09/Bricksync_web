@@ -14,7 +14,7 @@ import {
   Settings,
   ShoppingCart,
   Landmark,
-  StickyNote, // Added for Notepad
+  StickyNote,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useCommonStore } from "../../store";
@@ -94,7 +94,7 @@ const menu: MenuItem[] = [
       { name: "Transactions", path: "/banks/transactions" },
     ],
   },
-  { name: "Notepad", icon: StickyNote, path: "/notepad" }, // ✅ Added Notepad below Banks
+  { name: "Notepad", icon: StickyNote, path: "/notepad" },
   { name: "Profile", icon: User, path: "/profile" },
 ];
 
@@ -154,35 +154,35 @@ export default function Sidebar({ className }: { className?: string }) {
       </AnimatePresence>
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-100 flex flex-col transition-transform duration-300 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-100 flex flex-col transition-transform duration-300 lg:static lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         } ${className}`}
       >
-        {/* BRAND SECTION */}
-        <div className="p-6 flex items-center justify-between">
+        {/* BRAND SECTION - Reduced padding from p-6 to p-5 */}
+        <div className="p-5 flex items-center justify-between">
           <motion.div 
             whileHover={{ scale: 1.02 }}
-            className="flex items-center gap-3 cursor-pointer"
+            className="flex items-center gap-3 cursor-pointer overflow-hidden"
             onClick={() => navigate("/dashboard")}
           >
-            <div className="bg-orange-100 p-2 rounded-xl shadow-inner">
-              <img src={Logo} alt="Logo" className="h-8 w-8 object-contain" />
+            <div className="bg-orange-100 p-2 rounded-xl shadow-inner shrink-0">
+              <img src={Logo} alt="Logo" className="h-7 w-7 object-contain" />
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-black tracking-tight text-slate-900 uppercase">Aswath</span>
-              <span className="text-[10px] font-bold text-orange-600 tracking-widest uppercase leading-none">Hollow Bricks</span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-black tracking-tight text-slate-900 uppercase truncate">Aswath</span>
+              <span className="text-[9px] font-bold text-orange-600 tracking-widest uppercase leading-none truncate">Hollow Bricks</span>
             </div>
           </motion.div>
           <button onClick={toggle} className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg lg:hidden">
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* SEARCH BAR */}
-        <div className="px-6 mb-4">
+        {/* SEARCH BAR - Adjusted padding */}
+        <div className="px-4 mb-4">
           <div className="relative group">
             <Search 
-               size={18} 
+               size={16} 
                className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${
                  searchQuery ? 'text-orange-500' : 'text-slate-400 group-focus-within:text-orange-400'
                }`} 
@@ -190,8 +190,8 @@ export default function Sidebar({ className }: { className?: string }) {
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search pages..."
-              className="w-full bg-slate-50 pl-10 pr-10 py-2.5 text-sm border border-transparent rounded-2xl focus:outline-none focus:bg-white focus:ring-4 focus:ring-orange-50 focus:border-orange-200 transition-all"
+              placeholder="Search..."
+              className="w-full bg-slate-50 pl-9 pr-8 py-2 text-sm border border-transparent rounded-xl focus:outline-none focus:bg-white focus:ring-4 focus:ring-orange-50 focus:border-orange-200 transition-all"
             />
             <AnimatePresence>
               {searchQuery && (
@@ -200,29 +200,28 @@ export default function Sidebar({ className }: { className?: string }) {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                 >
-                  <X size={14} />
+                  <X size={12} />
                 </motion.button>
               )}
             </AnimatePresence>
           </div>
         </div>
 
-        {/* NAVIGATION AREA */}
-        <nav className="flex-1 px-4 space-y-1 overflow-y-auto no-scrollbar pb-4">
+        {/* NAVIGATION AREA - Adjusted px-3 for tighter fit */}
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto no-scrollbar pb-4">
           <motion.p 
             layout
-            className="px-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 mt-2"
+            className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 mt-2"
           >
-            {searchQuery ? "Search Results" : "Main Menu"}
+            {searchQuery ? "Results" : "Menu"}
           </motion.p>
 
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {filteredMenu.length > 0 ? (
               filteredMenu.map((item) => {
                 const hasChildren = item.children && item.children.length > 0;
-                // Match exact path for profile/notepad or startsWith for items with children
                 const isActive = hasChildren 
                   ? location.pathname.startsWith(item.path) 
                   : location.pathname === item.path;
@@ -233,19 +232,19 @@ export default function Sidebar({ className }: { className?: string }) {
                   <motion.div layout key={item.name} className="overflow-hidden">
                     <button
                       onClick={() => hasChildren ? toggleSubmenu(item.name) : navigate(item.path)}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group
                         ${isActive && !hasChildren 
                           ? "bg-orange-50 text-orange-600" 
                           : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}
                       `}
                     >
                       <div className="flex items-center gap-3">
-                        <item.icon size={20} className={`${isActive ? "text-orange-500" : "text-slate-400 group-hover:text-slate-600"}`} />
-                        <span className="text-sm font-semibold">{item.name}</span>
+                        <item.icon size={18} className={`${isActive ? "text-orange-500" : "text-slate-400 group-hover:text-slate-600"}`} />
+                        <span className="text-sm font-semibold whitespace-nowrap">{item.name}</span>
                       </div>
                       {hasChildren && (
                         <ChevronDown 
-                          size={16} 
+                          size={14} 
                           className={`transition-transform duration-300 ${isExpanded ? "rotate-180 text-orange-500" : "text-slate-300"}`} 
                         />
                       )}
@@ -258,7 +257,7 @@ export default function Sidebar({ className }: { className?: string }) {
                           animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.2, ease: "easeInOut" }}
-                          className="ml-6 pl-4 border-l-2 border-slate-100 space-y-1 mt-1 mb-2"
+                          className="ml-5 pl-3 border-l border-slate-100 space-y-0.5 mt-1 mb-2"
                         >
                           {item.children?.map((sub) => {
                             const isSubActive = location.pathname === sub.path;
@@ -266,7 +265,7 @@ export default function Sidebar({ className }: { className?: string }) {
                               <button
                                 key={sub.name}
                                 onClick={() => navigate(sub.path)}
-                                className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-colors font-medium
+                                className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors font-medium
                                   ${isSubActive 
                                     ? "text-orange-600 bg-orange-50/50" 
                                     : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"}
@@ -283,12 +282,8 @@ export default function Sidebar({ className }: { className?: string }) {
                 );
               })
             ) : (
-              <motion.div 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                className="text-center py-10"
-              >
-                 <p className="text-sm text-slate-400 italic">No pages found matching "{searchQuery}"</p>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-10">
+                 <p className="text-xs text-slate-400 italic">No matches found</p>
               </motion.div>
             )}
           </div>
@@ -297,17 +292,17 @@ export default function Sidebar({ className }: { className?: string }) {
             <motion.div layout className="pt-4 mt-6 border-t border-slate-50">
               <button
                 onClick={() => navigate("/settings")}
-                className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl transition-colors"
               >
-                <Settings size={20} className="text-slate-400" />
+                <Settings size={18} className="text-slate-400" />
                 <span className="text-sm font-semibold">Settings</span>
               </button>
 
               <button
                 onClick={() => setShowLogout(true)}
-                className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors group"
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-colors group"
               >
-                <LogOut size={20} className="group-hover:translate-x-1 transition-transform" />
+                <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
                 <span className="text-sm font-semibold">Logout</span>
               </button>
             </motion.div>
@@ -330,23 +325,23 @@ export default function Sidebar({ className }: { className?: string }) {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xs p-8"
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xs p-6"
             >
-              <div className="bg-red-50 w-12 h-12 rounded-2xl flex items-center justify-center mb-4">
-                <LogOut className="text-red-500" size={24} />
+              <div className="bg-red-50 w-10 h-10 rounded-xl flex items-center justify-center mb-4">
+                <LogOut className="text-red-500" size={20} />
               </div>
-              <h2 className="text-xl font-bold text-slate-900">Sign Out</h2>
-              <p className="text-sm text-slate-500 mt-2 leading-relaxed">Are you sure you want to exit the application? You will need to login again to access your data.</p>
-              <div className="flex flex-col gap-3 mt-8">
+              <h2 className="text-lg font-bold text-slate-900">Sign Out</h2>
+              <p className="text-xs text-slate-500 mt-2 leading-relaxed">Are you sure you want to exit? You will need to login again to access your data.</p>
+              <div className="flex flex-col gap-2 mt-6">
                 <button 
                   onClick={handleLogout} 
-                  className="w-full py-3 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-2xl shadow-lg shadow-red-200 transition-all active:scale-[0.98]"
+                  className="w-full py-2.5 text-xs font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-lg shadow-red-100 transition-all active:scale-[0.98]"
                 >
                   Logout
                 </button>
                 <button 
                   onClick={() => setShowLogout(false)} 
-                  className="w-full py-3 text-sm font-bold text-slate-500 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all"
+                  className="w-full py-2.5 text-xs font-bold text-slate-500 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all"
                 >
                   Stay Logged In
                 </button>
