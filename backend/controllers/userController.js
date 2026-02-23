@@ -74,6 +74,44 @@ exports.adminUpdateUser = async (req, res) => {
 };
 
 
+/* 🔹 UPDATE PROFILE (Self) */
+exports.updateProfile = async (req, res) => {
+  try {
+    const userid = req.user.userid;
+
+    const updates = {
+      name: req.body.name,
+      email: req.body.email,
+      phoneNumber: req.body.phoneNumber,
+    };
+
+    // Remove undefined fields
+    Object.keys(updates).forEach(
+      (key) => updates[key] === undefined && delete updates[key]
+    );
+
+    const [updated] = await User.update(updates, {
+      where: { userid, isDeleted: false },
+    });
+
+    if (!updated)
+      return res.status(404).json({ message: "User not found" });
+
+    const user = await User.findByPk(userid, {
+      attributes: { exclude: ["password"] },
+    });
+
+    res.json({
+      message: "Profile updated successfully",
+      user,
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
 /* 🔹 Update Profile Image */
 exports.updateProfileImage = async (req, res) => {
   try {

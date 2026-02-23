@@ -13,13 +13,15 @@ const {
   getDriversOnly,
   getAllUsers,
   deleteUser,
-  adminUpdateUser, // ✅ NEW
+  adminUpdateUser,
+  updateProfile, // ✅ NEW
 } = require("../controllers/userController");
 
 
 /* ================= PROFILE ================= */
 
 router.get("/profile", verifyToken, getProfile);
+router.put("/profile/update", verifyToken, updateProfile); // ✅ NEW
 
 
 // Get only drivers

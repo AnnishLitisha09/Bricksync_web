@@ -42,6 +42,7 @@ app.use("/api/attendance", require("./routes/attendanceRoutes"));
 app.use("/api/materials", require("./routes/materialRoutes"));
 
 app.use("/api/wallet", require("./routes/walletRoutes"));
+app.use("/api/otp", require("./routes/otpRoutes"));
 
 
 
