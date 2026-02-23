@@ -140,7 +140,7 @@ const privateRoutes = [
   },
   {
     path: "/transactions",
-    element: <TransactionsPage transactions={[]} />,
+    element: <TransactionsPage />,
   },
   {
     path: "/vehicles/services",
@@ -162,7 +162,7 @@ const privateRoutes = [
     path: "/inventory/add",
     element: <AddProductPage />,
   },
-    {
+  {
     path: "/notepad",
     element: <BusinessNotepad />,
   },

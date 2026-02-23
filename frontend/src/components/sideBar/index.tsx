@@ -91,7 +91,7 @@ const menu: MenuItem[] = [
     path: "/banks",
     children: [
       { name: "Bank Accounts", path: "/banks" },
-      { name: "Transactions", path: "/banks/transactions" },
+      { name: "Transactions", path: "/transactions" },
     ],
   },
   { name: "Notepad", icon: StickyNote, path: "/notepad" },
@@ -154,13 +154,12 @@ export default function Sidebar({ className }: { className?: string }) {
       </AnimatePresence>
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-100 flex flex-col transition-transform duration-300 lg:static lg:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        } ${className}`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-100 flex flex-col transition-transform duration-300 lg:static lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
+          } ${className}`}
       >
         {/* BRAND SECTION - Reduced padding from p-6 to p-5 */}
         <div className="p-5 flex items-center justify-between">
-          <motion.div 
+          <motion.div
             whileHover={{ scale: 1.02 }}
             className="flex items-center gap-3 cursor-pointer overflow-hidden"
             onClick={() => navigate("/dashboard")}
@@ -181,11 +180,10 @@ export default function Sidebar({ className }: { className?: string }) {
         {/* SEARCH BAR - Adjusted padding */}
         <div className="px-4 mb-4">
           <div className="relative group">
-            <Search 
-               size={16} 
-               className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${
-                 searchQuery ? 'text-orange-500' : 'text-slate-400 group-focus-within:text-orange-400'
-               }`} 
+            <Search
+              size={16}
+              className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${searchQuery ? 'text-orange-500' : 'text-slate-400 group-focus-within:text-orange-400'
+                }`}
             />
             <input
               value={searchQuery}
@@ -195,7 +193,7 @@ export default function Sidebar({ className }: { className?: string }) {
             />
             <AnimatePresence>
               {searchQuery && (
-                <motion.button 
+                <motion.button
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
@@ -211,7 +209,7 @@ export default function Sidebar({ className }: { className?: string }) {
 
         {/* NAVIGATION AREA - Adjusted px-3 for tighter fit */}
         <nav className="flex-1 px-3 space-y-1 overflow-y-auto no-scrollbar pb-4">
-          <motion.p 
+          <motion.p
             layout
             className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 mt-2"
           >
@@ -222,10 +220,10 @@ export default function Sidebar({ className }: { className?: string }) {
             {filteredMenu.length > 0 ? (
               filteredMenu.map((item) => {
                 const hasChildren = item.children && item.children.length > 0;
-                const isActive = hasChildren 
-                  ? location.pathname.startsWith(item.path) 
+                const isActive = hasChildren
+                  ? location.pathname.startsWith(item.path)
                   : location.pathname === item.path;
-                  
+
                 const isExpanded = searchQuery ? true : (expandedItems.includes(item.name) || (isActive && hasChildren));
 
                 return (
@@ -233,8 +231,8 @@ export default function Sidebar({ className }: { className?: string }) {
                     <button
                       onClick={() => hasChildren ? toggleSubmenu(item.name) : navigate(item.path)}
                       className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group
-                        ${isActive && !hasChildren 
-                          ? "bg-orange-50 text-orange-600" 
+                        ${isActive && !hasChildren
+                          ? "bg-orange-50 text-orange-600"
                           : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}
                       `}
                     >
@@ -243,16 +241,16 @@ export default function Sidebar({ className }: { className?: string }) {
                         <span className="text-sm font-semibold whitespace-nowrap">{item.name}</span>
                       </div>
                       {hasChildren && (
-                        <ChevronDown 
-                          size={14} 
-                          className={`transition-transform duration-300 ${isExpanded ? "rotate-180 text-orange-500" : "text-slate-300"}`} 
+                        <ChevronDown
+                          size={14}
+                          className={`transition-transform duration-300 ${isExpanded ? "rotate-180 text-orange-500" : "text-slate-300"}`}
                         />
                       )}
                     </button>
 
                     <AnimatePresence initial={false}>
                       {hasChildren && isExpanded && (
-                        <motion.div 
+                        <motion.div
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
@@ -266,8 +264,8 @@ export default function Sidebar({ className }: { className?: string }) {
                                 key={sub.name}
                                 onClick={() => navigate(sub.path)}
                                 className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors font-medium
-                                  ${isSubActive 
-                                    ? "text-orange-600 bg-orange-50/50" 
+                                  ${isSubActive
+                                    ? "text-orange-600 bg-orange-50/50"
                                     : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"}
                                 `}
                               >
@@ -283,7 +281,7 @@ export default function Sidebar({ className }: { className?: string }) {
               })
             ) : (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-10">
-                 <p className="text-xs text-slate-400 italic">No matches found</p>
+                <p className="text-xs text-slate-400 italic">No matches found</p>
               </motion.div>
             )}
           </div>
@@ -314,14 +312,14 @@ export default function Sidebar({ className }: { className?: string }) {
       <AnimatePresence>
         {showLogout && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" 
-              onClick={() => setShowLogout(false)} 
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              onClick={() => setShowLogout(false)}
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -333,14 +331,14 @@ export default function Sidebar({ className }: { className?: string }) {
               <h2 className="text-lg font-bold text-slate-900">Sign Out</h2>
               <p className="text-xs text-slate-500 mt-2 leading-relaxed">Are you sure you want to exit? You will need to login again to access your data.</p>
               <div className="flex flex-col gap-2 mt-6">
-                <button 
-                  onClick={handleLogout} 
+                <button
+                  onClick={handleLogout}
                   className="w-full py-2.5 text-xs font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-lg shadow-red-100 transition-all active:scale-[0.98]"
                 >
                   Logout
                 </button>
-                <button 
-                  onClick={() => setShowLogout(false)} 
+                <button
+                  onClick={() => setShowLogout(false)}
                   className="w-full py-2.5 text-xs font-bold text-slate-500 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all"
                 >
                   Stay Logged In

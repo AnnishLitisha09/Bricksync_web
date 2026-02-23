@@ -6,7 +6,10 @@ import {
   Search,
   Store,
   CreditCard,
-  Download
+  Download,
+  Landmark,
+  Pencil,
+  Trash2
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -14,7 +17,6 @@ import toast from "react-hot-toast";
 
 // NEW COMPONENTS
 import SummaryCards from "./components/SummaryCards";
-import TransactionTable from "./components/TransactionTable";
 import Pagination from "./components/Pagination";
 import EntryModal from "./components/modals/EntryModal";
 import PaymentModal from "./components/modals/PaymentModal";
@@ -229,16 +231,38 @@ export default function MaterialHistoryPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-          <TransactionTable
-            logs={paginatedLogs}
-            loading={loading}
-            onEdit={(l) => {
-              if (l.type === 'ENTRY') setEditingEntry(l);
-              else setEditingStatement(l);
-            }}
-            onDelete={handleDelete}
-          />
+        <div className="space-y-4">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-32 space-y-4">
+              <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+              <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Loading Records...</p>
+            </div>
+          ) : paginatedLogs.length === 0 ? (
+            <div className="py-20 text-center bg-white rounded-[2.5rem] border-4 border-dashed border-slate-100">
+              <Search size={40} className="text-slate-200 mx-auto mb-4" />
+              <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">No material entries found</p>
+            </div>
+          ) : (
+            paginatedLogs.map((l: any, idx: number) => (
+              <div key={`${l.type}-${l.id}`}>
+                {l.type === 'ENTRY' ? (
+                  <MaterialLogRow
+                    log={l}
+                    idx={idx}
+                    onEdit={() => setEditingEntry(l)}
+                    onDelete={() => handleDelete('ENTRY', l.id)}
+                  />
+                ) : (
+                  <StatementRow
+                    st={l}
+                    idx={idx}
+                    onEdit={() => setEditingStatement(l)}
+                    onDelete={() => handleDelete('STATEMENT', l.id)}
+                  />
+                )}
+              </div>
+            ))
+          )}
 
           <Pagination
             currentPage={currentPage}
@@ -282,4 +306,87 @@ export default function MaterialHistoryPage() {
     </motion.div>
   );
 }
+
+// --- SUB-COMPONENTS ---
+function MaterialLogRow({ log, idx, onEdit, onDelete }: { log: any; idx: number; onEdit: () => void; onDelete: () => void }) {
+  const date = new Date(log.date);
+  return (
+    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="group bg-white p-2 pr-6 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
+      <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-indigo-50 border border-indigo-100 flex flex-col items-center justify-center group-hover:bg-indigo-100 transition-colors">
+        <span className="text-[10px] font-black text-indigo-400 uppercase mb-1">{date.getFullYear()}</span>
+        <span className="text-2xl font-black text-indigo-800 leading-none">{date.getDate()}</span>
+        <span className="text-[10px] font-black uppercase text-indigo-600 mt-1">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>
+      </div>
+      <div className="flex-1 flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-2">
+        <div>
+          <h3 className="text-xl font-black text-slate-800 tracking-tight uppercase group-hover:text-indigo-600 transition-colors">{log.product?.product_name || 'Material'}</h3>
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[8px] font-black uppercase rounded-md border border-slate-200">
+              {log.units} Units
+            </span>
+            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[8px] font-black uppercase rounded-md border border-slate-200">
+              @ {log.office?.office_name}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Procurement</p>
+            <span className="text-xl font-black text-slate-900">₹{Number(log.amount).toLocaleString()}</span>
+          </div>
+          <div className="flex items-center gap-2 ml-4">
+            <button onClick={onEdit} className="p-2.5 bg-slate-50 text-slate-400 hover:text-amber-600 rounded-xl hover:bg-amber-50 transition-all border border-transparent hover:border-amber-100"><Pencil size={14} /></button>
+            <button onClick={onDelete} className="p-2.5 bg-slate-50 text-slate-400 hover:text-red-600 rounded-xl hover:bg-red-50 transition-all border border-transparent hover:border-red-100"><Trash2 size={14} /></button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function StatementRow({ st, idx, onEdit, onDelete }: { st: any; idx: number; onEdit: () => void; onDelete: () => void }) {
+  const date = new Date(st.createdAt);
+  return (
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="bg-white p-2 pr-6 rounded-[2rem] shadow-sm border border-emerald-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
+      <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-emerald-50 border border-emerald-100 flex flex-col items-center justify-center">
+        <span className="text-[10px] font-black text-emerald-600/50 uppercase mb-1">PAID</span>
+        <span className="text-2xl font-black text-emerald-700 leading-none">{date.getDate()}</span>
+        <span className="text-[10px] font-black uppercase text-emerald-600 mt-1">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>
+      </div>
+      <div className="flex-1 flex flex-col justify-center p-4">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-4">
+            <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl"><Landmark size={24} /></div>
+            <div>
+              <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Clearance</h3>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{st.bank?.name || 'Bank'}</p>
+                <div className="w-1 h-1 bg-emerald-300 rounded-full" />
+                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[8px] font-black uppercase rounded-md border border-emerald-100">
+                  {st.payment_mode || 'N/A'}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <p className="text-[8px] font-black text-emerald-600 uppercase mb-1">Settlement</p>
+              <span className="text-xl font-black text-emerald-700">₹{Number(st.amount).toLocaleString()}</span>
+            </div>
+            <div className="flex items-center gap-2 ml-4">
+              <button onClick={onEdit} className="p-2.5 bg-slate-50 text-slate-400 hover:text-amber-600 rounded-xl hover:bg-amber-50 transition-all border border-transparent hover:border-amber-100"><Pencil size={14} /></button>
+              <button onClick={onDelete} className="p-2.5 bg-slate-50 text-slate-400 hover:text-red-600 rounded-xl hover:bg-red-50 transition-all border border-transparent hover:border-red-100"><Trash2 size={14} /></button>
+            </div>
+          </div>
+        </div>
+        {st.description && (
+          <div className="mt-3 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl">
+            <p className="text-[10px] font-bold text-slate-400 italic">"{st.description}"</p>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 

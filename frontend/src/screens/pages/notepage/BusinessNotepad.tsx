@@ -27,7 +27,7 @@ const BusinessNotepad: React.FC = () => {
   const [formData, setFormData] = useState<BusinessData>({
     title: { value: "ASWATH HOLLOW BRICKS & LORRY SERVICES", fontSize: 28, fontWeight: 'bold', fontStyle: 'normal' },
     address: { value: "SS Tower, Pandian Nagar Bus Stop,\nPN Road, Tiruppur - 641602", fontSize: 10, fontWeight: 'normal', fontStyle: 'normal' },
-    phone: { value: "+91 98420 48181, 98430 83521", fontSize: 12, fontWeight: 'bold', fontStyle: 'normal' },
+    phone: { value: "+91 98420 48181, 9843s0 83521", fontSize: 12, fontWeight: 'bold', fontStyle: 'normal' },
     email: { value: "bricksync001@gmail.com", fontSize: 10, fontWeight: 'normal', fontStyle: 'normal' },
     website: { value: "www.aswath.online", fontSize: 10, fontWeight: 'bold', fontStyle: 'normal' },
     notes: { value: "To Whom It May Concern,\n\nThis is to certify that we provide premium grade hollow bricks manufactured with high-density materials, ensuring maximum structural integrity. \n\nOur integrated lorry services guarantee door-step delivery within the committed timeframe. We value your business and look forward to a long-term partnership.", fontSize: 14, fontWeight: 'normal', fontStyle: 'normal' },

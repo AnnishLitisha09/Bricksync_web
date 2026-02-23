@@ -1,8 +1,15 @@
+const { Op } = require("sequelize");
 const {
   sequelize,
   WalletTransaction,
   User,
   BankTable,
+  MaterialStatement,
+  ServiceStatement,
+  FuelStatement,
+  MaterialSupplier,
+  ServiceShop,
+  Bunk,
 } = require("../models");
 
 // ======================================================
@@ -211,6 +218,147 @@ exports.deleteTransaction = async (req, res) => {
 
   } catch (err) {
     await t.rollback();
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+// ======================================================
+// ✅ GET ALL SYSTEM TRANSACTIONS (Consolidated)
+// ======================================================
+exports.getSystemTransactions = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, startDate, endDate } = req.query;
+    const offset = (Number(page) - 1) * Number(limit);
+
+    let walletTx = [], materialTx = [], serviceTx = [], fuelTx = [];
+
+    // Common Date Filter
+    const dateQuery = {};
+    const walletWhere = {};
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      dateQuery.createdAt = { [Op.between]: [start, end] };
+      walletWhere.date = { [Op.between]: [start, end] };
+    }
+
+    try {
+      walletTx = await WalletTransaction.findAll({
+        where: walletWhere,
+        include: [{ model: BankTable, as: "bank" }, { model: User, as: "user" }],
+        order: [["createdAt", "DESC"]],
+      });
+      console.log(`✅ Wallet: ${walletTx.length}`);
+    } catch (e) {
+      console.error("❌ Wallet error:", e.message);
+    }
+
+    try {
+      materialTx = await MaterialStatement.findAll({
+        where: dateQuery,
+        include: [{ model: BankTable, as: "bank" }, { model: MaterialSupplier, as: "supplier" }],
+        order: [["createdAt", "DESC"]],
+      });
+      console.log(`✅ Material: ${materialTx.length}`);
+    } catch (e) { console.error("❌ Material error:", e.message); }
+
+    try {
+      serviceTx = await ServiceStatement.findAll({
+        where: dateQuery,
+        include: [{ model: BankTable, as: "bank" }, { model: ServiceShop, as: "shop" }],
+        order: [["createdAt", "DESC"]],
+      });
+      console.log(`✅ Service: ${serviceTx.length}`);
+    } catch (e) { console.error("❌ Service error:", e.message); }
+
+    try {
+      fuelTx = await FuelStatement.findAll({
+        where: dateQuery,
+        include: [{ model: BankTable, as: "bank" }, { model: Bunk, as: "bunk" }],
+        order: [["createdAt", "DESC"]],
+      });
+      console.log(`✅ Fuel: ${fuelTx.length}`);
+    } catch (e) { console.error("❌ Fuel error:", e.message); }
+
+    // Normalize Wallet Transactions
+    const normalizedWallet = walletTx.map((tx) => ({
+      id: `w-${tx.id}`,
+      name: tx.user?.name || "System",
+      category: tx.category || "Wallet",
+      date: tx.date || tx.createdAt,
+      amount: tx.amount,
+      isSent: tx.type === "sent",
+      bankName: tx.bank?.name || "Cash",
+      type: "WALLET",
+      description: tx.description
+    }));
+
+    // Normalize Material Statements (Always Sent/Outgoing)
+    const normalizedMaterial = materialTx.map((tx) => ({
+      id: `m-${tx.id}`,
+      name: tx.supplier?.shop_name || "Supplier",
+      category: "Material",
+      date: tx.createdAt,
+      amount: tx.amount,
+      isSent: true,
+      bankName: tx.bank?.name || "Bank",
+      type: "MATERIAL",
+      description: tx.description
+    }));
+
+    // Normalize Service Statements (Always Sent/Outgoing)
+    const normalizedService = serviceTx.map((tx) => ({
+      id: `s-${tx.id}`,
+      name: tx.shop?.shop_name || "Service Shop",
+      category: "Service",
+      date: tx.createdAt,
+      amount: tx.amount,
+      isSent: true,
+      bankName: tx.bank?.name || "Bank",
+      type: "SERVICE",
+      description: tx.description
+    }));
+
+    // Normalize Fuel Statements (Always Sent/Outgoing)
+    const normalizedFuel = fuelTx.map((tx) => ({
+      id: `f-${tx.id}`,
+      name: tx.bunk?.bunkName || "Fuel Bunk",
+      category: "Fuel",
+      date: tx.createdAt,
+      amount: tx.amount,
+      isSent: true,
+      bankName: tx.bank?.name || "Bank",
+      type: "FUEL",
+      description: tx.description
+    }));
+
+    // Combine and Sort
+    const consolidated = [
+      ...normalizedWallet,
+      ...normalizedMaterial,
+      ...normalizedService,
+      ...normalizedFuel,
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Manual Pagination
+    const total = consolidated.length;
+    const paginatedData = consolidated.slice(offset, offset + Number(limit));
+
+    res.json({
+      success: true,
+      data: paginatedData,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit))
+      }
+    });
+  } catch (err) {
+    console.error("GET SYSTEM TRANSACTIONS ERROR:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
