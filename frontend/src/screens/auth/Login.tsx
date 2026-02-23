@@ -19,37 +19,52 @@ const Login = () => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
   };
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setAuthError(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
+  if (!validateEmail(email)) {
+    setAuthError("Please enter a valid email address");
+    return;
+  }
 
-    if (!validateEmail(email)) {
-      setAuthError("Please enter a valid email address");
-      return;
+  setLoading(true);
+
+  try {
+    const res = await fetch(`${BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Login failed");
+
+    // 1. Set the token first
+    setToken(data.token);
+
+    // 2. Fetch the profile to get the userRole
+    await useUserStore.getState().fetchProfile();
+    
+    // 3. Get the fetched user from the store
+    const user = useUserStore.getState().user;
+
+    // 4. Role Authorization Check
+    if (user && user.userRole !== 1) {
+      // Clear storage and state if not authorized
+      useUserStore.getState().logout(); 
+      throw new Error("Access Denied: You do not have administrative privileges.");
     }
 
-    setLoading(true);
-
-    try {
-      const res = await fetch(`${BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Login failed");
-
-      setToken(data.token);
-      await useUserStore.getState().fetchProfile();
-      navigate("/dashboard", { replace: true });
-    } catch (err: any) {
-      setAuthError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // 5. Navigate only if role is valid
+    navigate("/dashboard", { replace: true });
+    
+  } catch (err: any) {
+    setAuthError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex flex-col md:grid md:grid-cols-2 bg-orange-50">
