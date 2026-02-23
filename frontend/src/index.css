@@ -1,4 +1,5 @@
 @import "tailwindcss";
+
 .input {
   @apply w-full mt-1 rounded-lg border border-gray-300
     px-3 py-2 text-sm
@@ -15,4 +16,35 @@
 .no-scrollbar {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)];
+  }
+  
+  .glass-dark {
+    @apply bg-gray-900/80 backdrop-blur-xl border border-white/10 shadow-2xl;
+  }
+
+  .glow-orange {
+    @apply shadow-[0_0_15px_rgba(249,115,22,0.3)];
+  }
+
+  .glow-green {
+    @apply shadow-[0_0_15px_rgba(34,197,94,0.3)];
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-orange-400;
+  }
+}
+
+.animate-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
