@@ -101,7 +101,6 @@ const menu: MenuItem[] = [
 export default function Sidebar({ className }: { className?: string }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [showLogout, setShowLogout] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
@@ -157,7 +156,7 @@ export default function Sidebar({ className }: { className?: string }) {
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-100 flex flex-col transition-transform duration-300 lg:static lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
           } ${className}`}
       >
-        {/* BRAND SECTION - Reduced padding from p-6 to p-5 */}
+        {/* BRAND SECTION */}
         <div className="p-5 flex items-center justify-between">
           <motion.div
             whileHover={{ scale: 1.02 }}
@@ -177,7 +176,7 @@ export default function Sidebar({ className }: { className?: string }) {
           </button>
         </div>
 
-        {/* SEARCH BAR - Adjusted padding */}
+        {/* SEARCH BAR */}
         <div className="px-4 mb-4">
           <div className="relative group">
             <Search
@@ -207,7 +206,7 @@ export default function Sidebar({ className }: { className?: string }) {
           </div>
         </div>
 
-        {/* NAVIGATION AREA - Adjusted px-3 for tighter fit */}
+        {/* NAVIGATION AREA */}
         <nav className="flex-1 px-3 space-y-1 overflow-y-auto no-scrollbar pb-4">
           <motion.p
             layout
@@ -297,7 +296,7 @@ export default function Sidebar({ className }: { className?: string }) {
               </button>
 
               <button
-                onClick={() => setShowLogout(true)}
+                onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-3 py-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-colors group"
               >
                 <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -307,47 +306,6 @@ export default function Sidebar({ className }: { className?: string }) {
           )}
         </nav>
       </aside>
-
-      {/* LOGOUT MODAL */}
-      <AnimatePresence>
-        {showLogout && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-              onClick={() => setShowLogout(false)}
-            />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xs p-6"
-            >
-              <div className="bg-red-50 w-10 h-10 rounded-xl flex items-center justify-center mb-4">
-                <LogOut className="text-red-500" size={20} />
-              </div>
-              <h2 className="text-lg font-bold text-slate-900">Sign Out</h2>
-              <p className="text-xs text-slate-500 mt-2 leading-relaxed">Are you sure you want to exit? You will need to login again to access your data.</p>
-              <div className="flex flex-col gap-2 mt-6">
-                <button
-                  onClick={handleLogout}
-                  className="w-full py-2.5 text-xs font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-lg shadow-red-100 transition-all active:scale-[0.98]"
-                >
-                  Logout
-                </button>
-                <button
-                  onClick={() => setShowLogout(false)}
-                  className="w-full py-2.5 text-xs font-bold text-slate-500 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all"
-                >
-                  Stay Logged In
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </>
   );
 }
