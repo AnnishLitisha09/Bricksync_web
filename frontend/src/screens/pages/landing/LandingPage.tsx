@@ -30,11 +30,19 @@ const highlights = [
 ];
 
 const products = [
-  { id: "01", name: "Hollow Bricks", icon: "🧱", size: "4\", 6\", 8\", 9\"", description: "Precision-molded with advanced vibration technology for superior bonding and thermal insulation.", imageUrl: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80" },
-  { id: "02", name: "Red Stones", icon: "💎", size: "Standard / Custom", description: "Hard-mined natural foundation stones sourced from premium quarries for heavy-load bearing.", imageUrl: "https://images.unsplash.com/photo-1590069546976-7fbf32acc30a?auto=format&fit=crop&w=800&q=80" },
-  { id: "03", name: "Fly Ash Bricks", icon: "🌿", size: "9 x 4 x 3", description: "Eco-friendly alternatives with high dimensional accuracy and reduced mortar consumption.", imageUrl: "https://images.unsplash.com/photo-1516156008625-3a9d6067fab5?auto=format&fit=crop&w=800&q=80" },
-  { id: "04", name: "M-Sand & P-Sand", icon: "🏜️", size: "Triple Washed", description: "Silt-free Karur sand. P-Sand for smooth plastering and M-Sand for high-strength concrete.", imageUrl: "https://images.unsplash.com/photo-1533052605963-883395726395?auto=format&fit=crop&w=800&q=80" },
-  { id: "06", name: "Premium Cement", icon: "💎", size: "Grade 53/43", description: "Authorized distribution of Dalmia Gold and Maha Cement for long-lasting structural life.", imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80" },
+  { id: "01", name: "Hollow Bricks Hollows", icon: "🧱", size: "4\", 6\", 8\", 9\"", description: "Precision-molded with advanced vibration technology for superior bonding and thermal insulation.", imageUrl: "https://imgs.search.brave.com/UCdh5oqt7EL3Xfk5tV3B1KcQiz-SOddxY3MP0l4TNWY/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93b3Jk/cHJlc3MuYnJpY2tu/Ym9sdC5jb20vYmxv/Z3MtYW5kLWFydGlj/bGVzL3dwLWNvbnRl/bnQvdXBsb2Fkcy9z/aXRlcy8yLzIwMjQv/MTEvSG9sbG93LUNl/bWVudC1Ccmlja3Mt/VHlwZXMtQmVuZWZp/dHMtQXBwbGljYXRp/b25zLndlYnA" },
+  { id: "02", name: "Red Stones", icon: "💎", size: "Standard / Custom", description: "Hard-mined natural foundation stones sourced from premium quarries for heavy-load bearing.", imageUrl: "https://imgs.search.brave.com/B64R8-wWuKt0HYOcigVBSofMOzlzb5_9GkYS4JiDM9g/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudmVjdGVlenku/Y29tL3N5c3RlbS9y/ZXNvdXJjZXMvdGh1/bWJuYWlscy8wNjUv/NjU5LzEyMC9zbWFs/bC9zdGFja2VkLXJl/ZC1icmlja3MtYS1k/ZXRhaWxlZC12aWV3/LW9mLWNvbnN0cnVj/dGlvbi1tYXRlcmlh/bC1mcmVlLXBob3Rv/LmpwZWc" },
+  { id: "03", name: "Fly Ash Bricks", icon: "🌿", size: "9 x 4 x 3", description: "Eco-friendly alternatives with high dimensional accuracy and reduced mortar consumption.", imageUrl: "https://imgs.search.brave.com/SQtLsKBrd7VM7FeXttHx0WK4XxzMw4Ne55iVEYfvLz8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tY2Nv/eW1hcnQuY29tL3Bv/c3Qvd3AtY29udGVu/dC93ZWJwLWV4cHJl/c3Mvd2VicC1pbWFn/ZXMvdXBsb2Fkcy8w/OC1NYXktMjQtRmx5/LUFzaC1Ccmlja3Mt/QS5qcGcud2VicA" },
+  { id: "04", name: "M-Sand & P-Sand", icon: "🏜️", size: "Triple Washed", description: "Silt-free Karur sand. P-Sand for smooth plastering and M-Sand for high-strength concrete.", imageUrl: "https://imgs.search.brave.com/L0M_3TJYY7I8RHoInozI4UN55NRMZ8JJLXyvJLBr8zA/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly81Lmlt/aW1nLmNvbS9kYXRh/NS9EUi9GVS9NWS02/MzU0ODIwOC9tc2Fu/ZC0xMDAweDEwMDAu/anBn" },
+ { 
+  id: "05", 
+  name: "Jalli (Aggregates)", 
+  icon: "⛰️", 
+  size: "6mm, 12mm, 20mm, 40mm", 
+  description: "High-quality crushed blue metal stone. Ideal for RCC works, flooring base, and heavy-duty concrete construction.", 
+  imageUrl: "https://imgs.search.brave.com/M0uYqUR_4jLqd49lSAppNguitBU9hvusPqcnLlGEBj8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly81Lmlt/aW1nLmNvbS9kYXRh/NS9TRUxMRVIvRGVm/YXVsdC8yMDI0LzUv/NDIwMzk1NDQ1L0RB/L0tBL0ZJLzc3MTg4/MzIvMjBtbS00MG1t/LWFnZ3JlZ2F0ZXMt/amFsbGktc3RvbmUt/NTAweDUwMC5qcGc" 
+},
+  { id: "06", name: "Premium Cement", icon: "💎", size: "Grade 53/43", description: "Authorized distribution of Dalmia Gold and Maha Cement for long-lasting structural life.", imageUrl: "https://imgs.search.brave.com/wpyzRXKdRF7WB0Liwmk8M2owqFS-NvmsRyRuqZZT-HA/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudmVjdGVlenku/Y29tL3N5c3RlbS9y/ZXNvdXJjZXMvdGh1/bWJuYWlscy8wNzUv/ODUwLzY0MC9zbWFs/bC9zdGFja2VkLWNl/bWVudC1iYWdzLXdp/dGgtdHJvd2VsLWFu/ZC1sb29zZS1tYXRl/cmlhbC1uZWFyYnkt/cGhvdG8uanBn" },
 ];
 
 const fadeInUp: Variants = {
