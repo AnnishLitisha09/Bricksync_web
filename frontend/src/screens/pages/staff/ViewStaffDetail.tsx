@@ -69,7 +69,7 @@ const ViewStaffDetail: React.FC = () => {
       await fetchBanks();
       const [userRes, transRes] = await Promise.all([
         fetch(`${BASE_URL}/user`, { headers: getAuthHeader() }),
-        fetch(`${BASE_URL_NO_API}/wallet/transaction?userid=${id}`, { headers: getAuthHeader() }),
+        fetch(`${BASE_URL_NO_API}/api/wallet/transaction?userid=${id}`, { headers: getAuthHeader() }),
       ]);
 
       const userData: APIUser[] = await userRes.json();

@@ -59,7 +59,7 @@ const LedgerModal: React.FC<Props> = ({ isOpen, onClose, userId, refresh }) => {
         date: formData.date,
       };
 
-      const res = await fetch(`${BASE_URL_NO_API}/wallet/transaction`, {
+      const res = await fetch(`${BASE_URL_NO_API}/api/wallet/transaction`, {
         method: "POST",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
         body: JSON.stringify(payload),
