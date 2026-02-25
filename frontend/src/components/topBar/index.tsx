@@ -4,7 +4,6 @@ import { useCommonStore } from "../../store";
 import { useUserStore } from "../../store/useUserStore";
 import { FILE_BASE_URL } from "../../api/base";
 import { fetchTodayCalls } from "../../api/callLog";
-import { useNavigate } from "react-router-dom";
 
 /* 🔹 Role config */
 const roleConfig: Record<number, { label: string; className: string }> = {
@@ -14,7 +13,6 @@ const roleConfig: Record<number, { label: string; className: string }> = {
 };
 
 export default function Topbar() {
-  const navigate = useNavigate();
   const isOpen = useCommonStore((state) => state.isOpen);
   const toggle = useCommonStore((state) => state.toggle);
   const user = useUserStore((state) => state.user);
@@ -88,8 +86,7 @@ export default function Topbar() {
 
         {/* Notification */}
         <div
-          onClick={() => navigate("/call-reminders")}
-          className="relative p-1 cursor-pointer text-gray-500 hover:text-orange-500 transition-colors"
+          className="relative p-1 text-gray-400"
         >
           <Bell size={20} />
           {callCount > 0 && (

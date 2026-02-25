@@ -24,6 +24,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/images", express.static(path.join(__dirname, "images")));
 app.use("/pdfs", express.static(path.join(__dirname, "pdfs")));
 
+// --- Request Logging (for Routing Debug) ---
+app.use((req, res, next) => {
+  console.log(`📡 [Incoming] ${req.method} ${req.url}`);
+  next();
+});
+
 // ================= Routes =================
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/user", require("./routes/userRoutes"));
@@ -52,6 +58,7 @@ app.use("/api/otp", require("./routes/otpRoutes"));
 app.use("/api/customers", require("./routes/customerRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
 app.use("/api/customer-statements", require("./routes/customerStatementRoutes"));
+console.log("🔌 Mounting /api/call-logs...");
 app.use("/api/call-logs", require("./routes/callLogRoutes"));
 app.use("/api/notepad", require("./routes/notepadRoutes"));
 

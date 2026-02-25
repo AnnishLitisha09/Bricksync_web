@@ -52,8 +52,8 @@ export const createCallLog = async (data: CallLogData) => {
 };
 
 export const toggleCallStatus = async (id: number) => {
-    const res = await fetch(`${BASE_URL}/call-logs/${id}/status`, {
-        method: "PATCH",
+    const res = await fetch(`${BASE_URL}/call-logs/toggle-status/${id}`, {
+        method: "PUT",
         headers: { ...getAuthHeader() },
     });
     if (!res.ok) throw new Error("Failed to toggle call status");

@@ -15,6 +15,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchCallLogs, toggleCallStatus, deleteCallLog } from "../../../api/callLog";
+import toast from "react-hot-toast";
 
 export default function CallLogHistoryPage() {
     const navigate = useNavigate();
@@ -58,23 +59,29 @@ export default function CallLogHistoryPage() {
 
     const handleStatusToggle = async () => {
         if (!confirmModal.call) return;
+        const loadingToast = toast.loading("Updating status...");
         try {
             await toggleCallStatus(confirmModal.call.id);
+            toast.success("Status updated successfully!", { id: loadingToast });
             setRefreshTrigger(prev => prev + 1);
             setConfirmModal({ show: false, call: null });
         } catch (error) {
             console.error("Failed to toggle status", error);
+            toast.error("Failed to update status", { id: loadingToast });
         }
     };
 
     const handleDeleteLog = async () => {
         if (!deleteModal.call) return;
+        const loadingToast = toast.loading("Deleting call log...");
         try {
             await deleteCallLog(deleteModal.call.id);
+            toast.success("Call log deleted!", { id: loadingToast });
             setRefreshTrigger(prev => prev + 1);
             setDeleteModal({ show: false, call: null });
         } catch (error) {
             console.error("Failed to delete call log", error);
+            toast.error("Failed to delete log", { id: loadingToast });
         }
     };
 

@@ -19,7 +19,7 @@ const initScheduledTasks = () => {
     });
 
     // 05 00 * * * = 12:05 AM
-    cron.schedule("15 0 * * *", async () => {
+    cron.schedule("05 0 * * *", async () => {
         console.log("🕒 [Scheduler] Running 12:05 AM Call Reminders check...");
         await checkDailyCallReminders();
     });
@@ -144,11 +144,15 @@ async function checkVehicleExpirations() {
 async function checkDailyCallReminders() {
     try {
         // Use local date (YYYY-MM-DD) instead of UTC to avoid midnight timezone lag
-        const today = new Date().toLocaleDateString('en-CA');
+        const d = new Date();
+        const today = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
 
         const todayCalls = await CallLog.findAll({
             where: {
-                next_call_date: today,
+                next_call_date: {
+                    [Op.lte]: today
+                },
+                is_called: false,
                 is_deleted: false
             },
             include: [{
