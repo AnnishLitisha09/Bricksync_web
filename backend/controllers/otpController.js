@@ -5,7 +5,7 @@ const otpStore = new Map();
 
 exports.sendOTP = async (req, res) => {
     try {
-        const adminEmail = "bricksync0001@gmail.com";
+        const adminEmail = "bricksync001@gmail.com";
         const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
 
         // Store OTP with expiry (5 minutes)
@@ -46,7 +46,7 @@ exports.sendOTP = async (req, res) => {
 exports.verifyOTP = async (req, res) => {
     try {
         const { code } = req.body;
-        const adminEmail = "bricksync0001@gmail.com";
+        const adminEmail = "bricksync001@gmail.com";
         const storedData = otpStore.get(adminEmail);
 
         if (!storedData) {

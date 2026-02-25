@@ -226,7 +226,7 @@ exports.deleteTransaction = async (req, res) => {
 // ======================================================
 exports.getSystemTransactions = async (req, res) => {
   try {
-    const { page = 1, limit = 10, startDate, endDate } = req.query;
+    const { page = 1, limit = 10, startDate, endDate, bankId, search } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
 
     let walletTx = [], materialTx = [], serviceTx = [], fuelTx = [];
@@ -245,11 +245,31 @@ exports.getSystemTransactions = async (req, res) => {
       walletWhere.date = { [Op.between]: [start, end] };
     }
 
+    if (bankId) {
+      dateQuery.bank_id = bankId;
+      walletWhere.bank_id = bankId;
+    }
+
+    if (search) {
+      const searchPattern = `%${search}%`;
+      // Apply search to common dateQuery (for Material, Service, Fuel)
+      dateQuery[Op.or] = [
+        { description: { [Op.iLike]: searchPattern } }
+      ];
+
+      // Wallet specifically search in user name as well
+      walletWhere[Op.or] = [
+        { description: { [Op.iLike]: searchPattern } },
+        { '$user.name$': { [Op.iLike]: searchPattern } }
+      ];
+    }
+
     try {
       walletTx = await WalletTransaction.findAll({
         where: walletWhere,
         include: [{ model: BankTable, as: "bank" }, { model: User, as: "user" }],
         order: [["createdAt", "DESC"]],
+        subQuery: false, // Required for searching in included models
       });
       console.log(`✅ Wallet: ${walletTx.length}`);
     } catch (e) {
@@ -257,28 +277,52 @@ exports.getSystemTransactions = async (req, res) => {
     }
 
     try {
+      const materialWhere = { ...dateQuery };
+      if (search) {
+        materialWhere[Op.or] = [
+          { description: { [Op.iLike]: `%${search}%` } },
+          { '$supplier.shop_name$': { [Op.iLike]: `%${search}%` } }
+        ];
+      }
       materialTx = await MaterialStatement.findAll({
-        where: dateQuery,
+        where: materialWhere,
         include: [{ model: BankTable, as: "bank" }, { model: MaterialSupplier, as: "supplier" }],
         order: [["createdAt", "DESC"]],
+        subQuery: false,
       });
       console.log(`✅ Material: ${materialTx.length}`);
     } catch (e) { console.error("❌ Material error:", e.message); }
 
     try {
+      const serviceWhere = { ...dateQuery };
+      if (search) {
+        serviceWhere[Op.or] = [
+          { description: { [Op.iLike]: `%${search}%` } },
+          { '$shop.shop_name$': { [Op.iLike]: `%${search}%` } }
+        ];
+      }
       serviceTx = await ServiceStatement.findAll({
-        where: dateQuery,
+        where: serviceWhere,
         include: [{ model: BankTable, as: "bank" }, { model: ServiceShop, as: "shop" }],
         order: [["createdAt", "DESC"]],
+        subQuery: false,
       });
       console.log(`✅ Service: ${serviceTx.length}`);
     } catch (e) { console.error("❌ Service error:", e.message); }
 
     try {
+      const fuelWhere = { ...dateQuery };
+      if (search) {
+        fuelWhere[Op.or] = [
+          { description: { [Op.iLike]: `%${search}%` } },
+          { '$bunk.bunkName$': { [Op.iLike]: `%${search}%` } }
+        ];
+      }
       fuelTx = await FuelStatement.findAll({
-        where: dateQuery,
+        where: fuelWhere,
         include: [{ model: BankTable, as: "bank" }, { model: Bunk, as: "bunk" }],
         order: [["createdAt", "DESC"]],
+        subQuery: false,
       });
       console.log(`✅ Fuel: ${fuelTx.length}`);
     } catch (e) { console.error("❌ Fuel error:", e.message); }

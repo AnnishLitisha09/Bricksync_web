@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays, Loader2, Save } from "lucide-react";
 import toast from "react-hot-toast";
 import { BASE_URL, getAuthHeader } from "../../api/base";
+import { deobfuscate } from "../../utils/encryption";
 
 interface AttendanceRecord {
   day: string;
@@ -18,6 +19,8 @@ const WeeklyAttendance: React.FC<WeeklyAttendanceProps> = ({ userId }) => {
   const [currentWeekOffset, setCurrentWeekOffset] = useState<number>(0);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [saving, setSaving] = useState<boolean>(false);
+
+  const realUserId = useMemo(() => deobfuscate(userId), [userId]);
 
   // Helper to get start of week (Monday)
   const getStartOfWeek = useCallback((offset: number) => {
@@ -48,21 +51,21 @@ const WeeklyAttendance: React.FC<WeeklyAttendanceProps> = ({ userId }) => {
 
     try {
       const res = await fetch(
-        `${BASE_URL}/attendance/weekly?userid=${userId}&start=${formatDateForAPI(start)}&end=${formatDateForAPI(end)}`,
+        `${BASE_URL}/attendance/weekly?userid=${realUserId}&start=${formatDateForAPI(start)}&end=${formatDateForAPI(end)}`,
         { headers: getAuthHeader() }
       );
       const remoteData = await res.json();
       const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-      
+
       const weeklyRecords = days.map((dayName, idx) => {
         const d = new Date(start);
         d.setDate(d.getDate() + idx);
         const dateStr = formatDateForAPI(d);
         const record = remoteData.find((r: any) => r.date.split('T')[0] === dateStr);
-        return { 
-          day: dayName, date: dateStr, 
-          fn: record ? record.forenoon : false, 
-          an: record ? record.afternoon : false 
+        return {
+          day: dayName, date: dateStr,
+          fn: record ? record.forenoon : false,
+          an: record ? record.afternoon : false
         };
       });
       setAttendance(weeklyRecords);
@@ -89,9 +92,9 @@ const WeeklyAttendance: React.FC<WeeklyAttendanceProps> = ({ userId }) => {
       const res = await fetch(`${BASE_URL}/attendance/save`, {
         method: "POST",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          userid: Number(userId), 
-          records: attendance.map(rec => ({ date: rec.date, forenoon: rec.fn, afternoon: rec.an })) 
+        body: JSON.stringify({
+          userid: Number(realUserId),
+          records: attendance.map(rec => ({ date: rec.date, forenoon: rec.fn, afternoon: rec.an }))
         })
       });
       if (res.ok) toast.success("Attendance updated!", { id: loadingToast });
@@ -109,33 +112,33 @@ const WeeklyAttendance: React.FC<WeeklyAttendanceProps> = ({ userId }) => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
           <div className="p-2 bg-indigo-50 rounded-xl">
-            <CalendarDays size={20} className="text-indigo-600"/>
+            <CalendarDays size={20} className="text-indigo-600" />
           </div>
           Weekly Attendance
         </h3>
-        
+
         {/* Navigation with Date Range */}
         <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100 shadow-sm">
-          <button 
-            onClick={() => setCurrentWeekOffset(o => o - 1)} 
+          <button
+            onClick={() => setCurrentWeekOffset(o => o - 1)}
             className="p-2 hover:bg-white hover:text-indigo-600 rounded-xl transition-all border border-transparent hover:border-slate-200"
           >
-            <ChevronLeft size={18}/>
+            <ChevronLeft size={18} />
           </button>
-          
+
           <span className="text-[11px] font-black text-slate-600 uppercase px-3 min-w-[120px] text-center tracking-tighter">
             {weekDisplayRange}
           </span>
-          
-          <button 
-            onClick={() => setCurrentWeekOffset(o => o + 1)} 
+
+          <button
+            onClick={() => setCurrentWeekOffset(o => o + 1)}
             className="p-2 hover:bg-white hover:text-indigo-600 rounded-xl transition-all border border-transparent hover:border-slate-200"
           >
-            <ChevronRight size={18}/>
+            <ChevronRight size={18} />
           </button>
         </div>
       </div>
-      
+
       <div className="overflow-x-auto flex-grow">
         <table className="w-full border-separate border-spacing-y-2">
           <thead>
@@ -153,7 +156,7 @@ const WeeklyAttendance: React.FC<WeeklyAttendanceProps> = ({ userId }) => {
                   <div className="flex flex-col">
                     <span className="text-sm">{row.day}</span>
                     <span className="text-[10px] text-slate-400 font-medium">
-                        {new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                      {new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
                     </span>
                   </div>
                 </td>
@@ -171,13 +174,13 @@ const WeeklyAttendance: React.FC<WeeklyAttendanceProps> = ({ userId }) => {
           </tbody>
         </table>
       </div>
-      
-      <button 
-        onClick={handleSaveAttendance} 
-        disabled={saving} 
+
+      <button
+        onClick={handleSaveAttendance}
+        disabled={saving}
         className="w-full mt-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-indigo-600 disabled:bg-slate-400 transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-200"
       >
-        {saving ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>} 
+        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
         Update Records
       </button>
     </div>
@@ -186,11 +189,10 @@ const WeeklyAttendance: React.FC<WeeklyAttendanceProps> = ({ userId }) => {
 
 /* Internal Helpers */
 const AttendanceCheckbox = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
-  <div 
-    onClick={onChange} 
-    className={`mx-auto w-6 h-6 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-center ${
-      checked ? "bg-indigo-600 border-indigo-600 shadow-md shadow-indigo-100" : "border-slate-200 bg-white hover:border-indigo-300"
-    }`}
+  <div
+    onClick={onChange}
+    className={`mx-auto w-6 h-6 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-center ${checked ? "bg-indigo-600 border-indigo-600 shadow-md shadow-indigo-100" : "border-slate-200 bg-white hover:border-indigo-300"
+      }`}
   >
     {checked && <div className="w-1.5 h-1.5 bg-white rounded-full animate-in zoom-in" />}
   </div>

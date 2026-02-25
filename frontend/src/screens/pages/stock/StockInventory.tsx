@@ -28,7 +28,8 @@ import {
   getAllOffices,
   getEmployees,
   logProduction,
-  deleteStock
+  deleteStock,
+  getTodayProductionStats
 } from "../../../api/inventory";
 import { FILE_BASE_URL } from "../../../api/base";
 
@@ -61,6 +62,26 @@ interface Employee {
 }
 
 
+interface ProductionLog {
+  production_id: number;
+  production_date: string;
+  unit_produced: string;
+  cement_used: string;
+  product: {
+    product_name: string;
+    category: string;
+  };
+  office: {
+    office_name: string;
+  };
+  employees?: {
+    employee: {
+      name: string;
+    };
+  }[];
+}
+
+
 export default function StockPage() {
   const navigate = useNavigate();
 
@@ -70,6 +91,7 @@ export default function StockPage() {
   const [products, setProducts] = useState<ProductStock[]>([]);
   const [offices, setOffices] = useState<Office[]>([]);
   const [staffList, setStaffList] = useState<Employee[]>([]);
+  const [todayLogs, setTodayLogs] = useState<ProductionLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -99,14 +121,16 @@ export default function StockPage() {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [stockData, officeData, employeeData] = await Promise.all([
+      const [stockData, officeData, employeeData, todayData] = await Promise.all([
         getStock(),
         getAllOffices(),
-        getEmployees()
+        getEmployees(),
+        getTodayProductionStats()
       ]);
       setProducts(stockData);
       setOffices(officeData.success ? officeData.data : (Array.isArray(officeData) ? officeData : []));
-      setStaffList(employeeData);
+      setStaffList(employeeData.data ? employeeData.data : (Array.isArray(employeeData) ? employeeData : []));
+      setTodayLogs(Array.isArray(todayData) ? todayData : []);
 
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -538,6 +562,58 @@ export default function StockPage() {
             </div>
           </div>
 
+          {/* TODAY'S PRODUCTION LIVE FEED */}
+          {todayLogs.length > 0 && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              className="bg-orange-50/30 rounded-3xl border border-orange-100 overflow-hidden mb-6"
+            >
+              <div className="p-4 border-b border-orange-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-orange-100 text-orange-600 rounded-xl">
+                    <History size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-tight">Today&apos;s Production Activity</h4>
+                    <p className="text-[9px] font-bold text-orange-600 uppercase tracking-widest">{todayLogs.length} Records Logged</p>
+                  </div>
+                </div>
+              </div>
+              <div className="divide-y divide-orange-100 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-orange-200">
+                {todayLogs.map((log) => (
+                  <div key={log.production_id} className="p-4 flex items-center justify-between hover:bg-orange-100/30 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center border border-orange-100">
+                        <Package size={18} className="text-orange-500" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-black text-slate-800 uppercase">{log.product.product_name}</div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1 uppercase">
+                            <Store size={10} /> {log.office.office_name}
+                          </span>
+                          <span className="text-[9px] font-bold text-slate-300">•</span>
+                          <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1 uppercase">
+                            {log.employees && log.employees.length > 0 ? (
+                              <>
+                                <Users size={10} /> {log.employees[0].employee.name.split(' ')[0]} {log.employees.length > 1 ? `+${log.employees.length - 1}` : ''}
+                              </>
+                            ) : 'No Staff'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-black text-orange-600">+{log.unit_produced} {getUnitLabel(log.product.category)}</div>
+                      <div className="text-[9px] font-bold text-slate-400">{new Date(log.production_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
           {/* TABLE DATA */}
           <div className="bg-white rounded-2xl md:rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
             {/* Horizontal Scroll Wrapper */}
@@ -662,6 +738,7 @@ export default function StockPage() {
           </div>
         </>
       )}
+
       {/* VIEW MODAL */}
       <AnimatePresence>
         {viewModal && selectedStock && (
@@ -721,7 +798,6 @@ export default function StockPage() {
           </div>
         )}
       </AnimatePresence>
-
       {/* DELETE CONFIRMATION MODAL */}
       <AnimatePresence>
         {deleteModal && (

@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  X, Search, Download, FileText, Calendar,
-  ChevronLeft, ChevronRight, Layout, ArrowUpRight, ArrowDownLeft
+  Search, Download, FileText, Calendar,
+  ChevronLeft, ChevronRight, Layout, ArrowUpRight, ArrowDownLeft, X
 } from "lucide-react";
 import { BASE_URL, getAuthHeader } from "../../../api/base";
+import { useBankStore } from "../../../store/bankStore";
 import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -19,13 +20,6 @@ export interface Transaction {
   type: string;
   description: string;
 }
-
-const getAvatarFromName = (name: string) => {
-  if (!name) return "??";
-  const words = name.trim().split(" ");
-  if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
-  return (words[0][0] + (words[1]?.[0] || "")).toUpperCase();
-};
 
 const formatToRupees = (amount: string | number) => {
   const numericValue = typeof amount === "string" ? amount.replace(/[$,₹]/g, "") : amount.toString();
@@ -51,12 +45,14 @@ const TransactionsPage: React.FC = () => {
     start: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
   });
+  const [exportBankId, setExportBankId] = useState("");
+  const { banks, fetchBanks } = useBankStore();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const fetchTransactions = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${BASE_URL}/wallet/all-transactions?page=${page}&limit=${limit}`, {
+      const res = await fetch(`${BASE_URL}/wallet/all-transactions?page=${page}&limit=${limit}&search=${searchText}`, {
         headers: getAuthHeader(),
       });
       const result = await res.json();
@@ -76,27 +72,32 @@ const TransactionsPage: React.FC = () => {
 
   useEffect(() => {
     fetchTransactions();
+    fetchBanks();
   }, [page]);
+
+  // Handle Debounced Search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (page === 1) fetchTransactions();
+      else setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchText]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
-      const matchesSearch =
-        t.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        t.category.toLowerCase().includes(searchText.toLowerCase()) ||
-        (t.description && t.description.toLowerCase().includes(searchText.toLowerCase()));
-
       let matchesStatus = true;
       if (statusFilter === "sent") matchesStatus = t.isSent === true;
       if (statusFilter === "received") matchesStatus = t.isSent === false;
 
-      return matchesSearch && matchesStatus;
+      return matchesStatus;
     });
-  }, [transactions, searchText, statusFilter]);
+  }, [transactions, statusFilter]);
 
   const exportToPDF = async () => {
     try {
       setIsGeneratingPDF(true);
-      const res = await fetch(`${BASE_URL}/wallet/all-transactions?startDate=${exportDates.start}&endDate=${exportDates.end}&limit=1000`, {
+      const res = await fetch(`${BASE_URL}/wallet/all-transactions?startDate=${exportDates.start}&endDate=${exportDates.end}&bankId=${exportBankId}&search=${searchText}&limit=1000`, {
         headers: getAuthHeader(),
       });
       const result = await res.json();
@@ -201,13 +202,13 @@ const TransactionsPage: React.FC = () => {
         (idx + 1).toString().padStart(2, '0'),
         new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
         t.name.toUpperCase(),
-        t.type,
+        t.bankName || "CASH",
         t.category,
         `Rs. ${Number(t.amount).toLocaleString()}`
       ]);
 
       autoTable(doc, {
-        head: [['ID', 'DATE', 'ENTITY / DESCRIPTION', 'TYPE', 'CATEGORY', 'AMOUNT']],
+        head: [['ID', 'DATE', 'ENTITY / DESCRIPTION', 'BANK', 'CATEGORY', 'AMOUNT']],
         body: tableData,
         startY: 105,
         theme: 'striped',
@@ -283,7 +284,7 @@ const TransactionsPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
         <div>
           <h1 className="text-3xl font-black text-slate-800 tracking-tight uppercase">Transactions</h1>
-          <p className="text-slate-400 text-sm font-medium mt-1 uppercase tracking-widest">Global Financial History</p>
+          <p className="text-slate-400 text-sm font-medium mt-1 uppercase tracking-widest">{totalItems} Total Records Found</p>
         </div>
 
         <button
@@ -494,6 +495,22 @@ const TransactionsPage: React.FC = () => {
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-600 focus:bg-white focus:border-indigo-500 outline-none transition-all"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Layout size={12} /> Filter by Bank (Optional)
+                  </label>
+                  <select
+                    value={exportBankId}
+                    onChange={(e) => setExportBankId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-600 focus:bg-white focus:border-indigo-500 outline-none transition-all"
+                  >
+                    <option value="">All Banks / Cash</option>
+                    {banks.map(bank => (
+                      <option key={bank.id} value={bank.id}>{bank.name} - {bank.holderName}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-start gap-4">

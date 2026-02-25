@@ -180,17 +180,28 @@ exports.restoreProduction = async (req, res) => {
     }
 };
 
-/* 🔹 Today's Production Stats (Dashboard) */
+/* 🔹 Today's Production Logs for Stock Page */
 exports.getTodayProduction = async (req, res) => {
     try {
         const today = new Date().toISOString().split("T")[0];
-        const totalProduced = await ProductionLog.sum("unit_produced", {
+        const logs = await ProductionLog.findAll({
             where: {
                 production_date: today,
                 is_deleted: false,
             },
+            include: [
+                { model: Office, as: "office" },
+                { model: Product, as: "product" },
+                { model: Product, as: "cementProduct" },
+                {
+                    model: ProductionEmployee,
+                    as: "employees",
+                    include: [{ model: User, as: "employee", attributes: ['name'] }],
+                },
+            ],
+            order: [["created_at", "DESC"]],
         });
-        res.json({ today_production: totalProduced || 0 });
+        res.json(logs);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
