@@ -57,7 +57,7 @@ export default function Topbar() {
 
       {/* --- Right Section --- */}
       <div className="flex items-center gap-3 md:gap-5">
-        
+
         {/* Date & Time: Hidden on mobile (too long), shown on sm+ */}
         <div className="hidden sm:flex items-center gap-2 text-xs md:text-sm text-gray-600">
           <Clock size={16} />
@@ -82,7 +82,7 @@ export default function Topbar() {
               </span>
             )}
           </div>
-          
+
           <img
             src={user?.imageUrl ? `${FILE_BASE_URL}${user.imageUrl}` : "https://i.pravatar.cc/40"}
             alt="profile"

@@ -25,8 +25,8 @@ const Layout = () => {
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
 
-     {isOpen && (
-        <div 
+      {isOpen && (
+        <div
           className={`
             /* Mobile: Fixed overlay */
             fixed inset-y-0 left-0 z-10 w-64 bg-white
@@ -44,7 +44,7 @@ const Layout = () => {
           <Outlet />
         </main>
       </div>
-      
+
     </div>
 
 
