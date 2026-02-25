@@ -81,7 +81,15 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, editData }
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
     ) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        if (name === "qty") {
+            const filteredValue = value.replace(/[^0-9.]/g, "");
+            const parts = filteredValue.split(".");
+            if (parts.length > 2) return;
+            setForm({ ...form, [name]: filteredValue });
+        } else {
+            setForm({ ...form, [name]: value });
+        }
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,6 +116,12 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, editData }
 
         if (!form.name || (!editData && (!form.shopId || !form.qty))) {
             toast.error("Please fill in Name, Shop, and Quantity");
+            setLoading(false);
+            return;
+        }
+
+        if (parseFloat(form.qty) <= 0) {
+            toast.error("Quantity must be a positive number");
             setLoading(false);
             return;
         }

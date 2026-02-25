@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useVehicleStore } from "../../../../store/vechicle/useVehicleStore";
 import { useBunkStore } from "../../../../store/useBunkStore";
-import { 
-  ArrowLeft, 
-  Droplets, 
-  Truck, 
-  MapPin, 
-  IndianRupee, 
-  Calendar, 
+import {
+  ArrowLeft,
+  Droplets,
+  Truck,
+  MapPin,
+  IndianRupee,
+  Calendar,
   Navigation2,
   Save,
   Loader2
@@ -17,7 +17,7 @@ import {
 import { useFuelStore } from "../../../../store/fuel/useFuelStore";
 
 const labelClass = "text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 mb-1 block";
-const inputClass = 
+const inputClass =
   "w-full bg-gray-50 border-2 border-transparent rounded-2xl px-4 py-3 text-sm font-bold " +
   "focus:bg-white focus:ring-0 focus:border-orange-500 transition-all outline-none text-slate-700";
 
@@ -49,7 +49,19 @@ export default function AddFuelPage() {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // Positive number filtering for specific fields
+    if (["volume", "amount", "kilometer"].includes(name)) {
+      const filteredValue = value.replace(/[^0-9.]/g, "");
+      // Prevent multiple decimals
+      const parts = filteredValue.split(".");
+      if (parts.length > 2) return;
+
+      setForm({ ...form, [name]: filteredValue });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
     setErrorMsg("");
   };
 
@@ -65,7 +77,21 @@ export default function AddFuelPage() {
       return;
     }
 
-    if (selectedVehicle && Number(form.kilometer) <= selectedVehicle.kilometer) {
+    const volumeNum = parseFloat(form.volume);
+    const amountNum = parseFloat(form.amount);
+    const kilometerNum = parseFloat(form.kilometer);
+
+    if (volumeNum <= 0) {
+      setErrorMsg("Volume must be a positive number");
+      return;
+    }
+
+    if (amountNum <= 0) {
+      setErrorMsg("Amount must be a positive number");
+      return;
+    }
+
+    if (selectedVehicle && kilometerNum <= selectedVehicle.kilometer) {
       setErrorMsg(`Reading must be > ${selectedVehicle.kilometer} km`);
       return;
     }
@@ -73,17 +99,17 @@ export default function AddFuelPage() {
     await createFuel({
       vehicleId: Number(form.vehicleId),
       bunkId: Number(form.bunkId),
-      volume: Number(form.volume),
-      amount: Number(form.amount),
+      volume: volumeNum,
+      amount: amountNum,
       date: form.date,
-      kilometer: Number(form.kilometer),
+      kilometer: kilometerNum,
     });
 
     navigate("/vehicles/fuel");
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-3xl mx-auto"
