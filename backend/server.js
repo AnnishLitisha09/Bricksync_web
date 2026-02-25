@@ -6,6 +6,10 @@ const os = require("os");
 
 const app = express();
 const db = require("./models");
+const { initScheduledTasks } = require("./utils/scheduler");
+
+// Initialize Automated Tasks (Midnight Backups & Expiration Alerts)
+initScheduledTasks();
 
 // ================= Middleware =================
 app.use(cors({
@@ -16,8 +20,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static folder
+// Static folders
 app.use("/images", express.static(path.join(__dirname, "images")));
+app.use("/pdfs", express.static(path.join(__dirname, "pdfs")));
 
 // ================= Routes =================
 app.use("/api/auth", require("./routes/authRoutes"));
@@ -40,6 +45,7 @@ app.use("/api/production", require("./routes/productionRoutes"));
 app.use("/api/employees", require("./routes/employeeRoutes"));
 app.use("/api/attendance", require("./routes/attendanceRoutes"));
 app.use("/api/materials", require("./routes/materialRoutes"));
+app.use("/api/backup", require("./routes/backupRoutes"));
 
 app.use("/api/wallet", require("./routes/walletRoutes"));
 app.use("/api/otp", require("./routes/otpRoutes"));
@@ -47,6 +53,8 @@ app.use("/api/customers", require("./routes/customerRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
 app.use("/api/customer-statements", require("./routes/customerStatementRoutes"));
 app.use("/api/call-logs", require("./routes/callLogRoutes"));
+app.use("/api/notepad", require("./routes/notepadRoutes"));
+
 
 
 

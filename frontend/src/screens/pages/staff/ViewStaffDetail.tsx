@@ -14,6 +14,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 import { BASE_URL, BASE_URL_NO_API, FILE_BASE_URL, getAuthHeader } from "../../../api/base";
+import { deobfuscate } from "../../../utils/encryption";
 import DriverInfoCard from "../../../components/staff/DriverInfoCard";
 import WeeklyAttendance from "../../../components/staff/WeeklyAttendance";
 import { useBankStore } from "../../../store/bankStore";
@@ -66,14 +67,14 @@ const ViewStaffDetail: React.FC = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      await fetchBanks();
+      const realId = deobfuscate(id!);
       const [userRes, transRes] = await Promise.all([
         fetch(`${BASE_URL}/user`, { headers: getAuthHeader() }),
-        fetch(`${BASE_URL_NO_API}/api/wallet/transaction?userid=${id}`, { headers: getAuthHeader() }),
+        fetch(`${BASE_URL_NO_API}/api/wallet/transaction?userid=${realId}`, { headers: getAuthHeader() }),
       ]);
 
       const userData: APIUser[] = await userRes.json();
-      const found = userData.find((u) => String(u.userid) === id);
+      const found = userData.find((u) => String(u.userid) === realId);
       if (found) setStaff(found);
 
       const transData = await transRes.json();
@@ -215,18 +216,18 @@ const ViewStaffDetail: React.FC = () => {
       </div>
 
       {/* MODALS */}
-      <EditStaffModal 
-        isOpen={isEditModalOpen} 
-        onClose={() => setIsEditModalOpen(false)} 
-        staff={staff} 
-        refresh={fetchData} 
+      <EditStaffModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        staff={staff}
+        refresh={fetchData}
       />
-      
-      <LedgerModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        userId={id!} 
-        refresh={fetchData} 
+
+      <LedgerModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        userId={id!}
+        refresh={fetchData}
       />
 
     </motion.div>

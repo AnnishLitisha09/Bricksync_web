@@ -172,11 +172,24 @@ export default function StockPage() {
       return;
     }
 
+    const qtyNum = parseFloat(productionForm.qty);
+    const cementBagsNum = parseFloat(productionForm.cementBags);
+
+    if (qtyNum <= 0) {
+      toast.error("Units produced must be a positive number.");
+      return;
+    }
+
+    if (cementBagsNum <= 0) {
+      toast.error("Cement bags used must be a positive number.");
+      return;
+    }
+
     const payload = {
       office_id: Number(productionForm.shopId),
       product_id: Number(productionForm.productId),
-      unit_produced: parseFloat(productionForm.qty),
-      cement_used: parseFloat(productionForm.cementBags),
+      unit_produced: qtyNum,
+      cement_used: cementBagsNum,
       cement_product_id: Number(productionForm.cementProductId),
       production_date: productionForm.date,
       employee_ids: productionForm.selectedStaffIds
@@ -192,7 +205,7 @@ export default function StockPage() {
       );
 
       const available = cementInStock ? parseFloat(cementInStock.quantity) : 0;
-      const required = parseFloat(productionForm.cementBags);
+      const required = cementBagsNum;
 
       if (required > available) {
         toast.error(`Insufficient cement stock! Available: ${available} Bags`);
@@ -486,8 +499,8 @@ export default function StockPage() {
                   <button
                     onClick={() => setSelectedShop("all")}
                     className={`px-5 md:px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedShop === "all"
-                        ? "bg-white text-orange-600 shadow-sm"
-                        : "text-slate-400 hover:text-slate-600"
+                      ? "bg-white text-orange-600 shadow-sm"
+                      : "text-slate-400 hover:text-slate-600"
                       }`}
                   >
                     All Stores
@@ -498,8 +511,8 @@ export default function StockPage() {
                       key={shop.office_id}
                       onClick={() => setSelectedShop(shop.office_id.toString())}
                       className={`px-5 md:px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedShop === shop.office_id.toString()
-                          ? "bg-white text-orange-600 shadow-sm"
-                          : "text-slate-400 hover:text-slate-600"
+                        ? "bg-white text-orange-600 shadow-sm"
+                        : "text-slate-400 hover:text-slate-600"
                         }`}
                     >
                       {shop.office_name}

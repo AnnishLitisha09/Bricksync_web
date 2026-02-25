@@ -1,4 +1,5 @@
 const { BankTable } = require("../models");
+const { encrypt } = require("../utils/encryption");
 
 /* ===================== CREATE ===================== */
 exports.createBank = async (req, res) => {
@@ -25,7 +26,7 @@ exports.createBank = async (req, res) => {
       name,
       accountNumber,
       holderName,
-      amount: amount || 0,
+      amount: encrypt(amount || 0),
       bankTransfer: !!bankTransfer,
       phonepe: !!phonepe,
       gpay: !!gpay,
@@ -52,9 +53,17 @@ exports.getAllBanks = async (req, res) => {
       order: [["createdAt", "DESC"]],
     });
 
+    const securedBanks = banks.map(bank => {
+      const plain = bank.toJSON();
+      return {
+        ...plain,
+        amount: encrypt(plain.amount) // Encrypting for network transmission
+      };
+    });
+
     return res.json({
       success: true,
-      data: banks,
+      data: securedBanks,
     });
   } catch (error) {
     console.error("GET ALL BANKS ERROR:", error);

@@ -90,17 +90,15 @@ const CustomerHub: React.FC = () => {
           </h1>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="bg-white p-2 rounded-3xl border border-slate-200 flex items-center gap-4 pr-6 shadow-sm">
-            <div className="bg-slate-900 p-4 rounded-2xl text-white">
-              <Users size={24} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Active Accounts</p>
-              <p className="text-2xl font-black text-slate-900 leading-none">
-                {loading ? "..." : customers.length}
-              </p>
-            </div>
+        <div className="bg-white p-2 rounded-3xl border border-slate-200 flex items-center gap-4 pr-6 shadow-sm">
+          <div className="bg-slate-900 p-4 rounded-2xl text-white">
+            <Users size={24} />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase">Active Accounts</p>
+            <p className="text-2xl font-black text-slate-900 leading-none">
+              {loading ? "..." : customers.length}
+            </p>
           </div>
           <button
             onClick={() => setIsModalOpen(true)}

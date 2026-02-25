@@ -4,14 +4,14 @@ import { motion } from "framer-motion";
 import { useVehicleStore } from "../../../../store/vechicle/useVehicleStore";
 import { useServiceShopStore } from "../../../../store/useServiceShopStore";
 import { BASE_URL, getAuthHeader } from "../../../../api/base";
-import { 
-  ArrowLeft, 
-  Wrench, 
-  Truck, 
-  Store, 
-  FileText, 
-  IndianRupee, 
-  Calendar, 
+import {
+  ArrowLeft,
+  Wrench,
+  Truck,
+  Store,
+  FileText,
+  IndianRupee,
+  Calendar,
   Navigation2,
   Save,
   Loader2,
@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 const labelClass = "text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 mb-1 block";
-const inputClass = 
+const inputClass =
   "w-full bg-gray-50 border-2 border-transparent rounded-2xl px-4 py-3 text-sm font-bold " +
   "focus:bg-white focus:ring-0 focus:border-orange-500 transition-all outline-none text-slate-700";
 
@@ -52,7 +52,16 @@ export default function AddServicePage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+
+    // Positive number filtering for selective fields
+    if (["amount", "kilometer"].includes(name)) {
+      const filteredValue = value.replace(/[^0-9.]/g, "");
+      const parts = filteredValue.split(".");
+      if (parts.length > 2) return;
+      setForm({ ...form, [name]: filteredValue });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
     setErrorMsg("");
   };
 
@@ -65,8 +74,14 @@ export default function AddServicePage() {
     }
 
     const kilometerNum = Number(form.kilometer);
+    const amountNum = Number(form.amount);
     const selectedVehicle = vehicles.find(v => v.id === Number(form.vehicleId));
-    
+
+    if (amountNum <= 0) {
+      setErrorMsg("Cost must be a positive number");
+      return;
+    }
+
     if (selectedVehicle && kilometerNum <= selectedVehicle.kilometer) {
       setErrorMsg(`Reading must be > ${selectedVehicle.kilometer} km`);
       return;
@@ -77,7 +92,7 @@ export default function AddServicePage() {
       ...form,
       vehicleId: Number(form.vehicleId),
       serviceShopId: form.serviceShopId ? Number(form.serviceShopId) : null,
-      amount: Number(form.amount),
+      amount: amountNum,
       kilometer: kilometerNum,
       serviceId: Math.floor(Math.random() * 1000000), // Internal logic as per your snippet
     };
@@ -104,7 +119,7 @@ export default function AddServicePage() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-3xl mx-auto p-4"
@@ -189,12 +204,12 @@ export default function AddServicePage() {
             </div>
             <div className="space-y-1">
               <label className={labelClass}><Navigation2 size={12} className="inline mr-1" /> Odometer</label>
-              <input 
-                type="number" 
-                name="kilometer" 
-                value={form.kilometer} 
-                onChange={handleChange} 
-                placeholder="KM" 
+              <input
+                type="number"
+                name="kilometer"
+                value={form.kilometer}
+                onChange={handleChange}
+                placeholder="KM"
                 className={`${inputClass} ${errorMsg ? "border-red-200 bg-red-50 focus:border-red-500" : ""}`}
               />
             </div>

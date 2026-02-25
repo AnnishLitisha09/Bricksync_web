@@ -15,6 +15,8 @@ import {
 import React, { useEffect, useState } from "react";
 import { BASE_URL, getAuthHeader } from "../../../api/base";
 import { useBankStore } from "../../../store/bankStore";
+import toast from "react-hot-toast";
+import { deobfuscate } from "../../../utils/encryption";
 
 const treasuryData = [
     { title: "Today's Income", amount: "12,340.00", icon: <ArrowUpRight size={24} />, color: "bg-emerald-500", shadow: "shadow-emerald-200" },
@@ -87,21 +89,38 @@ const Banks: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (formData.accountNumber.length !== 16) {
+            toast.error("Account number must be exactly 16 digits.");
+            return;
+        }
+
+        const amountNum = Number(formData.amount);
+        if (amountNum <= 0) {
+            toast.error("Opening balance must be a positive number.");
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const response = await fetch(`${BASE_URL}/banks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-                body: JSON.stringify({ ...formData, amount: Number(formData.amount) })
+                body: JSON.stringify({ ...formData, amount: amountNum })
             });
 
             if (response.ok) {
+                toast.success("Bank account created successfully!");
                 await fetchBanks();
                 setIsModalOpen(false);
                 setFormData({ name: "", accountNumber: "", holderName: "", amount: "", bankTransfer: true, phonepe: false, gpay: false });
+            } else {
+                const result = await response.json();
+                toast.error(result.message || "Failed to create bank account.");
             }
         } catch (error) {
             console.error("Submission error:", error);
+            toast.error("An error occurred during submission.");
         } finally {
             setIsSubmitting(false);
         }
@@ -191,7 +210,10 @@ const Banks: React.FC = () => {
                             <div className="text-right">
                                 <h4 className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em]">Balance</h4>
                                 {isVerified ? (
-                                    <p className="text-white font-black text-2xl tabular-nums tracking-tighter"><span className="text-white/40 text-sm mr-1">₹</span>{Number(bank.amount).toLocaleString()}</p>
+                                    <p className="text-white font-black text-2xl tabular-nums tracking-tighter">
+                                        <span className="text-white/40 text-sm mr-1">₹</span>
+                                        {Number(deobfuscate(bank.amount)).toLocaleString()}
+                                    </p>
                                 ) : (
                                     <p className="text-white font-black text-2xl tabular-nums tracking-tighter select-none">••••</p>
                                 )}
@@ -259,7 +281,10 @@ const Banks: React.FC = () => {
                             <form onSubmit={handleSubmit} className="space-y-5">
                                 <div className="space-y-3">
                                     <input required placeholder="Bank Name" className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-orange-500/20 outline-none font-bold placeholder:text-slate-300" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-                                    <input required placeholder="Account Number" className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-orange-500/20 outline-none font-bold placeholder:text-slate-300" value={formData.accountNumber} onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })} />
+                                    <input required placeholder="Account Number" className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-orange-500/20 outline-none font-bold placeholder:text-slate-300" value={formData.accountNumber} onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, "");
+                                        if (val.length <= 16) setFormData({ ...formData, accountNumber: val });
+                                    }} />
                                     <input required placeholder="Holder Name" className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-orange-500/20 outline-none font-bold placeholder:text-slate-300" value={formData.holderName} onChange={(e) => setFormData({ ...formData, holderName: e.target.value })} />
                                     <div className="relative">
                                         <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-slate-400 text-lg">₹</span>

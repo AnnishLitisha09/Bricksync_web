@@ -210,7 +210,7 @@ export const Dashboard: React.FC = () => {
             </div>
           </motion.div>
 
-          <motion.button
+          {/* <motion.button
             whileHover={{ scale: 1.05, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate("/inventory/add")}
@@ -218,7 +218,7 @@ export const Dashboard: React.FC = () => {
           >
             <Plus className="h-5 w-5" />
             New Log
-          </motion.button>
+          </motion.button> */}
         </div>
       </motion.div>
 

@@ -30,8 +30,8 @@ const formatToRupees = (amount: string) => {
   const sign = numericValue.startsWith("-")
     ? "-"
     : numericValue.startsWith("+")
-    ? "+"
-    : "";
+      ? "+"
+      : "";
   const value = numericValue.replace(/[+-]/g, "");
   return `${sign}₹${Number(value).toLocaleString("en-IN")}`;
 };
@@ -56,8 +56,8 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({
             t.isSent === true
               ? "text-red-600"
               : t.isSent === false
-              ? "text-green-600"
-              : "text-gray-400";
+                ? "text-green-600"
+                : "text-gray-400";
 
           return (
             <div key={t.id} className="flex items-center justify-between py-4">
@@ -77,11 +77,10 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({
               {/* Right Side */}
               <div className="flex items-center gap-4">
                 <span
-                  className={`text-xs px-2 py-1 rounded-full border text-center w-24 ${
-                    status === "completed"
+                  className={`text-xs px-2 py-1 rounded-full border text-center w-24 ${status === "completed"
                       ? "text-green-600 border-green-200 bg-green-50"
                       : "text-orange-600 border-orange-200 bg-orange-50"
-                  }`}
+                    }`}
                 >
                   {status}
                 </span>

@@ -1,39 +1,53 @@
-import React, { useState, useRef, type ChangeEvent } from 'react';
-import { 
-  Phone, MapPin, Download, Globe, Mail, Layout, Printer, Trash2, CheckCircle2, Hash
+import React, { useState, useRef, useEffect, type ChangeEvent } from 'react';
+import {
+  MapPin, Download, Layout, Eye, Edit3, History
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { BASE_URL, getAuthHeader } from '../../../api/base';
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
-// --- Configuration & Constants ---
+// ... (Constants remain same)
 const FONT_SIZES = [8, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48];
 
 interface FieldData { value: string; fontSize: number; fontWeight: string; fontStyle: string; }
 interface BusinessData {
-  title: FieldData; 
-  address: FieldData; 
+  title: FieldData;
+  address: FieldData;
   phone: FieldData;
-  email: FieldData; 
-  website: FieldData; 
-  notes: FieldData; 
+  email: FieldData;
+  website: FieldData;
+  notes: FieldData;
   companySignature: FieldData;
   verifiedId: FieldData;
 }
 
 const BusinessNotepad: React.FC = () => {
+  const navigate = useNavigate();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showPreview, setShowPreview] = useState(false); // For mobile view toggle
   const previewRef = useRef<HTMLDivElement>(null);
-  
+
   const [formData, setFormData] = useState<BusinessData>({
-    title: { value: "ASWATH HOLLOW BRICKS & LORRY SERVICES", fontSize: 28, fontWeight: 'bold', fontStyle: 'normal' },
+    title: { value: "ASWATH HOLLOW BRICKS & LORRY SERVICES", fontSize: 24, fontWeight: 'bold', fontStyle: 'normal' },
     address: { value: "SS Tower, Pandian Nagar Bus Stop,\nPN Road, Tiruppur - 641602", fontSize: 10, fontWeight: 'normal', fontStyle: 'normal' },
-    phone: { value: "+91 98420 48181, 9843s0 83521", fontSize: 12, fontWeight: 'bold', fontStyle: 'normal' },
+    phone: { value: "+91 98420 48181, 98430 83521", fontSize: 12, fontWeight: 'bold', fontStyle: 'normal' },
     email: { value: "bricksync001@gmail.com", fontSize: 10, fontWeight: 'normal', fontStyle: 'normal' },
     website: { value: "www.aswath.online", fontSize: 10, fontWeight: 'bold', fontStyle: 'normal' },
     notes: { value: "To Whom It May Concern,\n\nThis is to certify that we provide premium grade hollow bricks manufactured with high-density materials, ensuring maximum structural integrity. \n\nOur integrated lorry services guarantee door-step delivery within the committed timeframe. We value your business and look forward to a long-term partnership.", fontSize: 14, fontWeight: 'normal', fontStyle: 'normal' },
     companySignature: { value: "M. BALAMANI", fontSize: 14, fontWeight: 'bold', fontStyle: 'normal' },
-    verifiedId: { value: `ASW-${Math.floor(100000 + Math.random() * 900000)}`, fontSize: 10, fontWeight: 'bold', fontStyle: 'normal' },
+    verifiedId: { value: "", fontSize: 10, fontWeight: 'bold', fontStyle: 'normal' },
   });
+
+  useEffect(() => {
+    // Auto-generate Verified ID on mount
+    const randomId = `ASW-${Math.floor(100000 + Math.random() * 900000)}`;
+    setFormData(prev => ({
+      ...prev,
+      verifiedId: { ...prev.verifiedId, value: randomId }
+    }));
+  }, []);
 
   const handleTextChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -44,30 +58,92 @@ const BusinessNotepad: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: { ...prev[name], [key]: val } }));
   };
 
+  const uploadToBackend = async (pdfBlob: Blob, fileName: string) => {
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('pdf', pdfBlob, fileName);
+
+      const response = await fetch(`${BASE_URL}/notepad/upload-pdf`, {
+        method: 'POST',
+        headers: getAuthHeader(),
+        body: formDataUpload
+      });
+
+      if (!response.ok) throw new Error("Backend upload failed");
+
+      const result = await response.json();
+
+      // Save notepad statistics and PDF path to database
+      await fetch(`${BASE_URL}/notepad/save`, {
+        method: 'POST',
+        headers: {
+          ...getAuthHeader(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          formData,
+          pdfPath: result.path,
+          filename: fileName
+        })
+      });
+
+      toast.success(`PDF saved as ${fileName}`);
+    } catch (error) {
+      console.error("Backend Error:", error);
+      toast.error("Failed to save record to database.");
+    }
+  };
+
   const downloadPDF = async () => {
     if (!previewRef.current) return;
     try {
       setIsGenerating(true);
       const element = previewRef.current;
-      window.scrollTo(0, 0);
+      const fileName = `Notepad_${formData.verifiedId.value}.pdf`;
 
-      const canvas = await html2canvas(element, { 
-        scale: 2,
-        useCORS: true, 
+      // Preserve original styles
+      const originalStyle = element.getAttribute('style') || '';
+
+      // Prepare element for high-quality capture
+      element.style.transform = 'none';
+      element.style.position = 'fixed';
+      element.style.top = '0';
+      element.style.left = '0';
+      element.style.zIndex = '9999';
+
+      const canvas = await html2canvas(element, {
+        scale: 3, // High scale for clear text and graphics
+        useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
-        windowHeight: element.scrollHeight,
+        width: 794, // Standard A4 width at 96dpi
+        height: 1123, // Standard A4 height at 96dpi
       });
 
+      // Revert styles
+      element.setAttribute('style', originalStyle);
+
       const imgData = canvas.toDataURL('image/jpeg', 1.0);
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
+
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Invoice_${formData.verifiedId.value}.pdf`);
+
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+
+      const pdfBlob = pdf.output('blob');
+      pdf.save(fileName);
+
+      await uploadToBackend(pdfBlob, fileName);
+
     } catch (error) {
       console.error("PDF Generation Error:", error);
+      toast.error("PDF Generation failed");
     } finally {
       setIsGenerating(false);
     }
@@ -75,14 +151,37 @@ const BusinessNotepad: React.FC = () => {
 
   return (
     <div className="flex flex-col lg:flex-row h-screen w-full bg-[#F8FAFC] overflow-hidden">
-      
+
       {/* SIDEBAR */}
-      <aside className="w-full lg:w-[420px] flex flex-col bg-white border-r border-slate-200 z-20 shadow-xl">
-        <div className="p-5 border-b border-slate-100 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#4f46e5] rounded-xl flex items-center justify-center text-white">
-            <Layout size={20} />
+      <aside className={`
+        fixed inset-0 lg:relative lg:flex lg:w-[420px] flex-col bg-white border-r border-slate-200 z-30 shadow-xl transition-transform duration-300
+        ${!showPreview ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#4f46e5] rounded-xl flex items-center justify-center text-white">
+              <Layout size={20} />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-800">Document Studio</h2>
+              <p className="text-[10px] text-slate-400 font-medium tracking-wide">DESIGN & EXPORT</p>
+            </div>
           </div>
-          <h2 className="text-base font-bold text-slate-800">Document Studio</h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate('/view-notepad')}
+              className="p-2 text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors border border-slate-100"
+              title="View History"
+            >
+              <History size={18} />
+            </button>
+            <button
+              onClick={() => setShowPreview(true)}
+              className="lg:hidden p-2 text-indigo-600 bg-indigo-50 rounded-lg"
+            >
+              <Eye size={20} />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
@@ -91,8 +190,8 @@ const BusinessNotepad: React.FC = () => {
               <div className="flex items-center justify-between mb-2">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{key.replace(/([A-Z])/g, ' $1')}</label>
                 <div className="flex gap-1">
-                  <select 
-                    className="text-[10px] border rounded p-1"
+                  <select
+                    className="text-[10px] border rounded p-1 bg-white"
                     value={formData[key].fontSize}
                     onChange={(e) => handleStyleUpdate(key, 'fontSize', parseInt(e.target.value))}
                   >
@@ -101,140 +200,168 @@ const BusinessNotepad: React.FC = () => {
                 </div>
               </div>
               {key === 'notes' ? (
-                <textarea name={key} value={formData[key].value} onChange={handleTextChange} rows={4} className="w-full p-2 text-sm border rounded bg-white outline-none focus:border-indigo-500" />
+                <textarea name={key} value={formData[key].value} onChange={handleTextChange} rows={6} className="w-full p-2 text-sm border rounded bg-white outline-none focus:border-indigo-500 transition-all" />
               ) : (
-                <input type="text" name={key} value={formData[key].value} onChange={handleTextChange} className="w-full p-2 text-sm border rounded bg-white outline-none focus:border-indigo-500" />
+                <input
+                  type="text"
+                  name={key}
+                  value={formData[key].value}
+                  onChange={handleTextChange}
+                  readOnly={key === 'verifiedId'}
+                  className={`w-full p-2 text-sm border rounded bg-white outline-none focus:border-indigo-500 transition-all ${key === 'verifiedId' ? 'bg-slate-50 text-indigo-600 font-bold border-dashed cursor-not-allowed' : ''}`}
+                />
               )}
             </div>
           ))}
         </div>
 
         <div className="p-5 border-t">
-          <button onClick={downloadPDF} disabled={isGenerating} className="w-full bg-[#4f46e5] hover:bg-[#4338ca] text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-100">
-            {isGenerating ? "Processing..." : <><Download size={18} /> Download Bill</>}
+          <button onClick={downloadPDF} disabled={isGenerating} className="w-full bg-[#4f46e5] hover:bg-[#4338ca] text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50">
+            {isGenerating ? "Processing..." : <><Download size={18} /> Download & Save</>}
           </button>
         </div>
       </aside>
 
-      {/* PREVIEW CONTAINER */}
-      <main className="flex-1 overflow-auto bg-[#cbd5e1] p-8 flex justify-center custom-scrollbar">
-        <div 
-          ref={previewRef}
-          className="bg-white"
-          style={{ 
-            width: '210mm', 
-            height: '297mm', 
-            padding: '20mm', 
-            boxSizing: 'border-box', 
-            display: 'flex',
-            flexDirection: 'column',
-            position: 'relative', 
-            fontFamily: 'Arial, sans-serif', 
-            color: '#334155',
-            overflow: 'hidden'
-          }}
+      {/* MOBILE TOGGLE FAB */}
+      {showPreview && (
+        <button
+          onClick={() => setShowPreview(false)}
+          className="lg:hidden fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#4f46e5] shadow-2xl rounded-full flex items-center justify-center text-white"
         >
-          {/* Decorative Header Accent */}
-          <div style={{ position: 'absolute', top: 0, right: 0, width: '240px', height: '240px', backgroundColor: '#f8fafc', borderBottomLeftRadius: '120px', zIndex: 0 }} />
+          <Edit3 size={24} />
+        </button>
+      )}
 
-          {/* HEADER SECTION */}
-          <header style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', marginBottom: '40px', zIndex: 1 }}>
-            <div style={{ maxWidth: '60%' }}>
-              <h1 style={{ 
-                fontSize: `${formData.title.fontSize}px`, fontWeight: formData.title.fontWeight, 
-                color: '#1e293b', marginBottom: '15px', lineHeight: '1.1' 
-              }}>{formData.title.value}</h1>
-              <div style={{ display: 'flex', gap: '10px', fontSize: `${formData.address.fontSize}px`, color: '#64748b' }}>
-                <MapPin size={14} color="#4f46e5" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <p style={{ whiteSpace: 'pre-line', margin: 0 }}>{formData.address.value}</p>
-              </div>
-            </div>
+      {/* PREVIEW CONTAINER */}
+      <main className={`
+        flex-1 h-full overflow-y-auto bg-[#cbd5e1] p-0 md:p-8 flex items-start justify-center custom-scrollbar transition-opacity duration-300
+        ${showPreview ? 'opacity-100' : 'opacity-0 lg:opacity-100'}
+      `}>
+        {/* Wrapper for scaling support on mobile */}
+        <div className="py-8 min-h-full flex items-center justify-center">
+          <div className="origin-top scale-[0.4] sm:scale-[0.5] md:scale-[0.7] lg:scale-[0.85] xl:scale-100 shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-transform duration-300 flex-shrink-0">
+            <div
+              ref={previewRef}
+              className="bg-white"
+              style={{
+                width: '210mm',
+                height: '297mm',
+                padding: '20mm',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative',
+                fontFamily: 'Arial, sans-serif',
+                color: '#334155'
+              }}
+            >
+              {/* Header Border */}
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', backgroundColor: '#4f46e5' }} />
 
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ backgroundColor: '#0f172a', color: '#ffffff', padding: '15px', borderRadius: '12px', marginBottom: '15px' }}>
-                <span style={{ fontSize: '10px', opacity: 0.7, display: 'block', fontWeight: 'bold' }}>CONTACT</span>
-                <div style={{ fontSize: `${formData.phone.fontSize}px`, fontWeight: 'bold' }}>{formData.phone.value}</div>
-              </div>
-              <div style={{ fontSize: `${formData.email.fontSize}px`, color: '#64748b', marginBottom: '4px' }}>{formData.email.value}</div>
-              <div style={{ fontSize: `${formData.website.fontSize}px`, color: '#4f46e5', fontWeight: 'bold' }}>{formData.website.value}</div>
-            </div>
-          </header>
+              {/* Decorative Header Accent */}
+              <div style={{ position: 'absolute', top: 0, right: 0, width: '240px', height: '240px', backgroundColor: '#f8fafc', borderBottomLeftRadius: '120px', zIndex: 0 }} />
 
-          {/* CONTENT SECTION */}
-          <div style={{ 
-            flex: 1, 
-            paddingTop: '30px', 
-            fontSize: `${formData.notes.fontSize}px`, 
-            fontWeight: formData.notes.fontWeight,
-            lineHeight: '1.7', 
-            whiteSpace: 'pre-wrap',
-            zIndex: 1
-          }}>
-            {formData.notes.value}
-          </div>
-
-          {/* FOOTER SECTION */}
-          <footer style={{ 
-            paddingTop: '20px', 
-            borderTop: '1px solid #e2e8f0', 
-            zIndex: 1
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '30px' }}>
-              {/* Left Side: Date and ID */}
-              <div>
-                <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.5px' }}>DATE OF ISSUE</div>
-                <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1e293b', marginBottom: '15px' }}>{new Date().toLocaleDateString('en-US')}</div>
-                
-                <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.5px' }}>VERIFIED ID</div>
-                <div style={{ fontSize: `${formData.verifiedId.fontSize}px`, fontWeight: 'bold', color: '#4f46e5' }}>
-                   {formData.verifiedId.value}
+              {/* HEADER SECTION */}
+              <header style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', marginBottom: '40px', zIndex: 1 }}>
+                <div style={{ maxWidth: '60%' }}>
+                  <h1 style={{
+                    fontSize: `${formData.title.fontSize}px`, fontWeight: formData.title.fontWeight,
+                    color: '#1e293b', marginBottom: '15px', lineHeight: '1.1'
+                  }}>{formData.title.value}</h1>
+                  <div style={{ display: 'flex', gap: '10px', fontSize: `${formData.address.fontSize}px`, color: '#64748b' }}>
+                    <MapPin size={14} color="#4f46e5" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <p style={{ whiteSpace: 'pre-line', margin: 0 }}>{formData.address.value}</p>
+                  </div>
                 </div>
-              </div>
 
-              {/* Right Side: Signature */}
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ width: '200px', height: '1.5px', backgroundColor: '#0f172a', marginBottom: '8px' }} />
-                <div style={{ 
-                  fontSize: `${formData.companySignature.fontSize}px`, 
-                  fontWeight: 'bold', 
-                  color: '#1e293b',
-                  textTransform: 'uppercase'
-                }}>
-                  {formData.companySignature.value}
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ backgroundColor: '#0f172a', color: '#ffffff', padding: '15px', borderRadius: '12px', marginBottom: '15px' }}>
+                    <span style={{ fontSize: '10px', opacity: 0.7, display: 'block', fontWeight: 'bold', letterSpacing: '1px' }}>CONTACT</span>
+                    <div style={{ fontSize: `${formData.phone.fontSize}px`, fontWeight: 'bold' }}>{formData.phone.value}</div>
+                  </div>
+                  <div style={{ fontSize: `${formData.email.fontSize}px`, color: '#64748b', marginBottom: '4px' }}>{formData.email.value}</div>
+                  <div style={{ fontSize: `${formData.website.fontSize}px`, color: '#4f46e5', fontWeight: 'bold' }}>{formData.website.value}</div>
                 </div>
-                <div style={{ fontSize: '9px', color: '#4f46e5', fontWeight: 'bold', letterSpacing: '1.5px', marginTop: '4px' }}>
-                  AUTHORIZED SIGNATORY
-                </div>
-              </div>
-            </div>
+              </header>
 
-            {/* Bottom Center: Computer Generated Disclaimer */}
-            <div style={{ 
-              textAlign: 'center', 
-              borderTop: '1px dashed #cbd5e1', 
-              paddingTop: '10px', 
-              marginTop: '10px' 
-            }}>
-              <p style={{ 
-                fontSize: '9px', 
-                color: '#94a3b8', 
-                fontStyle: 'italic', 
-                margin: 0,
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
+              {/* CONTENT SECTION */}
+              <div style={{
+                flex: 1,
+                paddingTop: '30px',
+                fontSize: `${formData.notes.fontSize}px`,
+                fontWeight: formData.notes.fontWeight,
+                lineHeight: '1.7',
+                whiteSpace: 'pre-wrap',
+                zIndex: 1,
+                overflowY: 'hidden'
               }}>
-                This is a computer generated Letter.
-              </p>
+                {formData.notes.value}
+              </div>
+
+              {/* FOOTER SECTION */}
+              <footer style={{
+                paddingTop: '20px',
+                borderTop: '1px solid #e2e8f0',
+                zIndex: 1
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '30px' }}>
+                  <div className="flex-shrink-0">
+                    <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.5px' }}>DATE OF ISSUE</div>
+                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1e293b', marginBottom: '15px' }}>{new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+
+                    <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.5px' }}>VERIFIED ID</div>
+                    <div style={{ fontSize: `${formData.verifiedId.fontSize}px`, fontWeight: 'bold', color: '#4f46e5' }}>
+                      {formData.verifiedId.value}
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'center', minWidth: '220px' }}>
+                    <div style={{ width: '100%', height: '1.5px', backgroundColor: '#0f172a', marginBottom: '8px' }} />
+                    <div style={{
+                      fontSize: `${formData.companySignature.fontSize}px`,
+                      fontWeight: 'bold',
+                      color: '#1e293b',
+                      textTransform: 'uppercase'
+                    }}>
+                      {formData.companySignature.value}
+                    </div>
+                    <div style={{ fontSize: '9px', color: '#4f46e5', fontWeight: 'bold', letterSpacing: '1.5px', marginTop: '4px' }}>
+                      AUTHORIZED SIGNATORY
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  textAlign: 'center',
+                  borderTop: '1px dashed #cbd5e1',
+                  paddingTop: '10px',
+                  marginTop: '10px'
+                }}>
+                  <p style={{
+                    fontSize: '9px',
+                    color: '#94a3b8',
+                    fontStyle: 'italic',
+                    margin: 0,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    This is a computer generated Letter.
+                  </p>
+                </div>
+              </footer>
             </div>
-          </footer>
+          </div>
         </div>
       </main>
 
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 5px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        @media (max-width: 640px) {
+            .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        }
       `}</style>
     </div>
   );

@@ -13,7 +13,7 @@ const QuickActions: React.FC = () => {
       label: "Transfer Money",
       icon: <Send className="w-6 h-6 text-white" />,
       bgColor: "bg-blue-500",
-      onClick: () => {},
+      onClick: () => { },
     },
     {
       label: "Download Report",
@@ -25,13 +25,13 @@ const QuickActions: React.FC = () => {
       label: "View Cards",
       icon: <CreditCard className="w-6 h-6 text-white" />,
       bgColor: "bg-purple-500",
-      onClick: () => {},
+      onClick: () => { },
     },
     {
       label: "Add Account",
       icon: <Plus className="w-6 h-6 text-white" />,
       bgColor: "bg-orange-500",
-      onClick: () => {},
+      onClick: () => { },
     },
   ];
 

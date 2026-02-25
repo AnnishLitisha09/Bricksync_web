@@ -14,6 +14,7 @@ import { deleteOrder } from "../../../api/order";
 import AddMaterialModal from "./AddMaterialModal";
 import RecordPaymentModal from "./RecordPaymentModal";
 import { toast } from "react-hot-toast";
+import { deobfuscate } from "../../../utils/encryption";
 
 const CustomerDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
