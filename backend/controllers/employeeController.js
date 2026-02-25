@@ -8,14 +8,16 @@ exports.getAllEmployees = async (req, res) => {
             attributes: ['userid', 'name', 'staffRole']
         });
 
-        // Map to match the expected frontend structure (employee_id, employee_name)
+        // Map to match the expected frontend structure (employee_id, employee_name, staff_role)
         const mappedEmployees = employees.map(emp => ({
             employee_id: emp.userid,
             employee_name: emp.name,
             staff_role: emp.staffRole
+                ? emp.staffRole.charAt(0).toUpperCase() + emp.staffRole.slice(1).toLowerCase()
+                : null
         }));
 
-        res.json(mappedEmployees);
+        res.json({ data: mappedEmployees });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

@@ -265,19 +265,14 @@ const CustomerDetails: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {paginatedEntries.map((tx: any, idx: number) => {
-                    const isSameDay = idx > 0 && paginatedEntries[idx - 1].date === tx.date;
+                  {paginatedEntries.map((tx: any) => {
                     return (
                       <tr key={tx.id} className="hover:bg-indigo-50/20 transition-colors align-top group">
                         <td className="px-8 py-6">
                           <div className="flex flex-col">
-                            {!isSameDay ? (
-                              <span className="text-slate-900 font-bold flex items-center gap-2 whitespace-nowrap">
-                                <Calendar size={14} className="text-slate-400" /> {tx.date}
-                              </span>
-                            ) : (
-                              <div className="h-5" /> // Spacer for alignment
-                            )}
+                            <span className="text-slate-900 font-bold flex items-center gap-2 whitespace-nowrap">
+                              <Calendar size={14} className="text-slate-400" /> {tx.date}
+                            </span>
                             <span className="text-indigo-600 text-[11px] font-black mt-1 uppercase tracking-widest">{tx.id}</span>
                           </div>
                         </td>

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
@@ -13,12 +13,14 @@ import {
   Plus,
   Trash2,
   Navigation,
-  Loader2
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAllOffices, getAllProducts, getEmployees, getStock } from "../../../api/inventory";
 import { fetchVehicles } from "../../../api/vehicle";
-import { createOrder, updateOrder } from "../../../api/order";
+import { createOrder, updateOrder, bulkImportOrders } from "../../../api/order";
+import { parseLedgerPdf, type ParsedLedger } from "../../../utils/parseLedgerPdf";
 import { toast } from "react-hot-toast";
 
 interface AddMaterialModalProps {
@@ -70,6 +72,28 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
   ]);
 
   const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [parsedLedger, setParsedLedger] = useState<ParsedLedger | null>(null);
+  const [isParsing, setIsParsing] = useState(false);
+
+  // Merged date-sorted preview rows (orders + payments together)
+  const mergedPreviewRows = useMemo(() => {
+    if (!parsedLedger) return [] as Array<
+      | { type: 'order'; data: ParsedLedger['orders'][0] }
+      | { type: 'payment'; data: ParsedLedger['payments'][0] }
+    >;
+    const toMs = (d: string) => {
+      const [dd, mm, yyyy] = d.split('-');
+      return new Date(`${yyyy}-${mm}-${dd}`).getTime();
+    };
+    const rows: Array<
+      | { type: 'order'; date: string; data: ParsedLedger['orders'][0] }
+      | { type: 'payment'; date: string; data: ParsedLedger['payments'][0] }
+    > = [
+        ...parsedLedger.orders.map(o => ({ type: 'order' as const, date: o.date, data: o })),
+        ...parsedLedger.payments.map(p => ({ type: 'payment' as const, date: p.date, data: p })),
+      ];
+    return rows.sort((a, b) => toMs(a.date) - toMs(b.date));
+  }, [parsedLedger]);
 
   useEffect(() => {
     if (isOpen) {
@@ -150,6 +174,41 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
       fetchOptions();
     }
   }, [isOpen, editData]);
+
+  const handleBulkFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setBulkFile(file);
+    setParsedLedger(null);
+    if (!file) return;
+    setIsParsing(true);
+    try {
+      const result = await parseLedgerPdf(file);
+      setParsedLedger(result);
+      toast.success(`Parsed ${result.orders.length} orders and ${result.payments.length} payments`);
+    } catch (err: any) {
+      toast.error("Failed to parse PDF: " + (err.message || "Unknown error"));
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const handleBulkSubmit = async () => {
+    if (!parsedLedger) return;
+    setIsSubmitting(true);
+    try {
+      const result = await bulkImportOrders({
+        cus_id: Number(customerId),
+        orders: parsedLedger.orders,
+        payments: parsedLedger.payments,
+      });
+      toast.success(`Imported ${result.ordersCreated} orders and ${result.paymentsCreated} payments!`);
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || "Bulk import failed");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const addMaterialRow = () => {
     setMaterials([...materials, {
@@ -465,12 +524,92 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
                 )}
               </motion.div>
             ) : (
-              <motion.div key="bulk" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-10">
-                <div onClick={() => fileInputRef.current?.click()} className="group w-full aspect-21/10 bg-slate-50 border-4 border-dashed border-slate-100 rounded-4xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500/30 hover:bg-indigo-50/30 transition-all">
-                  <div className="p-5 bg-white rounded-3xl shadow-xl text-indigo-600 group-hover:scale-110 transition-transform">{bulkFile ? <CheckCircle2 size={32} /> : <Upload size={32} />}</div>
-                  <p className="mt-4 text-sm font-black text-slate-700 uppercase tracking-tighter px-6 text-center truncate w-full">{bulkFile ? bulkFile.name : "Upload Dispatch PDF"}</p>
-                  <input type="file" ref={fileInputRef} hidden accept=".pdf" onChange={(e) => setBulkFile(e.target.files?.[0] || null)} />
+              <motion.div key="bulk" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                {/* Drop zone */}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="group w-full py-8 bg-slate-50 border-4 border-dashed border-slate-100 rounded-4xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500/30 hover:bg-indigo-50/30 transition-all"
+                >
+                  <div className="p-5 bg-white rounded-3xl shadow-xl text-indigo-600 group-hover:scale-110 transition-transform">
+                    {isParsing ? <Loader2 size={32} className="animate-spin" /> : bulkFile ? <CheckCircle2 size={32} /> : <Upload size={32} />}
+                  </div>
+                  <p className="mt-4 text-sm font-black text-slate-700 uppercase tracking-tighter px-6 text-center truncate w-full">
+                    {isParsing ? "Parsing PDF..." : bulkFile ? bulkFile.name : "Upload Ledger PDF"}
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">M.ASWATH format supported</p>
+                  <input type="file" ref={fileInputRef} hidden accept=".pdf" onChange={handleBulkFileChange} />
                 </div>
+
+                {/* Preview table */}
+                {parsedLedger && (
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <div className="flex-1 bg-indigo-50 rounded-2xl p-3 text-center">
+                        <p className="text-2xl font-black text-indigo-600">{parsedLedger.orders.length}</p>
+                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Orders</p>
+                      </div>
+                      <div className="flex-1 bg-emerald-50 rounded-2xl p-3 text-center">
+                        <p className="text-2xl font-black text-emerald-600">{parsedLedger.payments.length}</p>
+                        <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Payments</p>
+                      </div>
+                      <div className="flex-1 bg-slate-100 rounded-2xl p-3 text-center">
+                        <p className="text-lg font-black text-slate-700">
+                          ₹{parsedLedger.orders.reduce((s, o) => s + o.items.reduce((is, i) => is + i.qty * i.rate, 0), 0).toLocaleString('en-IN')}
+                        </p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Billed</p>
+                      </div>
+                    </div>
+
+                    <div className="max-h-64 overflow-y-auto rounded-2xl border border-slate-100 bg-slate-50">
+                      <table className="w-full text-left text-xs">
+                        <thead className="sticky top-0 bg-slate-100 z-10">
+                          <tr>
+                            <th className="px-3 py-2.5 font-black text-slate-500 uppercase tracking-widest">Date</th>
+                            <th className="px-3 py-2.5 font-black text-slate-500 uppercase tracking-widest">#</th>
+                            <th className="px-3 py-2.5 font-black text-slate-500 uppercase tracking-widest">Particulars</th>
+                            <th className="px-3 py-2.5 font-black text-slate-500 uppercase tracking-widest text-right">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {mergedPreviewRows.map((row, i) => {
+                            if (row.type === 'payment') {
+                              const pay = row.data;
+                              return (
+                                <tr key={`r${i}`} className="bg-emerald-50/60 hover:bg-emerald-50">
+                                  <td className="px-3 py-2 font-bold text-slate-600 whitespace-nowrap">{pay.date}</td>
+                                  <td className="px-3 py-2 text-emerald-500 font-black">{pay.orderNumber}</td>
+                                  <td className="px-3 py-2 text-emerald-700 font-bold">Payment — {pay.method}</td>
+                                  <td className="px-3 py-2 text-right font-black text-emerald-600">-&#8377;{pay.amount.toLocaleString('en-IN')}</td>
+                                </tr>
+                              );
+                            }
+                            const order = row.data;
+                            return (
+                              <tr key={`r${i}`} className="hover:bg-white align-top">
+                                <td className="px-3 py-2 font-black text-slate-800 whitespace-nowrap">{order.date}</td>
+                                <td className="px-3 py-2 text-indigo-500 font-black whitespace-nowrap">{order.orderNumber}</td>
+                                <td className="px-3 py-2 text-slate-600">
+                                  {order.items.map((item, j) => (
+                                    <div key={j} className="leading-relaxed">
+                                      <span className="font-bold text-slate-700">{item.product}</span>
+                                      <span className="text-slate-400 ml-1">x {item.qty} @&#8377;{item.rate}</span>
+                                    </div>
+                                  ))}
+                                </td>
+                                <td className="px-3 py-2 text-right font-black text-slate-900 whitespace-nowrap">&#8377;{order.total.toLocaleString('en-IN')}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-2xl border border-amber-100">
+                      <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                      <p className="text-[10px] font-bold text-amber-700">Office, vehicle and staff won't be imported — you can edit each order after import.</p>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -478,35 +617,53 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
 
         {/* SUMMARY & SUBMIT */}
         <div className="pt-6 shrink-0 bg-white border-t border-slate-50 mt-4 space-y-4">
-          {/* TRANSPORT CHARGE INPUT */}
-          <div className="grid grid-cols-2 gap-4 items-end">
-            <div>
-              <label className={labelClass}>Transport Charge</label>
-              <div className="relative">
-                <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                <input
-                  type="number"
-                  className={`${inputClass} pl-12 py-3!`}
-                  value={transportCharge}
-                  onChange={(e) => setTransportCharge(e.target.value)}
-                />
+          {/* Bulk submit — only shown in bulk mode with parsed data */}
+          {entryMode === "bulk" && parsedLedger && (
+            <button
+              type="button"
+              onClick={handleBulkSubmit}
+              disabled={isSubmitting}
+              className="w-full py-5 bg-indigo-600 text-white rounded-[1.8rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-indigo-700 transition-all shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
+            >
+              {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
+              {isSubmitting ? "Importing..." : `Import ${parsedLedger.orders.length} Orders & ${parsedLedger.payments.length} Payments`}
+            </button>
+          )}
+
+          {/* TRANSPORT CHARGE INPUT — hidden in bulk mode */}
+          {entryMode !== "bulk" && (
+            <div className="grid grid-cols-2 gap-4 items-end">
+              <div>
+                <label className={labelClass}>Transport Charge</label>
+                <div className="relative">
+                  <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                  <input
+                    type="number"
+                    className={`${inputClass} pl-12 py-3!`}
+                    value={transportCharge}
+                    onChange={(e) => setTransportCharge(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="bg-indigo-600 p-4 rounded-4xl flex justify-between items-center shadow-lg shadow-indigo-100 h-[58px]">
+                <span className="text-[10px] font-black text-indigo-100 uppercase tracking-widest">Total Credit</span>
+                <span className="text-xl font-black text-white">₹{finalTotal.toLocaleString('en-IN')}</span>
               </div>
             </div>
-            <div className="bg-indigo-600 p-4 rounded-4xl flex justify-between items-center shadow-lg shadow-indigo-100 h-[58px]">
-              <span className="text-[10px] font-black text-indigo-100 uppercase tracking-widest">Total Credit</span>
-              <span className="text-xl font-black text-white">₹{finalTotal.toLocaleString('en-IN')}</span>
-            </div>
-          </div>
+          )}
 
-          <button
-            type="submit"
-            onClick={(e) => { e.stopPropagation(); handleSubmit(e); }}
-            disabled={isSubmitting || loadingOptions}
-            className="w-full py-5 bg-slate-900 text-white rounded-[1.8rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
-          >
-            {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (editData ? <Plus size={18} /> : <FileText size={18} />)}
-            {isSubmitting ? (editData ? 'Updating...' : 'Confirming...') : (editData ? 'Update Dispatch' : 'Confirm Dispatch')}
-          </button>
+          {/* Normal submit — hidden in bulk mode */}
+          {entryMode !== "bulk" && (
+            <button
+              type="submit"
+              onClick={(e) => { e.stopPropagation(); handleSubmit(e); }}
+              disabled={isSubmitting || loadingOptions}
+              className="w-full py-5 bg-slate-900 text-white rounded-[1.8rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
+            >
+              {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (editData ? <Plus size={18} /> : <FileText size={18} />)}
+              {isSubmitting ? (editData ? 'Updating...' : 'Confirming...') : (editData ? 'Update Dispatch' : 'Confirm Dispatch')}
+            </button>
+          )}
         </div>
       </motion.div>
     </div>,

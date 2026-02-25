@@ -62,3 +62,20 @@ export const deleteOrder = async (id: number) => {
     if (!res.ok) throw new Error("Failed to delete order");
     return await res.json();
 };
+
+export const bulkImportOrders = async (payload: {
+    cus_id: number;
+    orders: { date: string; orderNumber: string; items: { product: string; qty: number; rate: number }[] }[];
+    payments: { date: string; method: string; amount: number }[];
+}) => {
+    const res = await fetch(`${BASE_URL}/orders/bulk-import`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeader(),
+        },
+        body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("Bulk import failed");
+    return await res.json();
+};
