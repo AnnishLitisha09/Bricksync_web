@@ -6,6 +6,10 @@ const os = require("os");
 
 const app = express();
 const db = require("./models");
+const { initScheduledTasks } = require("./utils/scheduler");
+
+// Initialize Automated Tasks (Midnight Backups & Expiration Alerts)
+initScheduledTasks();
 
 // ================= Middleware =================
 app.use(cors({
