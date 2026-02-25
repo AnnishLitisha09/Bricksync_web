@@ -20,7 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getAllOffices, getAllProducts, getEmployees, getStock } from "../../../api/inventory";
 import { fetchVehicles } from "../../../api/vehicle";
 import { createOrder, updateOrder, bulkImportOrders } from "../../../api/order";
-import { parseLedgerPdf, type ParsedLedger } from "../../../utils/parseLedgerPdf";
+import { parseLedgerPdf, type ParsedLedger, type ParsedOrder, type ParsedPayment } from "../../../utils/parseLedgerPdf";
 import { toast } from "react-hot-toast";
 
 interface AddMaterialModalProps {
@@ -78,21 +78,24 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
   // Merged date-sorted preview rows (orders + payments together)
   const mergedPreviewRows = useMemo(() => {
     if (!parsedLedger) return [] as Array<
-      | { type: 'order'; data: ParsedLedger['orders'][0] }
-      | { type: 'payment'; data: ParsedLedger['payments'][0] }
+      | { type: 'order'; date: string; data: ParsedOrder }
+      | { type: 'payment'; date: string; data: ParsedPayment }
     >;
     const toMs = (d: string) => {
       const [dd, mm, yyyy] = d.split('-');
       return new Date(`${yyyy}-${mm}-${dd}`).getTime();
     };
     const rows: Array<
-      | { type: 'order'; date: string; data: ParsedLedger['orders'][0] }
-      | { type: 'payment'; date: string; data: ParsedLedger['payments'][0] }
+      | { type: 'order'; date: string; index: number; data: ParsedOrder }
+      | { type: 'payment'; date: string; index: number; data: ParsedPayment }
     > = [
-        ...parsedLedger.orders.map(o => ({ type: 'order' as const, date: o.date, data: o })),
-        ...parsedLedger.payments.map(p => ({ type: 'payment' as const, date: p.date, data: p })),
+        ...parsedLedger.orders.map(o => ({ type: 'order' as const, date: o.date, index: o.originalIndex || 0, data: o })),
+        ...parsedLedger.payments.map(p => ({ type: 'payment' as const, date: p.date, index: p.originalIndex || 0, data: p })),
       ];
-    return rows.sort((a, b) => toMs(a.date) - toMs(b.date));
+    return rows.sort((a, b) => {
+      const dateDiff = toMs(a.date) - toMs(b.date);
+      return dateDiff !== 0 ? dateDiff : a.index - b.index;
+    });
   }, [parsedLedger]);
 
   useEffect(() => {

@@ -24,7 +24,7 @@ exports.getAllCustomers = async (req, res) => {
     try {
         const customers = await Customer.findAll({
             where: { is_deleted: false },
-            order: [["createdAt", "DESC"]]
+            order: [["created_at", "DESC"]]
         });
         return res.status(200).json({ data: customers });
     } catch (error) {
@@ -84,8 +84,8 @@ exports.getCustomerById = async (req, res) => {
                 }
             ],
             order: [
-                [{ model: Order, as: "orders" }, "createdAt", "DESC"],
-                [{ model: CustomerStatement, as: "statements" }, "createdAt", "DESC"]
+                [{ model: Order, as: "orders" }, "date", "DESC"],
+                [{ model: CustomerStatement, as: "statements" }, "date", "DESC"]
             ]
         });
 

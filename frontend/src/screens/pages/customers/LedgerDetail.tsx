@@ -14,7 +14,6 @@ import { deleteOrder } from "../../../api/order";
 import AddMaterialModal from "./AddMaterialModal";
 import RecordPaymentModal from "./RecordPaymentModal";
 import { toast } from "react-hot-toast";
-import { deobfuscate } from "../../../utils/encryption";
 
 const CustomerDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -144,7 +143,7 @@ const CustomerDetails: React.FC = () => {
     (customer.statements || []).forEach((s: any) => {
       entries.push({
         id: `STMT-${s.id}`,
-        date: s.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+        date: s.date || s.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
         type: "Payment",
         particulars: `Payment via ${s.bank_type}`,
         amount: s.amount,

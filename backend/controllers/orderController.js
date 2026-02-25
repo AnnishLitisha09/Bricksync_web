@@ -376,7 +376,7 @@ exports.bulkImportOrders = async (req, res) => {
                 cus_id: Number(cus_id),
                 amount: amt,
                 bank_type: payment.method || "CASH",
-                created_at: isoDate ? new Date(isoDate) : new Date(),
+                date: isoDate || null,
             }, { transaction });
 
             const customer = await Customer.findByPk(cus_id, { transaction });

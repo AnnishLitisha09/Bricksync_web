@@ -6,6 +6,7 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.INTEGER,
                 primaryKey: true,
                 autoIncrement: true,
+                field: "statement_id",
             },
             cus_id: {
                 type: DataTypes.INTEGER,
@@ -24,6 +25,10 @@ module.exports = (sequelize, DataTypes) => {
                 allowNull: false,
                 defaultValue: 0.00,
             },
+            date: {
+                type: DataTypes.DATEONLY,
+                allowNull: true,
+            },
             description: {
                 type: DataTypes.TEXT,
                 allowNull: true,
@@ -37,8 +42,8 @@ module.exports = (sequelize, DataTypes) => {
         {
             tableName: "customer_statements",
             timestamps: true,
-            // createdAt: "created_at", // DB uses createdAt
-            // updatedAt: "updated_at", // DB uses updatedAt
+            createdAt: "created_at",
+            updatedAt: "updated_at",
         }
     );
 

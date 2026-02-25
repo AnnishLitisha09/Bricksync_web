@@ -34,6 +34,7 @@ export interface ParsedOrder {
     orderNumber: string;
     items: ParsedItem[];
     total: number;
+    originalIndex?: number;
 }
 
 export interface ParsedPayment {
@@ -41,6 +42,7 @@ export interface ParsedPayment {
     orderNumber: string;
     method: string;
     amount: number;
+    originalIndex?: number;
 }
 
 export interface ParsedLedger {
@@ -52,31 +54,28 @@ export interface ParsedLedger {
 // Tolerance in PDF user-space units to consider two items on the same line
 const Y_TOLERANCE = 3;
 
-// Regex patterns (case-insensitive to handle both "Deivery" and "Delivery")
-// Delivery: captures date, orderNo, productName, qty, rate, and optionally the credit amount
-const DELIVERY_RE =
-    /^(\d{2}-\d{2}-\d{4})\s+(\d+)\s+Dei[iv]ery\s*:\s*(.+?)\s+Qty\s*:\s*([\d.]+)\s+\S+\s+@Rate\s*:\s*([\d.]+)(?:\s+([\d.]+))?/i;
+// Cleaning helper for numbers (handles spaces like "2 580.00" and commas)
+function cleanNumber(val: string | undefined): number {
+    if (!val) return 0;
+    const cleaned = val.replace(/[,\s]/g, "");
+    return parseFloat(cleaned) || 0;
+}
 
-// Payment: captures date, orderNo, method, amount.
-// Debit column value is at the end; we allow trailing whitespace or end-of-string.
-const PAYMENT_RE =
-    /^(\d{2}-\d{2}-\d{4})\s+(\d+)\s+Payment By\s*:\s*(.+?)\s+Ref:\s*\*\s+([\d.]+)/i;
+// Flexible regex for keywords
+// De[li]*[iv]ery handles "Delivery", "Deivery", "Delivary", etc.
+// We use non-greedy (.+?) followed by a digit boundary to prevent "glue" of columns.
+const DELIVERY_RE = /(\d{2}[-/]\d{2}[-/]\d{4})\s+(\d+)\s+De[li]*[iv]ery\s*:\s*(.+?)\s+Qty\s*:\s*([\d\s,.]+?)\s+\S+\s+@Rate\s*:\s*([\d\s,.]+?)(?:\s+([\d\s,.]+))?$/gi;
 
-// Opening balance
-const OPENING_RE =
-    /^(\d{2}-\d{2}-\d{4})\s+Opening Balance\s+([\d.]+)/i;
+const PAYMENT_RE = /(\d{2}[-/]\d{2}[-/]\d{4})\s+(\d+)\s+Payment By\s*:\s*(.+?)\s+Ref:\s*\*\s+([\d\s,.]+)$/gi;
+
+const OPENING_RE = /(\d{2}[-/]\d{2}[-/]\d{4})\s+Opening Balance\s+([\d\s,.]+)$/gi;
 
 /**
  * Reconstructs logical text rows from pdfjs text items using Y-position grouping.
- * Returns array of row strings, one per visual row on the page.
  */
 function buildRowsFromItems(items: any[]): string[] {
     if (!items || items.length === 0) return [];
 
-    // Each item has transform = [scaleX, 0, 0, scaleY, translateX, translateY]
-    // translateY (index 5) is the baseline Y position in PDF user space.
-
-    // Group items by Y (rounded to tolerance)
     const groups: Map<number, { x: number; str: string }[]> = new Map();
 
     for (const item of items) {
@@ -84,7 +83,6 @@ function buildRowsFromItems(items: any[]): string[] {
         const rawY = typeof item.transform?.[5] === "number" ? item.transform[5] : 0;
         const rawX = typeof item.transform?.[4] === "number" ? item.transform[4] : 0;
 
-        // Find an existing group within Y_TOLERANCE
         let found = false;
         for (const [gy] of groups) {
             if (Math.abs(rawY - gy) <= Y_TOLERANCE) {
@@ -98,13 +96,12 @@ function buildRowsFromItems(items: any[]): string[] {
         }
     }
 
-    // Sort groups by Y descending (PDF Y axis goes bottom-up, so higher Y = higher on page)
     const sortedYs = Array.from(groups.keys()).sort((a, b) => b - a);
 
     return sortedYs.map((y) => {
         const row = groups.get(y)!;
-        // Sort items within the row by X (left to right)
         row.sort((a, b) => a.x - b.x);
+        // Important: replace any masked dates that got stuck to numbers
         return row.map((r) => r.str).join(" ").replace(/\s{2,}/g, " ").trim();
     });
 }
@@ -114,68 +111,76 @@ export async function parseLedgerPdf(file: File): Promise<ParsedLedger> {
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
     const allRows: string[] = [];
-
     for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p);
         const content = await page.getTextContent();
-        const rows = buildRowsFromItems(content.items as any[]);
-        allRows.push(...rows);
+        allRows.push(...buildRowsFromItems(content.items as any[]));
     }
 
-    const orderMap: Record<string, ParsedOrder> = {};
-    const payments: ParsedPayment[] = [];
+    const orderMap: Record<string, ParsedOrder & { originalIndex: number }> = {};
+    const payments: (ParsedPayment & { originalIndex: number })[] = [];
     let openingBalance = 0;
+    let rowIndex = 0;
 
     for (const line of allRows) {
         if (!line) continue;
+        rowIndex++;
 
-        // Opening balance
-        const openMatch = line.match(OPENING_RE);
-        if (openMatch) {
-            openingBalance = parseFloat(openMatch[2]) || 0;
-            continue;
+        // 1. Opening balance
+        let match;
+        OPENING_RE.lastIndex = 0;
+        while ((match = OPENING_RE.exec(line)) !== null) {
+            openingBalance = cleanNumber(match[2]);
         }
 
-        // Payment
-        const payMatch = line.match(PAYMENT_RE);
-        if (payMatch) {
+        // 2. Payments
+        PAYMENT_RE.lastIndex = 0;
+        while ((match = PAYMENT_RE.exec(line)) !== null) {
             payments.push({
-                date: payMatch[1],
-                orderNumber: payMatch[2],
-                method: (payMatch[3] || "CASH").trim(),
-                amount: parseFloat(payMatch[4]) || 0,
+                date: match[1].replace(/\//g, "-"),
+                orderNumber: match[2],
+                method: (match[3] || "CASH").trim(),
+                amount: cleanNumber(match[4]),
+                originalIndex: rowIndex
             });
-            continue;
         }
 
-        // Delivery
-        const delMatch = line.match(DELIVERY_RE);
-        if (delMatch) {
-            const date = delMatch[1];
-            const orderNumber = delMatch[2];
-            const product = delMatch[3].trim();
-            const qty = parseFloat(delMatch[4]) || 0;
-            const rate = parseFloat(delMatch[5]) || 0;
-            const parsedAmount = parseFloat(delMatch[6] || "0");
-            const amount = parsedAmount > 0 ? parsedAmount : qty * rate;
+        // 3. Deliveries
+        DELIVERY_RE.lastIndex = 0;
+        while ((match = DELIVERY_RE.exec(line)) !== null) {
+            const date = match[1].replace(/\//g, "-");
+            const orderNumber = match[2];
+            const product = match[3].trim();
+            const qty = cleanNumber(match[4]);
+            const rate = cleanNumber(match[5]);
+            const amountInLine = cleanNumber(match[6]);
+            const amount = amountInLine > 0 ? amountInLine : qty * rate;
 
             const key = `${date}-${orderNumber}`;
             if (!orderMap[key]) {
-                orderMap[key] = { date, orderNumber, items: [], total: 0 };
+                orderMap[key] = { date, orderNumber, items: [], total: 0, originalIndex: rowIndex };
             }
             orderMap[key].items.push({ product, qty, rate, amount });
             orderMap[key].total += amount;
         }
     }
 
-    // Sort orders by date
     const toMs = (d: string) => {
         const [dd, mm, yyyy] = d.split("-");
         return new Date(`${yyyy}-${mm}-${dd}`).getTime();
     };
 
-    const orders = Object.values(orderMap).sort((a, b) => toMs(a.date) - toMs(b.date));
-    payments.sort((a, b) => toMs(a.date) - toMs(b.date));
+    // Sort stably: primary = date, secondary = originalIndex (order in PDF)
+    const orders = Object.values(orderMap).sort((a, b) => {
+        const dateDiff = toMs(a.date) - toMs(b.date);
+        return dateDiff !== 0 ? dateDiff : a.originalIndex - b.originalIndex;
+    });
+
+    payments.sort((a, b) => {
+        const dateDiff = toMs(a.date) - toMs(b.date);
+        return dateDiff !== 0 ? dateDiff : a.originalIndex - b.originalIndex;
+    });
 
     return { orders, payments, openingBalance };
 }
+

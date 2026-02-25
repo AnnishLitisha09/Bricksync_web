@@ -41,7 +41,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
                     bank_type: editData.bank_type || "Bank Transfer",
                     bank_id: editData.bank_id?.toString() || "",
                     description: editData.description || "",
-                    date: editData.created_at?.split('T')[0] || new Date().toISOString().split('T')[0]
+                    date: editData.date || editData.created_at?.split('T')[0] || new Date().toISOString().split('T')[0]
                 });
             } else {
                 setFormData({

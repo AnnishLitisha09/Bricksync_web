@@ -32,8 +32,8 @@ module.exports = (sequelize, DataTypes) => {
         {
             tableName: "call_logs",
             timestamps: true,
-            // createdAt: "created_at", // DB uses createdAt
-            // updatedAt: "updated_at", // DB uses updatedAt
+            createdAt: "created_at",
+            updatedAt: "updated_at",
         }
     );
 
