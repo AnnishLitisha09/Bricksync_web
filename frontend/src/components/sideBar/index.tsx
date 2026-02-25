@@ -53,6 +53,7 @@ const menu: MenuItem[] = [
     path: "/customers",
     children: [
       { name: "Customer List", path: "/customers" },
+      { name: "Call Logs", path: "/call-logs" },
       { name: "Contact Support", path: "/contact" },
     ],
   },

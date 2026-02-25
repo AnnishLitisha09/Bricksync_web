@@ -2,7 +2,7 @@ const cron = require("node-cron");
 const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
-const { Vehicle } = require("../models");
+const { Vehicle, CallLog, Customer } = require("../models");
 const { Op } = require("sequelize");
 const sendEmail = require("./sendEmail");
 
@@ -16,6 +16,12 @@ const initScheduledTasks = () => {
 
         await runAutomatedBackup();
         await checkVehicleExpirations();
+    });
+
+    // 05 00 * * * = 12:05 AM
+    cron.schedule("15 0 * * *", async () => {
+        console.log("🕒 [Scheduler] Running 12:05 AM Call Reminders check...");
+        await checkDailyCallReminders();
     });
 };
 
@@ -129,6 +135,73 @@ async function checkVehicleExpirations() {
 
     } catch (err) {
         console.error("❌ [Schedule] Expiration check failed:", err);
+    }
+}
+
+/**
+ * 🔹 TASK 3: Daily Call Reminders (12:05 AM)
+ */
+async function checkDailyCallReminders() {
+    try {
+        // Use local date (YYYY-MM-DD) instead of UTC to avoid midnight timezone lag
+        const today = new Date().toLocaleDateString('en-CA');
+
+        const todayCalls = await CallLog.findAll({
+            where: {
+                next_call_date: today,
+                is_deleted: false
+            },
+            include: [{
+                model: Customer,
+                as: 'customer',
+                attributes: ['name', 'phone_no']
+            }]
+        });
+
+        if (todayCalls.length === 0) {
+            console.log("ℹ️ [Schedule] No call reminders for today.");
+            return;
+        }
+
+        let emailContent = `
+            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                <h2 style="color: #f97316;">📞 Daily Call Reminders - ${today}</h2>
+                <p>The following customers are scheduled for a call today:</p>
+                <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%; margin-top: 20px;">
+                    <tr style="background-color: #f8f9fa;">
+                        <th>Customer Name</th>
+                        <th>Phone Number</th>
+                        <th>Remark / Description</th>
+                    </tr>
+        `;
+
+        todayCalls.forEach(call => {
+            emailContent += `
+                <tr>
+                    <td style="font-weight: bold;">${call.customer?.name || "N/A"}</td>
+                    <td>${call.customer?.phone_no || "N/A"}</td>
+                    <td>${call.description || "No remarks provided"}</td>
+                </tr>
+            `;
+        });
+
+        emailContent += `
+                </table>
+                <p style="margin-top: 20px; font-size: 12px; color: #777;">
+                    <i>This is an automated reminder from the Bricksync Management System.</i>
+                </p>
+            </div>
+        `;
+
+        await sendEmail(
+            "bricksync001@gmail.com",
+            `📞 Call Reminders for Today (${today})`,
+            emailContent
+        );
+        console.log(`✅ [Schedule] Sent ${todayCalls.length} call reminders to bricksync001@gmail.com`);
+
+    } catch (err) {
+        console.error("❌ [Schedule] Call reminders check failed:", err);
     }
 }
 

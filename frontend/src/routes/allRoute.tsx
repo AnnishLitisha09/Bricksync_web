@@ -36,6 +36,8 @@ import AddProductPage from "../screens/pages/stock/AddProductPage";
 import ProductionHistoryPage from "../screens/pages/stock/ProductionHistoryPage";
 import CustomerHub from "../screens/pages/customers/CustomerPage";
 import CustomerDetails from "../screens/pages/customers/LedgerDetail";
+import CallRemindersPage from "../screens/pages/customers/CallRemindersPage";
+import CallLogHistoryPage from "../screens/pages/customers/CallLogHistoryPage";
 import BusinessNotepad from "../screens/pages/notepage/BusinessNotepad";
 import NotepadHistory from "../screens/pages/notepage/NotepadHistory";
 import SettingsPage from "../screens/pages/settings/SettingsPage";
@@ -122,6 +124,14 @@ const privateRoutes = [
   {
     path: "/customer/details/:id",
     element: <CustomerDetails />, // The individual ledger view
+  },
+  {
+    path: "/call-reminders",
+    element: <CallRemindersPage />,
+  },
+  {
+    path: "/call-logs",
+    element: <CallLogHistoryPage />,
   },
   // --- STAFF & OTHERS ---
   {

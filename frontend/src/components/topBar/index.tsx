@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useCommonStore } from "../../store";
 import { useUserStore } from "../../store/useUserStore";
 import { FILE_BASE_URL } from "../../api/base";
+import { fetchTodayCalls } from "../../api/callLog";
+import { useNavigate } from "react-router-dom";
 
 /* 🔹 Role config */
 const roleConfig: Record<number, { label: string; className: string }> = {
@@ -12,10 +14,12 @@ const roleConfig: Record<number, { label: string; className: string }> = {
 };
 
 export default function Topbar() {
+  const navigate = useNavigate();
   const isOpen = useCommonStore((state) => state.isOpen);
   const toggle = useCommonStore((state) => state.toggle);
   const user = useUserStore((state) => state.user);
   const [dateTime, setDateTime] = useState("");
+  const [callCount, setCallCount] = useState(0);
 
   useEffect(() => {
     const updateTime = () => {
@@ -30,6 +34,24 @@ export default function Topbar() {
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const getCallReminders = async () => {
+      try {
+        const res = await fetchTodayCalls();
+        if (res.data) {
+          setCallCount(res.data.length);
+        }
+      } catch (error) {
+        console.error("Error fetching call reminders in Topbar:", error);
+      }
+    };
+
+    getCallReminders();
+    // Refresh every 5 minutes to keep it updated
+    const interval = setInterval(getCallReminders, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -65,9 +87,16 @@ export default function Topbar() {
         </div>
 
         {/* Notification */}
-        <div className="relative p-1 cursor-pointer text-gray-500 hover:text-orange-500">
+        <div
+          onClick={() => navigate("/call-reminders")}
+          className="relative p-1 cursor-pointer text-gray-500 hover:text-orange-500 transition-colors"
+        >
           <Bell size={20} />
-          <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+          {callCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white px-1 shadow-sm">
+              {callCount}
+            </span>
+          )}
         </div>
 
         {/* Profile */}

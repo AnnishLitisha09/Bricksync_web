@@ -239,7 +239,7 @@ const Banks: React.FC = () => {
                                     <CheckCircle2 className="text-indigo-600" size={32} />
                                 </div>
                                 <h3 className="text-3xl font-black uppercase tracking-tighter">Enter OTP</h3>
-                                <p className="text-slate-400 font-bold text-xs uppercase tracking-widest px-4">Verification code sent to bricksync0001@gmail.com</p>
+                                <p className="text-slate-400 font-bold text-xs uppercase tracking-widest px-4">Verification code sent to bricksync001@gmail.com</p>
                             </div>
 
                             <form onSubmit={handleVerifyOTP} className="space-y-6">
