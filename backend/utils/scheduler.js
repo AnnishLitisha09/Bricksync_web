@@ -49,7 +49,7 @@ async function runAutomatedBackup() {
 
         try {
             await sendEmail(
-                "maswath55@gmail.com",
+                "bricksync0001@gmail.com",
                 "Bricksync Automated Daily Backup - SQL Export",
                 `<h2>Midnight System Snapshot</h2>
                  <p>Automated backup executed successfully at 12:00 AM.</p>
@@ -121,7 +121,7 @@ async function checkVehicleExpirations() {
         emailContent += `</table><p>Please update these records in the Bricksync Management Console.</p>`;
 
         await sendEmail(
-            "maswath55@gmail.com",
+            "bricksync0001@gmail.com",
             "⚠️ Attention: Vehicle Expirations in 7 Days",
             emailContent
         );

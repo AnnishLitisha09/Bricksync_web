@@ -38,6 +38,8 @@ import CustomerHub from "../screens/pages/customers/CustomerPage";
 import CustomerDetails from "../screens/pages/customers/LedgerDetail";
 import BusinessNotepad from "../screens/pages/notepage/BusinessNotepad";
 import NotepadHistory from "../screens/pages/notepage/NotepadHistory";
+import AddInvoice from "../screens/pages/invoices/AddInvoice";
+import InvoiceHistory from "../screens/pages/invoices/InvoiceHistory";
 import SettingsPage from "../screens/pages/settings/SettingsPage";
 
 // --- CUSTOMER & LEDGER IMPORTS ---
@@ -171,6 +173,14 @@ const privateRoutes = [
   {
     path: "/view-notepad",
     element: <NotepadHistory />,
+  },
+  {
+    path: "/invoices/add",
+    element: <AddInvoice />,
+  },
+  {
+    path: "/invoices/history",
+    element: <InvoiceHistory />,
   },
   {
     path: "/stock",

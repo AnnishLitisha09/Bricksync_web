@@ -103,6 +103,15 @@ const menu: MenuItem[] = [
       { name: "View History", path: "/view-notepad" },
     ],
   },
+  {
+    name: "Invoices",
+    icon: ShoppingCart,
+    path: "/invoices",
+    children: [
+      { name: "Add New Invoice", path: "/invoices/add" },
+      { name: "View History", path: "/invoices/history" },
+    ],
+  },
   { name: "Profile", icon: User, path: "/profile" },
 ];
 
