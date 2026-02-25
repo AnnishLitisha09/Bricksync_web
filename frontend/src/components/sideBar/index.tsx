@@ -94,7 +94,15 @@ const menu: MenuItem[] = [
       { name: "Transactions", path: "/transactions" },
     ],
   },
-  { name: "Notepad", icon: StickyNote, path: "/notepad" },
+  {
+    name: "Notepad",
+    icon: StickyNote,
+    path: "/notepad",
+    children: [
+      { name: "Create Bill", path: "/notepad" },
+      { name: "View History", path: "/view-notepad" },
+    ],
+  },
   { name: "Profile", icon: User, path: "/profile" },
 ];
 

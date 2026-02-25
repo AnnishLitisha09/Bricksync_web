@@ -16,8 +16,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static folder
+// Static folders
 app.use("/images", express.static(path.join(__dirname, "images")));
+app.use("/pdfs", express.static(path.join(__dirname, "pdfs")));
 
 // ================= Routes =================
 app.use("/api/auth", require("./routes/authRoutes"));
@@ -43,6 +44,7 @@ app.use("/api/materials", require("./routes/materialRoutes"));
 
 app.use("/api/wallet", require("./routes/walletRoutes"));
 app.use("/api/otp", require("./routes/otpRoutes"));
+app.use("/api/notepad", require("./routes/notepadRoutes"));
 
 
 

@@ -37,6 +37,7 @@ import ProductionHistoryPage from "../screens/pages/stock/ProductionHistoryPage"
 import CustomerHub from "../screens/pages/customers/CustomerPage";
 import CustomerDetails from "../screens/pages/customers/LedgerDetail";
 import BusinessNotepad from "../screens/pages/notepage/BusinessNotepad";
+import NotepadHistory from "../screens/pages/notepage/NotepadHistory";
 
 // --- CUSTOMER & LEDGER IMPORTS ---
 
@@ -165,6 +166,10 @@ const privateRoutes = [
   {
     path: "/notepad",
     element: <BusinessNotepad />,
+  },
+  {
+    path: "/view-notepad",
+    element: <NotepadHistory />,
   },
   {
     path: "/stock",
