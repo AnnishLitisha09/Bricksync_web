@@ -41,6 +41,7 @@ app.use("/api/production", require("./routes/productionRoutes"));
 app.use("/api/employees", require("./routes/employeeRoutes"));
 app.use("/api/attendance", require("./routes/attendanceRoutes"));
 app.use("/api/materials", require("./routes/materialRoutes"));
+app.use("/api/backup", require("./routes/backupRoutes"));
 
 app.use("/api/wallet", require("./routes/walletRoutes"));
 app.use("/api/otp", require("./routes/otpRoutes"));

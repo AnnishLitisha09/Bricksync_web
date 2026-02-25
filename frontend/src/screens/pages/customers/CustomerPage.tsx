@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  Search, ShieldCheck, Users, User, CreditCard, 
-  Mail, Phone, ExternalLink, Loader2 
+import {
+  Search, ShieldCheck, Users, User, CreditCard,
+  Mail, Phone, ExternalLink, Loader2
 } from "lucide-react";
 import { getAllCustomers } from "../../../store/customers/customerService";
+import { obfuscate } from "../../../utils/encryption";
 
 const CustomerHub: React.FC = () => {
   const [search, setSearch] = useState<string>("");
@@ -38,7 +39,7 @@ const CustomerHub: React.FC = () => {
             Client <span className="text-indigo-600">Hub</span>
           </h1>
         </div>
-        
+
         <div className="bg-white p-2 rounded-3xl border border-slate-200 flex items-center gap-4 pr-6 shadow-sm">
           <div className="bg-slate-900 p-4 rounded-2xl text-white">
             <Users size={24} />
@@ -97,8 +98,8 @@ const CustomerHub: React.FC = () => {
 
                 <div className="mt-auto p-8 pt-4 flex items-center justify-between border-t border-slate-50">
                   <span className="text-sm font-black text-slate-900">{customer.ledger?.length || 0} Records</span>
-                  <button 
-                    onClick={() => navigate(`/customer/details/${customer._id}`)}
+                  <button
+                    onClick={() => navigate(`/customer/details/${obfuscate(customer._id)}`)}
                     className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-indigo-600 transition-all shadow-lg"
                   >
                     View Ledger <ExternalLink size={14} />

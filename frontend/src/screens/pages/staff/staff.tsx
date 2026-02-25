@@ -1,7 +1,5 @@
 import {
-  Briefcase,
   ExternalLink,
-  KeyRound,
   Mail,
   MoreVertical,
   Phone,
@@ -11,7 +9,6 @@ import {
   Trash2,
   User,
   Users,
-  Fingerprint,
   ChevronLeft,
   ChevronRight,
   X,
@@ -22,6 +19,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL, FILE_BASE_URL, getAuthHeader } from "../../../api/base";
 import { useDriverStore, type DriverType } from "../../../store/driverStore";
+import { obfuscate } from "../../../utils/encryption";
 
 interface InternalDriver extends Omit<DriverType, 'status'> {
   _id: string;
@@ -192,7 +190,7 @@ const Staff: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
               {paginatedDrivers.map((driver) => (
                 <div key={driver._id} className="bg-white rounded-[2rem] border border-slate-200 flex flex-col hover:shadow-2xl transition-all group">
-                   <div className="p-6 pb-4 flex items-start justify-between">
+                  <div className="p-6 pb-4 flex items-start justify-between">
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 rounded-2xl overflow-hidden ring-4 ring-slate-50 bg-slate-100">
                         {driver.imageUrl ? (
@@ -215,7 +213,7 @@ const Staff: React.FC = () => {
                       <Mail size={14} /> {driver.email || "No Email"}
                     </div>
                     <button
-                      onClick={() => navigate(`/driver/view/${driver.userid}`)}
+                      onClick={() => navigate(`/driver/view/${obfuscate(driver.userid)}`)}
                       className="w-full mt-4 py-3 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-indigo-600 transition-all"
                     >
                       View Profile
@@ -245,7 +243,7 @@ const Staff: React.FC = () => {
                       <td className="p-6">
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100">
-                            {driver.imageUrl ? <img src={`${FILE_BASE_URL}${driver.imageUrl}`} className="w-full h-full object-cover" /> : <User className="m-auto text-slate-300 mt-2" size={20}/>}
+                            {driver.imageUrl ? <img src={`${FILE_BASE_URL}${driver.imageUrl}`} className="w-full h-full object-cover" /> : <User className="m-auto text-slate-300 mt-2" size={20} />}
                           </div>
                           <div>
                             <p className="font-bold text-slate-900">{driver.name}</p>
@@ -260,8 +258,8 @@ const Staff: React.FC = () => {
                       </td>
                       <td className="p-6">
                         <div className="space-y-1">
-                          <p className="text-sm font-semibold text-slate-600 flex items-center gap-2"><Mail size={12}/> {driver.email}</p>
-                          <p className="text-sm text-slate-400 flex items-center gap-2"><Phone size={12}/> {driver.phoneNumber}</p>
+                          <p className="text-sm font-semibold text-slate-600 flex items-center gap-2"><Mail size={12} /> {driver.email}</p>
+                          <p className="text-sm text-slate-400 flex items-center gap-2"><Phone size={12} /> {driver.phoneNumber}</p>
                         </div>
                       </td>
                       <td className="p-6">
@@ -272,8 +270,8 @@ const Staff: React.FC = () => {
                       </td>
                       <td className="p-6 text-right">
                         <div className="flex items-center justify-end gap-2">
-                           <button onClick={() => navigate(`/driver/view/${driver.userid}`)} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><ExternalLink size={18}/></button>
-                           <button onClick={(e) => handleDeleteUser(e, driver.userid)} className="p-2 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
+                          <button onClick={() => navigate(`/driver/view/${obfuscate(driver.userid)}`)} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><ExternalLink size={18} /></button>
+                          <button onClick={(e) => handleDeleteUser(e, driver.userid)} className="p-2 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
                         </div>
                       </td>
                     </tr>

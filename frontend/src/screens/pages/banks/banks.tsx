@@ -16,6 +16,7 @@ import React, { useEffect, useState } from "react";
 import { BASE_URL, getAuthHeader } from "../../../api/base";
 import { useBankStore } from "../../../store/bankStore";
 import toast from "react-hot-toast";
+import { deobfuscate } from "../../../utils/encryption";
 
 const treasuryData = [
     { title: "Today's Income", amount: "12,340.00", icon: <ArrowUpRight size={24} />, color: "bg-emerald-500", shadow: "shadow-emerald-200" },
@@ -209,7 +210,10 @@ const Banks: React.FC = () => {
                             <div className="text-right">
                                 <h4 className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em]">Balance</h4>
                                 {isVerified ? (
-                                    <p className="text-white font-black text-2xl tabular-nums tracking-tighter"><span className="text-white/40 text-sm mr-1">₹</span>{Number(bank.amount).toLocaleString()}</p>
+                                    <p className="text-white font-black text-2xl tabular-nums tracking-tighter">
+                                        <span className="text-white/40 text-sm mr-1">₹</span>
+                                        {Number(deobfuscate(bank.amount)).toLocaleString()}
+                                    </p>
                                 ) : (
                                     <p className="text-white font-black text-2xl tabular-nums tracking-tighter select-none">••••</p>
                                 )}

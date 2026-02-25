@@ -38,6 +38,7 @@ import CustomerHub from "../screens/pages/customers/CustomerPage";
 import CustomerDetails from "../screens/pages/customers/LedgerDetail";
 import BusinessNotepad from "../screens/pages/notepage/BusinessNotepad";
 import NotepadHistory from "../screens/pages/notepage/NotepadHistory";
+import SettingsPage from "../screens/pages/settings/SettingsPage";
 
 // --- CUSTOMER & LEDGER IMPORTS ---
 
@@ -174,6 +175,10 @@ const privateRoutes = [
   {
     path: "/stock",
     element: <StockInventory />,
+  },
+  {
+    path: "/settings",
+    element: <SettingsPage />,
   },
   {
     path: "*",

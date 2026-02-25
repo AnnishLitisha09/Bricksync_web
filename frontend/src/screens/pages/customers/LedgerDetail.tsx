@@ -1,31 +1,33 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, Calendar, Package, TrendingUp, 
-  Download, Receipt, Loader2, Truck, Plus, Wallet, 
-  PhoneCall, X, BellRing, User, HardHat 
+import {
+  ArrowLeft, Calendar, Package, TrendingUp,
+  Download, Receipt, Loader2, Truck, Plus, Wallet,
+  PhoneCall, X, BellRing, User, HardHat
 } from "lucide-react";
 import { getCustomerById } from "../../../store/customers/customerService";
 import AddMaterialModal from "./AddMaterialModal";
+import { deobfuscate } from "../../../utils/encryption";
 
 const CustomerDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
+
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
-  
-  const [callDetails, setCallDetails] = useState({ 
-    date: new Date().toISOString().split('T')[0], 
+
+  const [callDetails, setCallDetails] = useState({
+    date: new Date().toISOString().split('T')[0],
     remark: "",
-    nextDate: "" 
+    nextDate: ""
   });
 
   useEffect(() => {
     if (id) {
-      getCustomerById(id).then(data => {
+      const realId = deobfuscate(id);
+      getCustomerById(realId).then(data => {
         setCustomer(data);
         setLoading(false);
       });
@@ -56,17 +58,17 @@ const CustomerDetails: React.FC = () => {
   return (
     <div className="p-4 sm:p-8 lg:p-12 min-h-screen bg-[#FBFDFF] space-y-8 animate-in fade-in duration-500 relative">
       <div className="max-w-7xl mx-auto space-y-8">
-        
+
         {/* Navigation & Actions */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition-colors group"
           >
             <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
             Back to Hub
           </button>
-          
+
           <div className="flex items-center gap-3">
             <button onClick={() => setIsCallModalOpen(true)} className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 hover:border-indigo-200 hover:text-indigo-600 transition-all shadow-sm">
               <PhoneCall size={18} /> Call Log
@@ -74,7 +76,7 @@ const CustomerDetails: React.FC = () => {
             <button className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm">
               <Download size={18} /> Export
             </button>
-            <button 
+            <button
               onClick={() => setIsMaterialModalOpen(true)}
               className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
             >
@@ -102,14 +104,14 @@ const CustomerDetails: React.FC = () => {
             </div>
             <Wallet className="absolute -right-4 -bottom-4 text-white/10 group-hover:scale-110 transition-transform" size={100} />
             <div className="mt-4 flex gap-4 relative z-10">
-               <div className="text-[10px]">
-                  <p className="text-slate-400 font-bold uppercase">Total Billed</p>
-                  <p className="font-bold">₹{totals.credit.toLocaleString()}</p>
-               </div>
-               <div className="text-[10px]">
-                  <p className="text-slate-400 font-bold uppercase">Total Paid</p>
-                  <p className="font-bold text-emerald-400">₹{totals.debit.toLocaleString()}</p>
-               </div>
+              <div className="text-[10px]">
+                <p className="text-slate-400 font-bold uppercase">Total Billed</p>
+                <p className="font-bold">₹{totals.credit.toLocaleString()}</p>
+              </div>
+              <div className="text-[10px]">
+                <p className="text-slate-400 font-bold uppercase">Total Paid</p>
+                <p className="font-bold text-emerald-400">₹{totals.debit.toLocaleString()}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -145,7 +147,7 @@ const CustomerDetails: React.FC = () => {
                               {tx.type === "Payment" ? <TrendingUp size={14} className="text-emerald-500" /> : <Package size={14} className="text-indigo-500" />}
                               {item.particulars}
                             </span>
-                            
+
                             {/* Logistics Badges */}
                             <div className="flex flex-wrap gap-2 mt-1">
                               {item.vehicleNumber && (
@@ -213,12 +215,12 @@ const CustomerDetails: React.FC = () => {
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Call Date</label>
                   <div className="relative">
                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       required
                       className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/5 focus:bg-white outline-none"
                       value={callDetails.date}
-                      onChange={(e) => setCallDetails({...callDetails, date: e.target.value})}
+                      onChange={(e) => setCallDetails({ ...callDetails, date: e.target.value })}
                     />
                   </div>
                 </div>
@@ -227,11 +229,11 @@ const CustomerDetails: React.FC = () => {
                   <label className="text-[10px] font-black uppercase tracking-widest text-indigo-400 ml-1">Next Follow-up</label>
                   <div className="relative">
                     <BellRing className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-300" size={18} />
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       className="w-full pl-12 pr-4 py-4 rounded-2xl border border-indigo-50 bg-indigo-50/30 font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/5 focus:bg-white outline-none"
                       value={callDetails.nextDate}
-                      onChange={(e) => setCallDetails({...callDetails, nextDate: e.target.value})}
+                      onChange={(e) => setCallDetails({ ...callDetails, nextDate: e.target.value })}
                     />
                   </div>
                 </div>
@@ -239,17 +241,17 @@ const CustomerDetails: React.FC = () => {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Remark / Discussion</label>
-                <textarea 
+                <textarea
                   placeholder="Summarize discussion..."
                   required
                   rows={4}
                   className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/5 focus:bg-white outline-none resize-none"
                   value={callDetails.remark}
-                  onChange={(e) => setCallDetails({...callDetails, remark: e.target.value})}
+                  onChange={(e) => setCallDetails({ ...callDetails, remark: e.target.value })}
                 />
               </div>
 
-              <button 
+              <button
                 type="submit"
                 className="w-full py-5 bg-slate-900 text-white rounded-[1.8rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-[0.98]"
               >
@@ -261,9 +263,9 @@ const CustomerDetails: React.FC = () => {
         </div>
       )}
 
-      <AddMaterialModal 
-        isOpen={isMaterialModalOpen} 
-        onClose={() => setIsMaterialModalOpen(false)} 
+      <AddMaterialModal
+        isOpen={isMaterialModalOpen}
+        onClose={() => setIsMaterialModalOpen(false)}
         customerId={id || ""}
       />
 

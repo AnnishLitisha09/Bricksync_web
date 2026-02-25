@@ -55,7 +55,8 @@ exports.getAllNotepads = async (req, res) => {
                 { verifiedId: { [Op.like]: `%${search}%` } },
                 { title: { [Op.like]: `%${search}%` } },
                 { phone: { [Op.like]: `%${search}%` } },
-                { email: { [Op.like]: `%${search}%` } }
+                { email: { [Op.like]: `%${search}%` } },
+                { filename: { [Op.like]: `%${search}%` } }
             ]
         } : {};
 
