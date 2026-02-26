@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import {
-  MapPin, Download, Layout, Eye, Edit3, History
+  MapPin, Download, Layout, Eye, Edit3, History, Settings2, Check
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -8,7 +8,7 @@ import { BASE_URL, getAuthHeader } from '../../../api/base';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
-// ... (Constants remain same)
+// Font sizes for the editor
 const FONT_SIZES = [8, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48];
 
 interface FieldData { value: string; fontSize: number; fontWeight: string; fontStyle: string; }
@@ -23,11 +23,25 @@ interface BusinessData {
   verifiedId: FieldData;
 }
 
+interface Toggles {
+  showDate: boolean;
+  showVerifiedId: boolean;
+  showSignatory: boolean;
+  showGeneratedNote: boolean;
+}
+
 const BusinessNotepad: React.FC = () => {
   const navigate = useNavigate();
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false); // For mobile view toggle
   const previewRef = useRef<HTMLDivElement>(null);
+
+  const [toggles, setToggles] = useState<Toggles>({
+    showDate: true,
+    showVerifiedId: true,
+    showSignatory: true,
+    showGeneratedNote: true
+  });
 
   const [formData, setFormData] = useState<BusinessData>({
     title: { value: "ASWATH HOLLOW BRICKS & LORRY SERVICES", fontSize: 24, fontWeight: 'bold', fontStyle: 'normal' },
@@ -58,6 +72,10 @@ const BusinessNotepad: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: { ...prev[name], [key]: val } }));
   };
 
+  const toggleFeature = (key: keyof Toggles) => {
+    setToggles(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   const uploadToBackend = async (pdfBlob: Blob, fileName: string) => {
     try {
       const formDataUpload = new FormData();
@@ -81,7 +99,8 @@ const BusinessNotepad: React.FC = () => {
         body: JSON.stringify({
           formData,
           pdfPath: `/notepad/${fileName}`,
-          filename: fileName
+          filename: fileName,
+          toggles
         })
       });
 
@@ -183,6 +202,37 @@ const BusinessNotepad: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
+          {/* Feature Toggles Section */}
+          <div className="bg-[#EEF2FF] p-4 rounded-xl border border-indigo-100 mb-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <Settings2 size={16} className="text-indigo-600" />
+              <h3 className="text-xs font-bold text-indigo-900 uppercase tracking-wider">Document Options</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { id: 'showDate', label: 'Issue Date' },
+                { id: 'showVerifiedId', label: 'Verified ID' },
+                { id: 'showSignatory', label: 'Signatory' },
+                { id: 'showGeneratedNote', label: 'Footer Note' }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => toggleFeature(item.id as keyof Toggles)}
+                  className={`flex items-center justify-between p-2.5 rounded-lg border transition-all ${toggles[item.id as keyof Toggles]
+                      ? 'bg-white border-indigo-200 text-indigo-700 shadow-sm'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                    }`}
+                >
+                  <span className="text-[11px] font-bold">{item.label}</span>
+                  <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors ${toggles[item.id as keyof Toggles] ? 'bg-indigo-600' : 'bg-slate-200'
+                    }`}>
+                    {toggles[item.id as keyof Toggles] && <Check size={10} className="text-white" />}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {(Object.keys(formData) as Array<keyof BusinessData>).map((key) => (
             <div key={key} className="bg-[#f8fafc] p-4 rounded-xl border border-slate-100">
               <div className="flex items-center justify-between mb-2">
@@ -198,7 +248,7 @@ const BusinessNotepad: React.FC = () => {
                 </div>
               </div>
               {key === 'notes' ? (
-                <textarea name={key} value={formData[key].value} onChange={handleTextChange} rows={6} className="w-full p-2 text-sm border rounded bg-white outline-none focus:border-indigo-500 transition-all" />
+                <textarea name={key} value={formData[key].value} onChange={handleTextChange} rows={6} className="w-full p-2 text-sm border rounded bg-white outline-none focus:border-indigo-500 transition-all shadow-inner" />
               ) : (
                 <input
                   type="text"
@@ -237,7 +287,7 @@ const BusinessNotepad: React.FC = () => {
       `}>
         {/* Wrapper for scaling support on mobile */}
         <div className="py-8 min-h-full flex items-center justify-center">
-          <div className="origin-top scale-[0.4] sm:scale-[0.5] md:scale-[0.7] lg:scale-[0.85] xl:scale-100 shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-transform duration-300 flex-shrink-0">
+          <div className="origin-top scale-[0.4] sm:scale-[0.5] md:scale-[0.7] lg:scale-[0.85] xl:scale-100 shadow-[0_20px_50px_rgba(0,0,0,0.4)] transition-transform duration-300 flex-shrink-0">
             <div
               ref={previewRef}
               className="bg-white"
@@ -303,49 +353,61 @@ const BusinessNotepad: React.FC = () => {
                 zIndex: 1
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '30px' }}>
-                  <div className="flex-shrink-0">
-                    <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.5px' }}>DATE OF ISSUE</div>
-                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1e293b', marginBottom: '15px' }}>{new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                  <div className="flex-shrink-0" style={{ minHeight: '80px' }}>
+                    {toggles.showDate && (
+                      <div style={{ marginBottom: '15px' }}>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.5px' }}>DATE OF ISSUE</div>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1e293b' }}>{new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                      </div>
+                    )}
 
-                    <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.5px' }}>VERIFIED ID</div>
-                    <div style={{ fontSize: `${formData.verifiedId.fontSize}px`, fontWeight: 'bold', color: '#4f46e5' }}>
-                      {formData.verifiedId.value}
-                    </div>
+                    {toggles.showVerifiedId && (
+                      <div>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.5px' }}>VERIFIED ID</div>
+                        <div style={{ fontSize: `${formData.verifiedId.fontSize}px`, fontWeight: 'bold', color: '#4f46e5' }}>
+                          {formData.verifiedId.value}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div style={{ textAlign: 'center', minWidth: '220px' }}>
-                    <div style={{ width: '100%', height: '1.5px', backgroundColor: '#0f172a', marginBottom: '8px' }} />
-                    <div style={{
-                      fontSize: `${formData.companySignature.fontSize}px`,
-                      fontWeight: 'bold',
-                      color: '#1e293b',
-                      textTransform: 'uppercase'
-                    }}>
-                      {formData.companySignature.value}
+                  {toggles.showSignatory && (
+                    <div style={{ textAlign: 'center', minWidth: '220px' }}>
+                      <div style={{ width: '100%', height: '1.5px', backgroundColor: '#0f172a', marginBottom: '8px' }} />
+                      <div style={{
+                        fontSize: `${formData.companySignature.fontSize}px`,
+                        fontWeight: 'bold',
+                        color: '#1e293b',
+                        textTransform: 'uppercase'
+                      }}>
+                        {formData.companySignature.value}
+                      </div>
+                      <div style={{ fontSize: '9px', color: '#4f46e5', fontWeight: 'bold', letterSpacing: '1.5px', marginTop: '4px' }}>
+                        AUTHORIZED SIGNATORY
+                      </div>
                     </div>
-                    <div style={{ fontSize: '9px', color: '#4f46e5', fontWeight: 'bold', letterSpacing: '1.5px', marginTop: '4px' }}>
-                      AUTHORIZED SIGNATORY
-                    </div>
-                  </div>
+                  )}
                 </div>
 
-                <div style={{
-                  textAlign: 'center',
-                  borderTop: '1px dashed #cbd5e1',
-                  paddingTop: '10px',
-                  marginTop: '10px'
-                }}>
-                  <p style={{
-                    fontSize: '9px',
-                    color: '#94a3b8',
-                    fontStyle: 'italic',
-                    margin: 0,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
+                {toggles.showGeneratedNote && (
+                  <div style={{
+                    textAlign: 'center',
+                    borderTop: '1px dashed #cbd5e1',
+                    paddingTop: '10px',
+                    marginTop: '10px'
                   }}>
-                    This is a computer generated Letter.
-                  </p>
-                </div>
+                    <p style={{
+                      fontSize: '9px',
+                      color: '#94a3b8',
+                      fontStyle: 'italic',
+                      margin: 0,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      This is a computer generated Letter.
+                    </p>
+                  </div>
+                )}
               </footer>
             </div>
           </div>
