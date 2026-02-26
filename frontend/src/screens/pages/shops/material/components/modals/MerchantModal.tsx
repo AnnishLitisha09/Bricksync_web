@@ -14,6 +14,7 @@ import {
     Phone
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { BASE_URL } from "../../../../../../api/base";
 
 interface ShopEntry {
     id: number;
@@ -102,7 +103,7 @@ const MerchantModal: React.FC<MerchantModalProps> = ({
     const fetchDetails = async () => {
         if (!shop) return;
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/suppliers/${shop.id}`, {
+            const response = await fetch(`${BASE_URL}/materials/suppliers/${shop.id}`, {
                 headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
             });
             const result = await response.json();
@@ -140,8 +141,8 @@ const MerchantModal: React.FC<MerchantModalProps> = ({
             }
 
             const url = shop?.id
-                ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/suppliers/${shop.id}`
-                : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/suppliers`;
+                ? `${BASE_URL}/materials/suppliers/${shop.id}`
+                : `${BASE_URL}/materials/suppliers`;
 
             const response = await fetch(url, {
                 method: shop ? "PUT" : "POST",
