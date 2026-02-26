@@ -17,7 +17,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
     const [banks, setBanks] = useState<any[]>([]);
     const [formData, setFormData] = useState({
         amount: "",
-        bank_type: "Bank Transfer",
+        bank_type: "Net Banking",
         bank_id: "",
         description: "",
         date: new Date().toISOString().split('T')[0]
@@ -36,9 +36,10 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
             loadBanks();
 
             if (editData) {
+                const selectedBank = banks.find(b => b.id === editData.bank_id);
                 setFormData({
                     amount: editData.amount?.toString() || "",
-                    bank_type: editData.bank_type || "Bank Transfer",
+                    bank_type: editData.bank_type || (selectedBank?.name.toLowerCase() === 'cash' ? "Cash" : "Net Banking"),
                     bank_id: editData.bank_id?.toString() || "",
                     description: editData.description || "",
                     date: editData.date || editData.created_at?.split('T')[0] || new Date().toISOString().split('T')[0]
@@ -46,7 +47,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
             } else {
                 setFormData({
                     amount: "",
-                    bank_type: "Bank Transfer",
+                    bank_type: "",
                     bank_id: "",
                     description: "",
                     date: new Date().toISOString().split('T')[0]
@@ -141,38 +142,66 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-indigo-400 ml-1">Receive in Bank / Cash</label>
+                            <div className="relative">
+                                <Landmark className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-300" size={18} />
+                                <select
+                                    required
+                                    className="w-full pl-12 pr-4 py-4 rounded-2xl border border-indigo-50 bg-indigo-50/30 font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/5 focus:bg-white outline-none appearance-none"
+                                    value={formData.bank_id}
+                                    onChange={(e) => {
+                                        const newBankId = e.target.value;
+                                        const selectedBank = banks.find(b => b.id === Number(newBankId));
+                                        let newBankType = "";
+
+                                        if (selectedBank) {
+                                            if (selectedBank.name.toLowerCase() === 'cash') {
+                                                newBankType = "Cash";
+                                            } else if (selectedBank.bankTransfer) {
+                                                newBankType = "Net Banking";
+                                            } else if (selectedBank.gpay) {
+                                                newBankType = "GPay";
+                                            } else if (selectedBank.phonepe) {
+                                                newBankType = "PhonePe";
+                                            }
+                                        }
+
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            bank_id: newBankId,
+                                            bank_type: newBankType
+                                        }));
+                                    }}
+                                >
+                                    <option value="">Select Bank / Cash</option>
+                                    {banks.map(b => (
+                                        <option key={b.id} value={b.id}>{b.name} - {b.accountNumber}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Payment Mode</label>
                             <select
                                 className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/5 focus:bg-white outline-none appearance-none"
                                 value={formData.bank_type}
                                 onChange={(e) => setFormData({ ...formData, bank_type: e.target.value })}
                             >
-                                <option>Bank Transfer</option>
-                                <option>PhonePe</option>
-                                <option>GPay</option>
-                                <option>Cash</option>
+                                {(() => {
+                                    const selectedBank = banks.find(b => b.id === Number(formData.bank_id));
+                                    if (!selectedBank) return <option value="">Select Bank First</option>;
+                                    if (selectedBank.name.toLowerCase() === 'cash') return <option value="Cash">Cash</option>;
+                                    return (
+                                        <>
+                                            {selectedBank.bankTransfer && <option value="Net Banking">Net Banking</option>}
+                                            {selectedBank.gpay && <option value="GPay">GPay</option>}
+                                            {selectedBank.phonepe && <option value="PhonePe">PhonePe</option>}
+                                        </>
+                                    );
+                                })()}
                             </select>
                         </div>
-
-                        {formData.bank_type !== 'Cash' && (
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-indigo-400 ml-1">Receive in Bank</label>
-                                <div className="relative">
-                                    <Landmark className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-300" size={18} />
-                                    <select
-                                        className="w-full pl-12 pr-4 py-4 rounded-2xl border border-indigo-50 bg-indigo-50/30 font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/5 focus:bg-white outline-none appearance-none"
-                                        value={formData.bank_id}
-                                        onChange={(e) => setFormData({ ...formData, bank_id: e.target.value })}
-                                        required={formData.bank_type !== 'Cash'}
-                                    >
-                                        <option value="">Select Bank Account</option>
-                                        {banks.map(b => (
-                                            <option key={b.id} value={b.id}>{b.name} - {b.accountNumber}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                        )}
                     </div>
 
                     <div className="space-y-2">
