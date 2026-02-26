@@ -315,11 +315,36 @@ exports.deleteOrder = async (req, res) => {
 exports.bulkImportOrders = async (req, res) => {
     const transaction = await sequelize.transaction();
     try {
-        const { cus_id, orders = [], payments = [] } = req.body;
+        const { cus_id, orders = [], payments = [], openingBalance = 0 } = req.body;
 
         if (!cus_id) {
             await transaction.rollback();
             return res.status(400).json({ message: "cus_id is required" });
+        }
+
+        const customer = await Customer.findByPk(cus_id, { transaction });
+        if (!customer) {
+            await transaction.rollback();
+            return res.status(404).json({ message: "Customer not found" });
+        }
+
+        // 1. Handle Opening Balance
+        if (Number(openingBalance) > 0) {
+            // Create a pseudo-order for opening balance if you want it to appear in the ledger
+            const openingOrder = await Order.create({
+                cus_id: Number(cus_id),
+                date: orders.length > 0 ? (orders[0].date.split("-").reverse().join("-")) : new Date().toISOString().split('T')[0],
+                transport_charge: 0,
+            }, { transaction });
+
+            await OrderItem.create({
+                order_id: openingOrder.order_id,
+                product: "OPENING BALANCE",
+                quantity: 1,
+                price: Number(openingBalance),
+            }, { transaction });
+
+            await customer.increment("balance", { by: Number(openingBalance), transaction });
         }
 
         let ordersCreated = 0;
@@ -357,7 +382,6 @@ exports.bulkImportOrders = async (req, res) => {
                 }, { transaction });
             }
 
-            const customer = await Customer.findByPk(cus_id, { transaction });
             if (customer) await customer.increment("balance", { by: totalValue, transaction });
 
             ordersCreated++;
@@ -379,7 +403,6 @@ exports.bulkImportOrders = async (req, res) => {
                 date: isoDate || null,
             }, { transaction });
 
-            const customer = await Customer.findByPk(cus_id, { transaction });
             if (customer) await customer.decrement("balance", { by: amt, transaction });
 
             paymentsCreated++;

@@ -88,10 +88,26 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
     const rows: Array<
       | { type: 'order'; date: string; index: number; data: ParsedOrder }
       | { type: 'payment'; date: string; index: number; data: ParsedPayment }
+      | { type: 'opening'; date: string; index: number; data: { amount: number } }
     > = [
         ...parsedLedger.orders.map(o => ({ type: 'order' as const, date: o.date, index: o.originalIndex || 0, data: o })),
         ...parsedLedger.payments.map(p => ({ type: 'payment' as const, date: p.date, index: p.originalIndex || 0, data: p })),
       ];
+
+    if (parsedLedger.openingBalance > 0) {
+      // Find the earliest date in orders/payments to place opening balance before them
+      const earliestDate = [...parsedLedger.orders, ...parsedLedger.payments]
+        .map(o => o.date)
+        .sort((a, b) => toMs(a) - toMs(b))[0] || "01-01-2026";
+
+      rows.push({
+        type: 'opening' as const,
+        date: earliestDate,
+        index: -1, // Always first
+        data: { amount: parsedLedger.openingBalance }
+      });
+    }
+
     return rows.sort((a, b) => {
       const dateDiff = toMs(a.date) - toMs(b.date);
       return dateDiff !== 0 ? dateDiff : a.index - b.index;
@@ -203,6 +219,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
         cus_id: Number(customerId),
         orders: parsedLedger.orders,
         payments: parsedLedger.payments,
+        openingBalance: parsedLedger.openingBalance || 0,
       });
       toast.success(`Imported ${result.ordersCreated} orders and ${result.paymentsCreated} payments!`);
       onClose();
@@ -557,7 +574,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
                       </div>
                       <div className="flex-1 bg-slate-100 rounded-2xl p-3 text-center">
                         <p className="text-lg font-black text-slate-700">
-                          ₹{parsedLedger.orders.reduce((s, o) => s + o.items.reduce((is, i) => is + i.qty * i.rate, 0), 0).toLocaleString('en-IN')}
+                          ₹{(parsedLedger.orders.reduce((s, o) => s + o.items.reduce((is, i) => is + i.qty * i.rate, 0), 0) + (parsedLedger.openingBalance || 0)).toLocaleString('en-IN')}
                         </p>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Billed</p>
                       </div>
@@ -575,6 +592,16 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {mergedPreviewRows.map((row, i) => {
+                            if (row.type === 'opening') {
+                              return (
+                                <tr key={`r${i}`} className="bg-amber-50/50 hover:bg-amber-50">
+                                  <td className="px-3 py-2 font-bold text-slate-600 whitespace-nowrap">{row.date}</td>
+                                  <td className="px-3 py-2 text-amber-500 font-black">-</td>
+                                  <td className="px-3 py-2 text-amber-700 font-bold uppercase tracking-widest text-[10px]">Opening Balance</td>
+                                  <td className="px-3 py-2 text-right font-black text-amber-600">&#8377;{row.data.amount.toLocaleString('en-IN')}</td>
+                                </tr>
+                              );
+                            }
                             if (row.type === 'payment') {
                               const pay = row.data;
                               return (
@@ -586,22 +613,25 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
                                 </tr>
                               );
                             }
-                            const order = row.data;
-                            return (
-                              <tr key={`r${i}`} className="hover:bg-white align-top">
-                                <td className="px-3 py-2 font-black text-slate-800 whitespace-nowrap">{order.date}</td>
-                                <td className="px-3 py-2 text-indigo-500 font-black whitespace-nowrap">{order.orderNumber}</td>
-                                <td className="px-3 py-2 text-slate-600">
-                                  {order.items.map((item, j) => (
-                                    <div key={j} className="leading-relaxed">
-                                      <span className="font-bold text-slate-700">{item.product}</span>
-                                      <span className="text-slate-400 ml-1">x {item.qty} @&#8377;{item.rate}</span>
-                                    </div>
-                                  ))}
-                                </td>
-                                <td className="px-3 py-2 text-right font-black text-slate-900 whitespace-nowrap">&#8377;{order.total.toLocaleString('en-IN')}</td>
-                              </tr>
-                            );
+                            if (row.type === 'order') {
+                              const order = row.data;
+                              return (
+                                <tr key={`r${i}`} className="hover:bg-white align-top">
+                                  <td className="px-3 py-2 font-black text-slate-800 whitespace-nowrap">{order.date}</td>
+                                  <td className="px-3 py-2 text-indigo-500 font-black whitespace-nowrap">{order.orderNumber}</td>
+                                  <td className="px-3 py-2 text-slate-600">
+                                    {order.items.map((item: any, j: number) => (
+                                      <div key={j} className="leading-relaxed">
+                                        <span className="font-bold text-slate-700">{item.product}</span>
+                                        <span className="text-slate-400 ml-1">x {item.qty} @&#8377;{item.rate}</span>
+                                      </div>
+                                    ))}
+                                  </td>
+                                  <td className="px-3 py-2 text-right font-black text-slate-900 whitespace-nowrap">&#8377;{order.total.toLocaleString('en-IN')}</td>
+                                </tr>
+                              );
+                            }
+                            return null;
                           })}
                         </tbody>
                       </table>

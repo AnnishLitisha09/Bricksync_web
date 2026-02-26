@@ -67,6 +67,7 @@ export const bulkImportOrders = async (payload: {
     cus_id: number;
     orders: { date: string; orderNumber: string; items: { product: string; qty: number; rate: number }[] }[];
     payments: { date: string; method: string; amount: number }[];
+    openingBalance?: number;
 }) => {
     const res = await fetch(`${BASE_URL}/orders/bulk-import`, {
         method: "POST",
