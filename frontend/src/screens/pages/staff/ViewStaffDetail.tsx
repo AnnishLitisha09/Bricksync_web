@@ -186,31 +186,43 @@ const ViewStaffDetail: React.FC = () => {
 
         <div className="grid grid-cols-1 gap-4">
           <AnimatePresence mode="popLayout">
-            {filteredTransactions.map((t, idx) => (
-              <motion.div key={t.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="group bg-white rounded-[2rem] p-6 border border-slate-100 hover:border-indigo-200 transition-all shadow-sm">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  <div className="flex items-center gap-5">
-                    <div className={`p-4 rounded-2xl ${t.type === "received" ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"}`}>
-                      {t.type === "received" ? <ArrowDownLeft size={24} /> : <ArrowUpRight size={24} />}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.category}</span>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500 px-2 py-0.5 bg-indigo-50 rounded-md">{t.paymentType}</span>
+            {filteredTransactions.length > 0 ? (
+              filteredTransactions.map((t, idx) => (
+                <motion.div key={t.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="group bg-white rounded-[2rem] p-6 border border-slate-100 hover:border-indigo-200 transition-all shadow-sm">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-5">
+                      <div className={`p-4 rounded-2xl ${t.type === "received" ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"}`}>
+                        {t.type === "received" ? <ArrowDownLeft size={24} /> : <ArrowUpRight size={24} />}
                       </div>
-                      <h4 className="text-lg font-black text-slate-900 mt-0.5 uppercase italic">{t.description}</h4>
-                      <p className="text-xs font-bold text-slate-400 flex items-center gap-1.5 mt-1 uppercase">
-                        <CalendarDays size={12} /> {new Date(t.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                        <span className="ml-2 text-[10px] text-slate-300">• {t.bank?.name || "Cash"}</span>
-                      </p>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.category}</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500 px-2 py-0.5 bg-indigo-50 rounded-md">{t.paymentType}</span>
+                        </div>
+                        <h4 className="text-lg font-black text-slate-900 mt-0.5 uppercase italic">{t.description}</h4>
+                        <p className="text-xs font-bold text-slate-400 flex items-center gap-1.5 mt-1 uppercase">
+                          <CalendarDays size={12} /> {new Date(t.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                          <span className="ml-2 text-[10px] text-slate-300">• {t.bank?.name || "Cash"}</span>
+                        </p>
+                      </div>
                     </div>
+                    <p className={`text-2xl font-black tabular-nums ${t.type === "received" ? "text-emerald-600" : "text-rose-600"}`}>
+                      {t.type === "received" ? "+" : "-"} ₹{t.amount.toLocaleString()}
+                    </p>
                   </div>
-                  <p className={`text-2xl font-black tabular-nums ${t.type === "received" ? "text-emerald-600" : "text-rose-600"}`}>
-                    {t.type === "received" ? "+" : "-"} ₹{t.amount.toLocaleString()}
-                  </p>
-                </div>
+                </motion.div>
+              ))
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-100"
+              >
+                <History size={48} className="text-slate-100 mb-4" />
+                <h3 className="text-xl font-black text-slate-300 uppercase italic">No transaction flow found</h3>
+                <p className="text-slate-400 text-xs font-bold mt-2 uppercase tracking-widest">Records will appear after payments or advances</p>
               </motion.div>
-            ))}
+            )}
           </AnimatePresence>
         </div>
       </div>

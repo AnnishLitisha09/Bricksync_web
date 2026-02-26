@@ -204,9 +204,30 @@ const Staff: React.FC = () => {
                         <span className="text-indigo-500 font-bold text-[10px] uppercase">{driver.staffRole || "Personnel"}</span>
                       </div>
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === driver._id ? null : driver._id); }} className="p-2 text-slate-400 hover:text-slate-900">
-                      <MoreVertical size={20} />
-                    </button>
+                    <div className="relative">
+                      <button onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === driver._id ? null : driver._id); }} className="p-2 text-slate-400 hover:text-slate-900">
+                        <MoreVertical size={20} />
+                      </button>
+                      {activeMenu === driver._id && (
+                        <div className="absolute right-0 mt-2 w-36 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/driver/view/${obfuscate(driver.userid)}`);
+                            }}
+                            className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                          >
+                            <ExternalLink size={14} /> View Details
+                          </button>
+                          <button
+                            onClick={(e) => handleDeleteUser(e, driver.userid)}
+                            className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2"
+                          >
+                            <Trash2 size={14} /> Delete Staff
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="px-6 space-y-2 pb-6">
                     <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 bg-slate-50 p-2 rounded-lg">
