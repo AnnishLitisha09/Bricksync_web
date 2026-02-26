@@ -14,7 +14,8 @@ initScheduledTasks();
 // ================= Middleware =================
 app.use(cors({
   origin: true,
-  credentials: true
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-folder-name']
 }));
 
 app.use(express.json());

@@ -2,13 +2,18 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 const notepadController = require("../controllers/notepadController");
 
 // Multer config for PDF storage
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const folder = req.headers['x-folder-name'] || 'notepad';
-        cb(null, path.join(__dirname, "../", folder));
+        const targetDir = path.join(__dirname, "../", folder);
+        if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+        }
+        cb(null, targetDir);
     },
     filename: (req, file, cb) => {
         cb(null, file.originalname);

@@ -10,7 +10,6 @@ module.exports = (sequelize, DataTypes) => {
             invoiceId: {
                 type: DataTypes.STRING,
                 allowNull: false,
-                unique: true,
             },
             customerNumber: DataTypes.STRING,
             customerPhone: DataTypes.STRING,
@@ -52,6 +51,8 @@ module.exports = (sequelize, DataTypes) => {
             },
             pdfPath: DataTypes.STRING,
             filename: DataTypes.STRING,
+            materialId: DataTypes.INTEGER,
+            officeId: DataTypes.INTEGER,
         },
         {
             tableName: "Invoices",

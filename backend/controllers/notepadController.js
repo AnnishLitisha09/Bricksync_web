@@ -33,11 +33,12 @@ exports.uploadPDF = async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ success: false, message: "No PDF file uploaded" });
         }
+        const folder = req.headers['x-folder-name'] || 'notepad';
         res.status(200).json({
             success: true,
             message: "PDF uploaded successfully",
             filename: req.file.filename,
-            path: `/pdfs/${req.file.filename}`
+            path: `/${folder}/${req.file.filename}`
         });
     } catch (error) {
         console.error("Upload PDF Error:", error);

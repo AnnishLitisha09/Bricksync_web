@@ -75,6 +75,8 @@ exports.createInvoice = async (req, res) => {
             bankName,
             accountNo,
             ifscCode,
+            materialId,
+            officeId,
             isActive: true
         }, { transaction });
 
