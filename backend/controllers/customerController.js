@@ -19,14 +19,38 @@ exports.createCustomer = async (req, res) => {
     }
 };
 
-// Get all Customers
+const { Op } = require("sequelize");
+
+// Get all Customers with search and pagination
 exports.getAllCustomers = async (req, res) => {
     try {
-        const customers = await Customer.findAll({
-            where: { is_deleted: false },
-            order: [["created_at", "DESC"]]
+        const { search, page = 1, limit = 10 } = req.query;
+        const offset = (page - 1) * limit;
+
+        const where = { is_deleted: false };
+        if (search) {
+            where[Op.or] = [
+                { name: { [Op.like]: `%${search}%` } },
+                { phone_no: { [Op.like]: `%${search}%` } }
+            ];
+        }
+
+        const { count, rows } = await Customer.findAndCountAll({
+            where,
+            order: [["created_at", "DESC"]],
+            limit: parseInt(limit),
+            offset: parseInt(offset)
         });
-        return res.status(200).json({ data: customers });
+
+        return res.status(200).json({
+            data: rows,
+            pagination: {
+                total: count,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(count / limit)
+            }
+        });
     } catch (error) {
         console.error("Error fetching customers:", error);
         return res.status(500).json({ message: "Internal Server Error", error: error.message });

@@ -11,8 +11,8 @@ export interface CustomerData {
     is_deleted?: boolean;
 }
 
-export const fetchCustomers = async () => {
-    const res = await fetch(`${BASE_URL}/customers`, {
+export const fetchCustomers = async (search: string = "", page: number = 1, limit: number = 10) => {
+    const res = await fetch(`${BASE_URL}/customers?search=${search}&page=${page}&limit=${limit}`, {
         headers: { ...getAuthHeader() },
     });
     if (!res.ok) throw new Error("Failed to fetch customers");
