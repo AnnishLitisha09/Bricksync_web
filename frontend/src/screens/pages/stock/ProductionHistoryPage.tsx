@@ -9,11 +9,13 @@ import {
   HardHat,
   Filter,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Trash2
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getProductionHistory } from "../../../api/inventory";
+import { getProductionHistory, deleteProductionLog } from "../../../api/inventory";
+import toast from "react-hot-toast";
 
 interface ProductionLog {
   production_id: number;
@@ -40,13 +42,16 @@ export default function ProductionHistoryPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [history, setHistory] = useState<ProductionLog[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   useEffect(() => {
+    setLoading(true);
     getProductionHistory()
       .then(setHistory)
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
   const filteredHistory = useMemo(() => {
@@ -67,6 +72,22 @@ export default function ProductionHistoryPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [search]);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this production log? Stock will be reversed.")) return;
+    setLoading(true);
+    try {
+      console.log("Attempting to delete production log ID:", id);
+      await deleteProductionLog(id);
+      toast.success("Production deleted and stock reversed");
+      setHistory(prev => prev.filter(log => log.production_id !== id));
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete production log");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -107,8 +128,16 @@ export default function ProductionHistoryPage() {
         </div>
       </div>
 
+      {/* LOADING STATE */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-12 gap-3 bg-white/50 backdrop-blur-sm rounded-3xl border border-gray-100 shadow-sm animate-pulse">
+          <div className="h-10 w-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bridging Logs...</p>
+        </div>
+      )}
+
       {/* TABLE CONTAINER */}
-      <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+      <div className={`bg-white rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
         {/* Horizontal Scroll Wrapper */}
         <div className="overflow-x-auto scrollbar-hide">
           <table className="w-full min-w-[800px]"> {/* Ensures table doesn't squish too much on mobile */}
@@ -119,7 +148,8 @@ export default function ProductionHistoryPage() {
                 <th className="px-6 py-5 text-left">Material</th>
                 <th className="px-6 py-5 text-center">Qty</th>
                 <th className="px-6 py-5 text-center">Cement</th>
-                <th className="px-6 py-5 text-right">Staff Assigned</th>
+                <th className="px-6 py-5 text-center">Staff Assigned</th>
+                <th className="px-6 py-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -179,6 +209,14 @@ export default function ProductionHistoryPage() {
                       )}
                     </div>
                   </td>
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      onClick={() => handleDelete(log.production_id)}
+                      className="p-2 text-slate-400 hover:text-red-500 transition-colors bg-slate-50 hover:bg-red-50 rounded-xl"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -209,8 +247,8 @@ export default function ProductionHistoryPage() {
                       <button
                         onClick={() => setCurrentPage(page)}
                         className={`w-7 h-7 rounded-lg text-[10px] font-black transition-all ${currentPage === page
-                            ? "bg-orange-600 text-white shadow-md"
-                            : "bg-white text-slate-400 border border-gray-100"
+                          ? "bg-orange-600 text-white shadow-md"
+                          : "bg-white text-slate-400 border border-gray-100"
                           }`}
                       >
                         {page}

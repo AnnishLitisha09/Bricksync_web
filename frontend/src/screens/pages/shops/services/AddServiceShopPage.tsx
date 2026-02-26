@@ -1,20 +1,21 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { 
-  Wrench, 
-  User, 
-  Phone, 
-  MapPin, 
-  Wallet, 
-  ArrowLeft, 
-  Save, 
+import {
+  Wrench,
+  User,
+  Phone,
+  MapPin,
+  Wallet,
+  ArrowLeft,
+  Save,
   Loader2,
   ShieldCheck,
   Settings,
   ChevronDown
 } from "lucide-react";
 import { useServiceShopStore } from "../../../../store/useServiceShopStore";
+import toast from "react-hot-toast";
 
 export default function AddServiceShopPage() {
   const navigate = useNavigate();
@@ -32,14 +33,27 @@ export default function AddServiceShopPage() {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "phone") {
+      const val = value.replace(/\D/g, "");
+      if (val.length <= 10) {
+        setForm({ ...form, [name]: val });
+      }
+      return;
+    }
+    setForm({ ...form, [name]: value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!form.shop_name || !form.owner || !form.phone || !form.address || !form.amount || !form.type) {
-      alert("Please fill all fields");
+      toast.error("Please fill all fields");
+      return;
+    }
+
+    if (form.phone.length !== 10) {
+      toast.error("Phone number must be exactly 10 digits");
       return;
     }
 
@@ -56,7 +70,7 @@ export default function AddServiceShopPage() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-6xl mx-auto p-4 md:p-8"
@@ -73,16 +87,16 @@ export default function AddServiceShopPage() {
       </button>
 
       <div className="bg-white rounded-[3rem] shadow-2xl shadow-slate-200 overflow-hidden border border-slate-100 flex flex-col lg:flex-row">
-        
+
         {/* LEFT PANEL: BRANDING */}
         <div className="lg:w-1/3 bg-slate-900 p-8 lg:p-12 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-600/20 rounded-full blur-3xl -mr-32 -mt-32" />
-          
+
           <div className="relative z-10 space-y-8">
             <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-900/50">
               <Wrench size={32} />
             </div>
-            
+
             <div>
               <h1 className="text-3xl font-black tracking-tight leading-tight uppercase">
                 Add <br />

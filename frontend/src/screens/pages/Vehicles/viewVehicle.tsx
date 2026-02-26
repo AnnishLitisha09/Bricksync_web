@@ -111,12 +111,12 @@ export default function ViewVehicle() {
     return (
         <div className="min-h-screen bg-[#FDFDFD] pb-24 md:pb-12">
             <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in zoom-in-95 duration-700">
-                
+
                 {/* HEADER SECTION */}
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
-                        <button 
-                            onClick={() => navigate(-1)} 
+                        <button
+                            onClick={() => navigate(-1)}
                             className="group p-3 rounded-2xl bg-white border border-gray-100 shadow-sm hover:border-orange-200 transition-all active:scale-90"
                         >
                             <ArrowLeft size={22} className="text-gray-600 group-hover:text-orange-500 transition-colors" />
@@ -125,11 +125,11 @@ export default function ViewVehicle() {
                             {isEdit ? (
                                 <div className="space-y-1">
                                     <span className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] px-1">Editing Mode</span>
-                                    <input 
-                                        name="vehicleName" 
+                                    <input
+                                        name="vehicleName"
                                         className="w-full text-2xl md:text-4xl font-black bg-white border-b-4 border-orange-500 focus:outline-none rounded-t-lg px-2"
-                                        value={vehicle.vehicleName} 
-                                        onChange={handleChange} 
+                                        value={vehicle.vehicleName}
+                                        onChange={handleChange}
                                         autoFocus
                                     />
                                 </div>
@@ -159,8 +159,8 @@ export default function ViewVehicle() {
                                 <button onClick={handleCancel} className="flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-gray-500 bg-white border border-gray-100 hover:bg-gray-50 transition-all">
                                     <X size={18} /> Cancel
                                 </button>
-                                <button 
-                                    onClick={handleSave} 
+                                <button
+                                    onClick={handleSave}
                                     disabled={!hasChanges || saving}
                                     className="flex items-center gap-2 px-8 py-3 rounded-2xl font-bold text-white bg-orange-500 hover:bg-orange-600 shadow-xl shadow-orange-100 disabled:opacity-50 transition-all"
                                 >
@@ -168,15 +168,34 @@ export default function ViewVehicle() {
                                 </button>
                             </>
                         ) : (
-                            <button onClick={() => setEdit(true)} className="flex items-center gap-2 px-8 py-4 rounded-[1.5rem] font-bold text-white bg-gray-900 hover:bg-black shadow-2xl shadow-gray-300 transition-all active:scale-95">
-                                <Edit size={18} strokeWidth={2.5} /> Edit Vehicle
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={async () => {
+                                        if (window.confirm("Are you sure you want to delete this vehicle? This action cannot be undone.")) {
+                                            try {
+                                                await useVehicleStore.getState().deleteVehicle(vehicle.id);
+                                                toast.success("Vehicle deleted successfully");
+                                                navigate("/vehicles");
+                                            } catch (err) {
+                                                toast.error("Failed to delete vehicle");
+                                            }
+                                        }
+                                    }}
+                                    className="p-4 rounded-[1.5rem] font-bold text-red-500 bg-red-50 hover:bg-red-100 transition-all active:scale-95"
+                                    title="Delete Vehicle"
+                                >
+                                    <AlertCircle size={20} />
+                                </button>
+                                <button onClick={() => setEdit(true)} className="flex items-center gap-2 px-8 py-4 rounded-[1.5rem] font-bold text-white bg-gray-900 hover:bg-black shadow-2xl shadow-gray-300 transition-all active:scale-95">
+                                    <Edit size={18} strokeWidth={2.5} /> Edit Vehicle
+                                </button>
+                            </div>
                         )}
                     </div>
                 </header>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-                    
+
                     {/* LEFT: HERO IMAGE */}
                     <div className="lg:col-span-5">
                         <div className="group relative aspect-square sm:aspect-video lg:aspect-[4/5] rounded-[2.5rem] overflow-hidden bg-gray-100 shadow-2xl border-[6px] border-white">
@@ -186,7 +205,7 @@ export default function ViewVehicle() {
                                 alt="Vehicle"
                             />
                             {isEdit && (
-                                <div 
+                                <div
                                     onClick={() => vehicleImageRef.current?.click()}
                                     className="absolute inset-0 bg-orange-600/40 backdrop-blur-md flex flex-col items-center justify-center text-white cursor-pointer animate-in fade-in duration-300"
                                 >
@@ -216,14 +235,14 @@ export default function ViewVehicle() {
                         <div className="bg-white rounded-[2.5rem] p-6 md:p-10 border border-gray-100 shadow-xl shadow-gray-500/5 flex-1">
                             <div className="flex items-center gap-4 mb-10">
                                 <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500">
-                                    <Zap size={24} strokeWidth={2.5}/>
+                                    <Zap size={24} strokeWidth={2.5} />
                                 </div>
                                 <div>
                                     <h3 className="font-black text-gray-900 uppercase tracking-tight text-xl italic">Performance & Specs</h3>
                                     <div className="h-1 w-12 bg-orange-500 rounded-full mt-1"></div>
                                 </div>
                             </div>
-                            
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-8">
                                 <div className="space-y-2">
                                     <Input label="Reg. Number" name="vehicleNumber" disabled={!isEdit} value={vehicle.vehicleNumber} onChange={handleChange} />
@@ -245,9 +264,9 @@ export default function ViewVehicle() {
 
                         {/* Summary for Desktop */}
                         <div className="hidden md:grid grid-cols-3 gap-4">
-                            <QuickStat icon={<ShieldCheck size={20}/>} label="Compliance" value="98%" />
-                            <QuickStat icon={<MapPin size={20}/>} label="Location" value="Main Hub" />
-                            <QuickStat icon={<FileText size={20}/>} label="Docs" value="4/4" />
+                            <QuickStat icon={<ShieldCheck size={20} />} label="Compliance" value="98%" />
+                            <QuickStat icon={<MapPin size={20} />} label="Location" value="Main Hub" />
+                            <QuickStat icon={<FileText size={20} />} label="Docs" value="4/4" />
                         </div>
                     </div>
                 </div>
@@ -274,8 +293,8 @@ export default function ViewVehicle() {
                             <button onClick={handleCancel} className="w-14 h-14 flex items-center justify-center rounded-full bg-white/10 text-white">
                                 <X size={24} />
                             </button>
-                            <button 
-                                onClick={handleSave} 
+                            <button
+                                onClick={handleSave}
                                 disabled={!hasChanges || saving}
                                 className="flex-1 h-14 flex items-center justify-center gap-2 rounded-full bg-orange-500 text-white font-black uppercase tracking-widest text-xs disabled:opacity-50"
                             >
@@ -283,8 +302,8 @@ export default function ViewVehicle() {
                             </button>
                         </div>
                     ) : (
-                        <button 
-                            onClick={() => setEdit(true)} 
+                        <button
+                            onClick={() => setEdit(true)}
                             className="w-full h-16 flex items-center justify-center gap-3 bg-gray-900 text-white rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-2xl active:scale-95 transition-transform"
                         >
                             <Edit size={20} /> Edit Fleet Asset
@@ -312,8 +331,8 @@ const DocCard = ({ label, img, preview, onSelect, isEdit }: { label: string; img
 
     return (
         <div className="flex flex-col gap-4 group">
-            <div 
-                onClick={() => isEdit && inputRef.current?.click()} 
+            <div
+                onClick={() => isEdit && inputRef.current?.click()}
                 className={`relative aspect-[3/4] rounded-[2rem] overflow-hidden transition-all duration-500 
                     ${isEdit ? 'cursor-pointer ring-2 ring-dashed ring-orange-200 hover:ring-orange-500 bg-orange-50/30' : 'bg-white shadow-xl ring-1 ring-gray-100'}
                     ${!hasImage && !isEdit ? 'bg-gray-50 flex items-center justify-center' : ''}`}

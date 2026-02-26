@@ -35,8 +35,17 @@ export default function AddVehicle() {
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
     if (!form.vehicleName.trim()) newErrors.vehicleName = "Vehicle name is required";
-    if (!form.vehicleNumber.trim()) newErrors.vehicleNumber = "Vehicle number is required";
-    if (!form.kilometer) newErrors.kilometer = "Odometer reading is required";
+    if (!form.vehicleNumber.trim()) {
+      newErrors.vehicleNumber = "Vehicle number is required";
+    } else if (!/^[a-zA-Z0-9 ]+$/.test(form.vehicleNumber)) {
+      newErrors.vehicleNumber = "Special characters are not allowed";
+    }
+
+    if (!form.kilometer) {
+      newErrors.kilometer = "Odometer reading is required";
+    } else if (Number(form.kilometer) < 0) {
+      newErrors.kilometer = "Odometer reading cannot be negative";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -44,6 +53,10 @@ export default function AddVehicle() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+
+    // Prevent negative numbers for kilometer
+    if (name === "kilometer" && Number(value) < 0) return;
+
     setForm({ ...form, [name]: value });
     // Clear error when user starts typing
     if (errors[name as keyof FormErrors]) {

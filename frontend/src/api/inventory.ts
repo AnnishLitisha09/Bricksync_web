@@ -138,3 +138,12 @@ export const updateStock = async (stockId: number, quantity: number) => {
     if (!res.ok) throw new Error("Failed to update stock");
     return await res.json();
 };
+
+export const deleteProductionLog = async (id: number) => {
+    const res = await fetch(`${BASE_URL}/production/${id}`, {
+        method: "DELETE",
+        headers: { ...getAuthHeader() },
+    });
+    if (!res.ok) throw new Error("Failed to delete production log");
+    return await res.json();
+};

@@ -133,6 +133,12 @@ const MerchantModal: React.FC<MerchantModalProps> = ({
                 }))
             };
 
+            if (form.phone_no.length !== 10) {
+                toast.error("Phone number must be exactly 10 digits");
+                setLoading(false);
+                return;
+            }
+
             const url = shop?.id
                 ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/suppliers/${shop.id}`
                 : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/suppliers`;
@@ -304,7 +310,10 @@ const MerchantModal: React.FC<MerchantModalProps> = ({
                                     icon={<Phone size={18} />}
                                     label="Phone Number"
                                     value={form.phone_no}
-                                    onChange={e => setForm({ ...form, phone_no: e.target.value })}
+                                    onChange={e => {
+                                        const val = e.target.value.replace(/\D/g, "");
+                                        if (val.length <= 10) setForm({ ...form, phone_no: val });
+                                    }}
                                     placeholder="+91 90000 00000"
                                     required
                                 />

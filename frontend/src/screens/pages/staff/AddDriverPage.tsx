@@ -31,7 +31,15 @@ export default function AddDriverPage() {
   const [previews, setPreviews] = useState<{ [key: string]: string }>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "phoneNumber") {
+      const val = value.replace(/\D/g, "");
+      if (val.length <= 10) {
+        setForm({ ...form, [name]: val });
+      }
+      return;
+    }
+    setForm({ ...form, [name]: value });
   };
 
   const handleFileChange = (name: string, file: File | null) => {
@@ -55,6 +63,11 @@ export default function AddDriverPage() {
     e.preventDefault();
     if (!form.name || !form.email || !form.phoneNumber || !form.password || !form.amount || !form.drivingLicenceValidity) {
       alert("Please fill in all required fields.");
+      return;
+    }
+
+    if (form.phoneNumber.length !== 10) {
+      alert("Phone number must be exactly 10 digits");
       return;
     }
 

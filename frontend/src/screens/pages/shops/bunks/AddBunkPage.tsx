@@ -14,6 +14,7 @@ import {
   Info
 } from "lucide-react";
 import { useBunkStore } from "../../../../store/useBunkStore";
+import toast from "react-hot-toast";
 
 export default function AddBunkPage() {
   const navigate = useNavigate();
@@ -30,14 +31,27 @@ export default function AddBunkPage() {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "phoneNumber") {
+      const val = value.replace(/\D/g, "");
+      if (val.length <= 10) {
+        setForm({ ...form, [name]: val });
+      }
+      return;
+    }
+    setForm({ ...form, [name]: value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!form.bunkName || !form.ownerName || !form.phoneNumber || !form.address || !form.amount) {
-      alert("Please fill all fields");
+      toast.error("Please fill all fields");
+      return;
+    }
+
+    if (form.phoneNumber.length !== 10) {
+      toast.error("Phone number must be exactly 10 digits");
       return;
     }
 

@@ -27,7 +27,7 @@ interface VehicleStore {
   fetchVehicleById: (id: number) => Promise<Vehicle>;
   addVehicle: (data: FormData) => Promise<void>;
   updateVehicle: (id: number, data: FormData) => Promise<void>;
-
+  deleteVehicle: (id: number) => Promise<void>;
 }
 
 export const useVehicleStore = create<VehicleStore>((set, get) => ({
@@ -130,6 +130,32 @@ export const useVehicleStore = create<VehicleStore>((set, get) => ({
       await get().fetchVehicles();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Update failed";
+      set({ error: msg });
+      throw err;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  deleteVehicle: async (id: number) => {
+    set({ loading: true, error: null });
+    try {
+      const res = await fetch(`${BASE_URL}/vehicles/${id}`, {
+        method: "DELETE",
+        headers: {
+          ...getAuthHeader(),
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete vehicle");
+      }
+
+      set({
+        vehicles: get().vehicles.filter((v) => v.id !== id),
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Deletion failed";
       set({ error: msg });
       throw err;
     } finally {

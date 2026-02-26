@@ -14,7 +14,8 @@ import {
   Eye,
   Package, // Added for placeholder
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from "lucide-react";
 
 import { useState, useMemo, useEffect } from "react";
@@ -93,6 +94,8 @@ export default function StockPage() {
   const [staffList, setStaffList] = useState<Employee[]>([]);
   const [todayLogs, setTodayLogs] = useState<ProductionLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -238,6 +241,7 @@ export default function StockPage() {
     }
 
     try {
+      setSubmitting(true);
       await logProduction(payload);
 
       toast.success("Production record saved and inventory updated!");
@@ -255,12 +259,15 @@ export default function StockPage() {
     } catch (err) {
       toast.error("Failed to log production. Please check your inputs.");
       console.error(err);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
     if (idToDelete) {
       try {
+        setDeleting(true);
         await deleteStock(idToDelete);
         toast.success("Stock record removed");
         setDeleteModal(false);
@@ -269,6 +276,8 @@ export default function StockPage() {
       } catch (err) {
         toast.error("Failed to delete stock");
         console.error(err);
+      } finally {
+        setDeleting(false);
       }
     }
   };
@@ -462,9 +471,10 @@ export default function StockPage() {
 
                 <button
                   type="submit"
-                  className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:bg-orange-600 transition-all active:scale-95 flex items-center justify-center gap-2 mt-4"
+                  disabled={submitting}
+                  className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:bg-orange-600 transition-all active:scale-95 flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
                 >
-                  <Save size={18} /> Save Daily Record
+                  {submitting ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /> Save Daily Record</>}
                 </button>
               </form>
             </motion.div>
@@ -823,9 +833,10 @@ export default function StockPage() {
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-700 shadow-lg shadow-red-200 transition-all"
+                  disabled={deleting}
+                  className="py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-700 shadow-lg shadow-red-200 transition-all flex items-center justify-center disabled:opacity-50"
                 >
-                  Delete
+                  {deleting ? <Loader2 className="animate-spin" size={16} /> : "Delete"}
                 </button>
               </div>
             </motion.div>

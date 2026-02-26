@@ -139,29 +139,159 @@ exports.getProductionById = async (req, res) => {
     }
 };
 
-/* 🔹 Update Production Log */
+/* 🔹 Update Production Log with Stock Re-Sync */
 exports.updateProduction = async (req, res) => {
+    console.log(`📝 [UpdateProduction] Editing log ID: ${req.params.id}`);
+    const t = await sequelize.transaction();
     try {
-        const [updated] = await ProductionLog.update(req.body, {
+        const log = await ProductionLog.findOne({
             where: { production_id: req.params.id, is_deleted: false },
+            transaction: t
         });
-        if (!updated) return res.status(404).json({ message: "Production log not found" });
-        res.json({ message: "Production log updated" });
+
+        if (!log) {
+            console.warn(`⚠️ [UpdateProduction] Log not found: ${req.params.id}`);
+            if (t) await t.rollback();
+            return res.status(404).json({ message: "Production log not found" });
+        }
+
+        const { unit_produced, office_id, product_id, cement_used, cement_product_id } = req.body;
+
+        // 1. Update Produced Product Stock
+        if (unit_produced !== undefined || product_id !== undefined || office_id !== undefined) {
+            const oldQty = parseFloat(log.unit_produced) || 0;
+            const newQty = parseFloat(unit_produced !== undefined ? unit_produced : log.unit_produced) || 0;
+            const oldProdId = log.product_id;
+            const newProdId = product_id || log.product_id;
+            const oldOffId = log.office_id;
+            const newOffId = office_id || log.office_id;
+
+            if (oldProdId === newProdId && oldOffId === newOffId) {
+                // Same product, same office - just adjust by difference
+                const diff = newQty - oldQty;
+                if (diff !== 0) {
+                    const stock = await ProductStock.findOne({
+                        where: { office_id: newOffId, product_id: newProdId, is_deleted: false },
+                        transaction: t
+                    });
+                    if (stock) {
+                        stock.quantity = parseFloat(stock.quantity) + diff;
+                        await stock.save({ transaction: t });
+                        console.log(`🔄 [UpdateProduction] Adjusted Stock ID ${stock.stock_id}: ${diff > 0 ? '+' : ''}${diff}`);
+                    }
+                }
+            } else {
+                // Product or Office changed - Reverse old, Apply new
+                // Reverse Old
+                const oldStock = await ProductStock.findOne({
+                    where: { office_id: oldOffId, product_id: oldProdId, is_deleted: false },
+                    transaction: t
+                });
+                if (oldStock) {
+                    oldStock.quantity = parseFloat(oldStock.quantity) - oldQty;
+                    await oldStock.save({ transaction: t });
+                }
+                // Apply New
+                const [newStock] = await ProductStock.findOrCreate({
+                    where: { office_id: newOffId, product_id: newProdId, is_deleted: false },
+                    defaults: { quantity: 0 },
+                    transaction: t
+                });
+                newStock.quantity = parseFloat(newStock.quantity) + newQty;
+                await newStock.save({ transaction: t });
+            }
+        }
+
+        // 3. Update the Log
+        await log.update(req.body, { transaction: t });
+
+        await t.commit();
+        console.log(`✅ [UpdateProduction] Log updated and stock synchronized: ${req.params.id}`);
+        res.json({ message: "Production log and stock updated successfully" });
     } catch (err) {
+        console.error(`❌ [UpdateProduction] Error:`, err);
+        if (t) await t.rollback();
         res.status(500).json({ error: err.message });
     }
 };
 
-/* 🔹 Soft Delete Production Log */
+/* 🔹 Soft Delete Production Log with Stock Reversal */
 exports.deleteProduction = async (req, res) => {
+    console.log(`🗑️ [DeleteProduction] Starting deletion for ID: ${req.params.id}`);
+    const t = await sequelize.transaction();
     try {
-        const [updated] = await ProductionLog.update(
-            { is_deleted: true, deleted_at: new Date() },
-            { where: { production_id: req.params.id } }
-        );
-        if (!updated) return res.status(404).json({ message: "Production log not found" });
-        res.json({ message: "Production log soft deleted" });
+        const log = await ProductionLog.findOne({
+            where: { production_id: req.params.id, is_deleted: false },
+            transaction: t
+        });
+
+        if (!log) {
+            console.warn(`⚠️ [DeleteProduction] Log not found or already deleted: ${req.params.id}`);
+            if (t) await t.rollback();
+            return res.status(404).json({ message: "Production log not found" });
+        }
+
+        console.log(`📋 [DeleteProduction] Reversing: ${log.unit_produced} units of product ${log.product_id} from office ${log.office_id}`);
+
+        // 1. Reverse Produced Item Stock (Deduct what was added)
+        const producedStock = await ProductStock.findOne({
+            where: {
+                office_id: Number(log.office_id),
+                product_id: Number(log.product_id),
+                is_deleted: false
+            },
+            transaction: t
+        });
+
+        if (producedStock) {
+            const currentQty = parseFloat(producedStock.quantity) || 0;
+            const logQty = parseFloat(log.unit_produced) || 0;
+            const newQty = currentQty - logQty;
+
+            console.log(`📉 [DeleteProduction] Product Stock ${producedStock.stock_id}: ${currentQty} -> ${newQty} (Deducting ${logQty})`);
+
+            producedStock.quantity = newQty;
+            await producedStock.save({ transaction: t });
+        } else {
+            console.warn(`⚠️ [DeleteProduction] No active stock record found for product ${log.product_id} at office ${log.office_id}`);
+        }
+
+        // 2. Reverse Cement Stock (Add back what was used)
+        if (log.cement_product_id && log.cement_used) {
+            const cementStock = await ProductStock.findOne({
+                where: {
+                    office_id: Number(log.office_id),
+                    product_id: Number(log.cement_product_id),
+                    is_deleted: false
+                },
+                transaction: t
+            });
+
+            if (cementStock) {
+                const currentCementQty = parseFloat(cementStock.quantity) || 0;
+                const cementUsed = parseFloat(log.cement_used) || 0;
+                const newCementQty = currentCementQty + cementUsed;
+
+                console.log(`📈 [DeleteProduction] Cement Stock ${cementStock.stock_id}: ${currentCementQty} -> ${newCementQty} (Adding back ${cementUsed})`);
+
+                cementStock.quantity = newCementQty;
+                await cementStock.save({ transaction: t });
+            } else {
+                console.warn(`⚠️ [DeleteProduction] No active cement stock record found for ${log.cement_product_id} at office ${log.office_id}`);
+            }
+        }
+
+        // 3. Soft Delete the Log
+        log.is_deleted = true;
+        log.deleted_at = new Date();
+        await log.save({ transaction: t });
+
+        await t.commit();
+        console.log(`✅ [DeleteProduction] Successfully reversed stock and deleted log: ${req.params.id}`);
+        res.json({ message: "Production log deleted and stock reversed" });
     } catch (err) {
+        console.error(`❌ [DeleteProduction] Error:`, err);
+        if (t) await t.rollback();
         res.status(500).json({ error: err.message });
     }
 };
