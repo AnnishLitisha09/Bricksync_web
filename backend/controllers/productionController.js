@@ -231,54 +231,40 @@ exports.deleteProduction = async (req, res) => {
             return res.status(404).json({ message: "Production log not found" });
         }
 
-        console.log(`📋 [DeleteProduction] Reversing: ${log.unit_produced} units of product ${log.product_id} from office ${log.office_id}`);
+        const officeId = Number(log.office_id);
+        const productId = Number(log.product_id);
+        const unitsProduced = parseFloat(log.unit_produced) || 0;
+        const cementId = log.cement_product_id ? Number(log.cement_product_id) : null;
+        const cementUsed = parseFloat(log.cement_used) || 0;
+
+        console.log(`📋 [DeleteProduction] Reversing: ${unitsProduced} units of product ${productId} and adding back ${cementUsed} units of cement ${cementId} at office ${officeId}`);
 
         // 1. Reverse Produced Item Stock (Deduct what was added)
-        const producedStock = await ProductStock.findOne({
-            where: {
-                office_id: Number(log.office_id),
-                product_id: Number(log.product_id),
-                is_deleted: false
-            },
-            transaction: t
-        });
-
-        if (producedStock) {
-            const currentQty = parseFloat(producedStock.quantity) || 0;
-            const logQty = parseFloat(log.unit_produced) || 0;
-            const newQty = currentQty - logQty;
-
-            console.log(`📉 [DeleteProduction] Product Stock ${producedStock.stock_id}: ${currentQty} -> ${newQty} (Deducting ${logQty})`);
-
-            producedStock.quantity = newQty;
-            await producedStock.save({ transaction: t });
-        } else {
-            console.warn(`⚠️ [DeleteProduction] No active stock record found for product ${log.product_id} at office ${log.office_id}`);
-        }
-
-        // 2. Reverse Cement Stock (Add back what was used)
-        if (log.cement_product_id && log.cement_used) {
-            const cementStock = await ProductStock.findOne({
-                where: {
-                    office_id: Number(log.office_id),
-                    product_id: Number(log.cement_product_id),
-                    is_deleted: false
-                },
+        if (unitsProduced > 0) {
+            const [producedStock] = await ProductStock.findOrCreate({
+                where: { office_id: officeId, product_id: productId },
+                defaults: { quantity: 0 },
                 transaction: t
             });
 
-            if (cementStock) {
-                const currentCementQty = parseFloat(cementStock.quantity) || 0;
-                const cementUsed = parseFloat(log.cement_used) || 0;
-                const newCementQty = currentCementQty + cementUsed;
+            const currentQty = parseFloat(producedStock.quantity) || 0;
+            producedStock.quantity = currentQty - unitsProduced;
+            await producedStock.save({ transaction: t });
+            console.log(`📉 [DeleteProduction] Deducted ${unitsProduced} from Product ${productId}. New Qty: ${producedStock.quantity}`);
+        }
 
-                console.log(`📈 [DeleteProduction] Cement Stock ${cementStock.stock_id}: ${currentCementQty} -> ${newCementQty} (Adding back ${cementUsed})`);
+        // 2. Reverse Cement Stock (Add back what was used)
+        if (cementId && cementUsed > 0) {
+            const [cementStock] = await ProductStock.findOrCreate({
+                where: { office_id: officeId, product_id: cementId },
+                defaults: { quantity: 0 },
+                transaction: t
+            });
 
-                cementStock.quantity = newCementQty;
-                await cementStock.save({ transaction: t });
-            } else {
-                console.warn(`⚠️ [DeleteProduction] No active cement stock record found for ${log.cement_product_id} at office ${log.office_id}`);
-            }
+            const currentCementQty = parseFloat(cementStock.quantity) || 0;
+            cementStock.quantity = currentCementQty + cementUsed;
+            await cementStock.save({ transaction: t });
+            console.log(`📈 [DeleteProduction] Added back ${cementUsed} to Cement ${cementId}. New Qty: ${cementStock.quantity}`);
         }
 
         // 3. Soft Delete the Log
@@ -288,7 +274,7 @@ exports.deleteProduction = async (req, res) => {
 
         await t.commit();
         console.log(`✅ [DeleteProduction] Successfully reversed stock and deleted log: ${req.params.id}`);
-        res.json({ message: "Production log deleted and stock reversed" });
+        res.json({ message: "Production log deleted and stock reversed successfully" });
     } catch (err) {
         console.error(`❌ [DeleteProduction] Error:`, err);
         if (t) await t.rollback();
