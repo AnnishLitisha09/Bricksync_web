@@ -1,5 +1,4 @@
-import React from "react";
-import { Mail, Phone, ShieldCheck, User, Wallet } from "lucide-react";
+import { Mail, Phone, ShieldCheck, User } from "lucide-react";
 
 interface DriverInfoCardProps {
   staff: {
@@ -19,42 +18,32 @@ const DriverInfoCard: React.FC<DriverInfoCardProps> = ({ staff, fileBaseUrl }) =
       {/* Profile Image */}
       <div className="w-40 h-40 mx-auto bg-slate-50 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-sm flex items-center justify-center">
         {staff.imageUrl ? (
-          <img 
-            src={`${fileBaseUrl}${staff.imageUrl}`} 
-            className="w-full h-full object-cover" 
-            alt={staff.name} 
+          <img
+            src={`${fileBaseUrl}${staff.imageUrl}`}
+            className="w-full h-full object-cover"
+            alt={staff.name}
           />
         ) : (
           <User size={60} className="text-slate-200" />
         )}
       </div>
 
-      {/* Wallet Balance (Redundant but good for UI symmetry) */}
-      <div className="mt-6">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1">
-          <Wallet size={10} /> Account Balance
-        </p>
-        <h2 className="text-3xl font-black text-indigo-600">
-          ₹{staff.amount?.toLocaleString() || 0}
-        </h2>
-      </div>
-
       {/* Info Rows */}
       <div className="mt-8 space-y-3 text-left">
-        <InfoRow 
-          icon={<Mail size={16} />} 
-          label="Email Address" 
-          value={staff.email || "No Email Provided"} 
+        <InfoRow
+          icon={<Mail size={16} />}
+          label="Email Address"
+          value={staff.email || "No Email Provided"}
         />
-        <InfoRow 
-          icon={<Phone size={16} />} 
-          label="Phone Number" 
-          value={staff.phoneNumber || "N/A"} 
+        <InfoRow
+          icon={<Phone size={16} />}
+          label="Phone Number"
+          value={staff.phoneNumber || "N/A"}
         />
-        <InfoRow 
-          icon={<ShieldCheck size={16} />} 
-          label="DL Expiry" 
-          value={staff.drivingLicenceValidity || "Not Specified"} 
+        <InfoRow
+          icon={<ShieldCheck size={16} />}
+          label="DL Expiry"
+          value={staff.drivingLicenceValidity || "Not Specified"}
         />
       </div>
     </div>

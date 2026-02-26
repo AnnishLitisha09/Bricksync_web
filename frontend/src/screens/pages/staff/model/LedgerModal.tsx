@@ -61,7 +61,7 @@ const LedgerModal: React.FC<Props> = ({ isOpen, onClose, userId, refresh }) => {
         userid: Number(realUserId),
         bankName: selectedBankData?.name || "Cash",
         amount: Number(formData.amount),
-        type: mode === "salary" ? "received" : formData.type,
+        type: mode === "salary" ? "sent" : (formData.type === "received" ? "sent" : "received"), // Business gives (sent) or recovers (received)
         category: mode,
         paymentType: formData.paymentType,
         description: formData.description,

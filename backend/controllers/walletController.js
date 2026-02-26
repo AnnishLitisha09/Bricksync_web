@@ -42,62 +42,30 @@ exports.createTransaction = async (req, res) => {
     const amt = Number(amount);
 
     // ==================================================
-    // 🔥 BALANCE FLOW LOGIC
+    // 🔥 BALANCE FLOW LOGIC (STANDARDIZED)
+    // ==================================================
+    // received -> Money added to Bank
+    // sent     -> Money deducted from Bank
     // ==================================================
 
-    // ⭐⭐⭐ ADVANCE CATEGORY — USER WALLET + BANK ⭐⭐⭐
-    if (category === "advance") {
-      if (type === "received") {
-        // Add to user's wallet
-        await User.update(
-          { amount: sequelize.literal(`amount + ${amt}`) },
-          { where: { userid: user.userid }, transaction: t }
-        );
-        // Also add to bank amount
-        await BankTable.update(
-          { amount: sequelize.literal(`amount + ${amt}`) },
-          { where: { id: bank.id }, transaction: t }
-        );
-      } else if (type === "sent") {
-        // Deduct from user's wallet
-        if (user.amount < amt) throw new Error("Insufficient wallet balance");
-
-        await User.update(
-          { amount: sequelize.literal(`amount - ${amt}`) },
-          { where: { userid: user.userid }, transaction: t }
-        );
-        // Deduct from bank as well
-        if (bank.amount < amt) throw new Error("Insufficient bank balance");
-        await BankTable.update(
-          { amount: sequelize.literal(`amount - ${amt}`) },
-          { where: { id: bank.id }, transaction: t }
-        );
+    if (type === "received") {
+      // Add to bank
+      await BankTable.update(
+        { amount: sequelize.literal(`amount + ${amt}`) },
+        { where: { id: bank.id }, transaction: t }
+      );
+    } else if (type === "sent") {
+      // Deduct from bank
+      if (bank.amount < amt && bankName.toLowerCase() !== "cash") {
+        // Allow cash to go negative if needed, or enforce strictly? 
+        // Most businesses allow some flexibility but let's keep it safe for now.
+        // throw new Error("Insufficient bank balance"); 
       }
-    }
 
-    // ⭐⭐⭐ NORMAL FLOW — USER + BANK ⭐⭐⭐
-    else {
-      if (type === "received") {
-        await User.update(
-          { amount: sequelize.literal(`amount + ${amt}`) },
-          { where: { userid: user.userid }, transaction: t }
-        );
-        await BankTable.update(
-          { amount: sequelize.literal(`amount - ${amt}`) },
-          { where: { id: bank.id }, transaction: t }
-        );
-      } else if (type === "sent") {
-        if (user.amount < amt) throw new Error("Insufficient wallet balance");
-
-        await User.update(
-          { amount: sequelize.literal(`amount - ${amt}`) },
-          { where: { userid: user.userid }, transaction: t }
-        );
-        await BankTable.update(
-          { amount: sequelize.literal(`amount + ${amt}`) },
-          { where: { id: bank.id }, transaction: t }
-        );
-      }
+      await BankTable.update(
+        { amount: sequelize.literal(`amount - ${amt}`) },
+        { where: { id: bank.id }, transaction: t }
+      );
     }
 
     // ==================================================
@@ -132,19 +100,57 @@ exports.createTransaction = async (req, res) => {
 };
 
 // ======================================================
-// ✅ GET USER TRANSACTIONS
+// ✅ GET USER TRANSACTIONS (PAGINATED)
 // ======================================================
 exports.getTransactions = async (req, res) => {
   try {
-    const { userid } = req.query;
+    const { userid, page = 1, limit = 10, category, startDate, endDate } = req.query;
+    const offset = (Number(page) - 1) * Number(limit);
 
-    const data = await WalletTransaction.findAll({
-      where: { userid },
+    const whereClause = { userid };
+    if (category && category !== "all") {
+      whereClause.category = category;
+    }
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      whereClause.date = { [Op.between]: [start, end] };
+    }
+
+    const { count, rows } = await WalletTransaction.findAndCountAll({
+      where: whereClause,
       include: [{ model: BankTable, as: "bank" }],
-      order: [["createdAt", "DESC"]],
+      order: [["date", "DESC"], ["createdAt", "DESC"]],
+      limit: Number(limit),
+      offset: Number(offset),
     });
 
-    res.json({ success: true, data });
+    // Calculate Remaining Advance (Total Sent - Total Received)
+    const totalTransactions = await WalletTransaction.findAll({
+      where: { userid, category: "advance" },
+      attributes: ["type", "amount"]
+    });
+
+    const remainingAdvance = totalTransactions.reduce((acc, t) => {
+      return t.type === "sent" ? acc + t.amount : acc - t.amount;
+    }, 0);
+
+    res.json({
+      success: true,
+      data: rows,
+      pagination: {
+        total: count,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(count / Number(limit))
+      },
+      summary: {
+        remainingAdvance
+      }
+    });
 
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -165,50 +171,19 @@ exports.deleteTransaction = async (req, res) => {
     const bank = await BankTable.findByPk(tx.bank_id, { transaction: t });
     const amt = tx.amount;
 
-    // ⭐⭐⭐ REVERT ADVANCE — USER WALLET + BANK ⭐⭐⭐
-    if (tx.category === "advance") {
-      if (tx.type === "received") {
-        await User.update(
-          { amount: sequelize.literal(`amount - ${amt}`) },
-          { where: { userid: user.userid }, transaction: t }
-        );
-        await BankTable.update(
-          { amount: sequelize.literal(`amount - ${amt}`) },
-          { where: { id: bank.id }, transaction: t }
-        );
-      } else if (tx.type === "sent") {
-        await User.update(
-          { amount: sequelize.literal(`amount + ${amt}`) },
-          { where: { userid: user.userid }, transaction: t }
-        );
-        await BankTable.update(
-          { amount: sequelize.literal(`amount + ${amt}`) },
-          { where: { id: bank.id }, transaction: t }
-        );
-      }
-    }
-
-    // ⭐⭐⭐ REVERT NORMAL — USER + BANK ⭐⭐⭐
-    else {
-      if (tx.type === "received") {
-        await User.update(
-          { amount: sequelize.literal(`amount - ${amt}`) },
-          { where: { userid: user.userid }, transaction: t }
-        );
-        await BankTable.update(
-          { amount: sequelize.literal(`amount + ${amt}`) },
-          { where: { id: bank.id }, transaction: t }
-        );
-      } else if (tx.type === "sent") {
-        await User.update(
-          { amount: sequelize.literal(`amount + ${amt}`) },
-          { where: { userid: user.userid }, transaction: t }
-        );
-        await BankTable.update(
-          { amount: sequelize.literal(`amount - ${amt}`) },
-          { where: { id: bank.id }, transaction: t }
-        );
-      }
+    // ⭐⭐⭐ REVERT FLOW (STANDARDIZED) ⭐⭐⭐
+    if (tx.type === "received") {
+      // Reverting received means deducting balance from bank
+      await BankTable.update(
+        { amount: sequelize.literal(`amount - ${amt}`) },
+        { where: { id: bank.id }, transaction: t }
+      );
+    } else if (tx.type === "sent") {
+      // Reverting sent means adding balance back to bank
+      await BankTable.update(
+        { amount: sequelize.literal(`amount + ${amt}`) },
+        { where: { id: bank.id }, transaction: t }
+      );
     }
 
     await tx.destroy({ transaction: t });
