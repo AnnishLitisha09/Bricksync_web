@@ -65,13 +65,11 @@ const BusinessNotepad: React.FC = () => {
 
       const response = await fetch(`${BASE_URL}/notepad/upload-pdf`, {
         method: 'POST',
-        headers: getAuthHeader(),
+        headers: { ...getAuthHeader(), 'x-folder-name': 'notepad' },
         body: formDataUpload
       });
 
       if (!response.ok) throw new Error("Backend upload failed");
-
-      const result = await response.json();
 
       // Save notepad statistics and PDF path to database
       await fetch(`${BASE_URL}/notepad/save`, {
@@ -82,7 +80,7 @@ const BusinessNotepad: React.FC = () => {
         },
         body: JSON.stringify({
           formData,
-          pdfPath: result.path,
+          pdfPath: `/notepad/${fileName}`,
           filename: fileName
         })
       });

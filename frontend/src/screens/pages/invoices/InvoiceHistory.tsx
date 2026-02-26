@@ -3,7 +3,7 @@ import {
     Search, Copy, Eye, User, Truck, Hash,
     CheckCircle2, XCircle, RefreshCw, FileText, MapPin
 } from 'lucide-react';
-import { BASE_URL, getAuthHeader } from '../../../api/base';
+import { BASE_URL, FILE_BASE_URL, getAuthHeader } from '../../../api/base';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -50,22 +50,27 @@ const InvoiceHistory: React.FC = () => {
         }
     };
 
-    const copyUrl = (pdfPath: string) => {
-        if (!pdfPath) {
+    const getPdfUrl = (inv: any) => {
+        if (!inv.isActive || !inv.filename) return null;
+        return `${FILE_BASE_URL}/invoices/${inv.filename}`;
+    };
+
+    const copyUrl = (inv: any) => {
+        const fullUrl = getPdfUrl(inv);
+        if (!fullUrl) {
             toast.error("No image/PDF URL available");
             return;
         }
-        const fullUrl = `${BASE_URL.replace('/api', '')}${pdfPath}`;
         navigator.clipboard.writeText(fullUrl);
         toast.success("URL copied to clipboard!");
     };
 
-    const openPdf = (pdfPath: string) => {
-        if (!pdfPath) {
+    const openPdf = (inv: any) => {
+        const fullUrl = getPdfUrl(inv);
+        if (!fullUrl) {
             toast.error("Invalid File Path");
             return;
         }
-        const fullUrl = `${BASE_URL.replace('/api', '')}${pdfPath}`;
         window.open(fullUrl, '_blank');
     };
 
@@ -179,20 +184,24 @@ const InvoiceHistory: React.FC = () => {
                                                 </td>
                                                 <td className="px-6 py-5">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <button
-                                                            onClick={() => copyUrl(inv.pdfPath)}
-                                                            className="p-2 text-slate-300 hover:text-black hover:bg-slate-100 rounded-xl transition-all"
-                                                            title="Copy Link"
-                                                        >
-                                                            <Copy size={18} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => openPdf(inv.pdfPath)}
-                                                            className="p-2 text-slate-300 hover:text-black hover:bg-slate-100 rounded-xl transition-all"
-                                                            title="View Document"
-                                                        >
-                                                            <Eye size={18} />
-                                                        </button>
+                                                        {inv.isActive && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => copyUrl(inv)}
+                                                                    className="p-2 text-slate-300 hover:text-black hover:bg-slate-100 rounded-xl transition-all"
+                                                                    title="Copy Link"
+                                                                >
+                                                                    <Copy size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => openPdf(inv)}
+                                                                    className="p-2 text-slate-300 hover:text-black hover:bg-slate-100 rounded-xl transition-all"
+                                                                    title="View Document"
+                                                                >
+                                                                    <Eye size={18} />
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </motion.tr>

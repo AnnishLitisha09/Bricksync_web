@@ -22,7 +22,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Static folders
 app.use("/images", express.static(path.join(__dirname, "images")));
-app.use("/pdfs", express.static(path.join(__dirname, "pdfs")));
+app.use("/notepad", express.static(path.join(__dirname, "notepad")));
+app.use("/invoices", express.static(path.join(__dirname, "invoices")));
 
 // --- Request Logging (for Routing Debug) ---
 app.use((req, res, next) => {

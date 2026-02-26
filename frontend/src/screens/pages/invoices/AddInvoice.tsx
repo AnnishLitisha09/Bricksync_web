@@ -57,7 +57,10 @@ const AddInvoice: React.FC = () => {
 
         customerNumber: '', // legacy compatibility
         customerPhone: '',
-        customerAddress: ''
+        customerAddress: '',
+
+        sgstRate: 9,
+        cgstRate: 9
     });
 
     const [items, setItems] = useState<InvoiceItem[]>([
@@ -79,9 +82,9 @@ const AddInvoice: React.FC = () => {
     ]);
 
     // Backend Data State
-    const [materials, setMaterials] = useState<any[]>([]);
+    const [stocks, setStocks] = useState<any[]>([]);
     const [vehicles, setVehicles] = useState<any[]>([]);
-    const [offices, setOffices] = useState<any[]>([]);
+    const [customers, setCustomers] = useState<any[]>([]);
 
     useEffect(() => {
         fetchInitialData();
@@ -89,19 +92,19 @@ const AddInvoice: React.FC = () => {
 
     const fetchInitialData = async () => {
         try {
-            const [matRes, vehRes, offRes] = await Promise.all([
-                fetch(`${BASE_URL}/products`, { headers: getAuthHeader() }),
+            const [stockRes, vehRes, custRes] = await Promise.all([
+                fetch(`${BASE_URL}/stock`, { headers: getAuthHeader() }),
                 fetch(`${BASE_URL}/vehicles`, { headers: getAuthHeader() }),
-                fetch(`${BASE_URL}/offices`, { headers: getAuthHeader() })
+                fetch(`${BASE_URL}/customers`, { headers: getAuthHeader() })
             ]);
 
-            const matData = await matRes.json();
+            const stockData = await stockRes.json();
             const vehData = await vehRes.json();
-            const offData = await offRes.json();
+            const custData = await custRes.json();
 
-            setMaterials(matData.data || []);
-            setVehicles(vehData.data || []);
-            setOffices(offData.data || []);
+            setStocks(stockData || []);
+            setVehicles(vehData || []); // Vehicle controller returns array directly
+            setCustomers(custData.data || []);
         } catch (error) {
             toast.error("Failed to load backend data");
         }
@@ -109,25 +112,44 @@ const AddInvoice: React.FC = () => {
 
     const calculateItemTotal = (item: InvoiceItem) => {
         const subtotal = item.quantity * item.rate;
-        const sgstAmount = (subtotal * item.sgst) / 100;
-        const cgstAmount = (subtotal * item.cgst) / 100;
+        const sgstAmount = (subtotal * invoiceData.sgstRate) / 100;
+        const cgstAmount = (subtotal * invoiceData.cgstRate) / 100;
         const igstAmount = (subtotal * item.igst) / 100;
         return subtotal + sgstAmount + cgstAmount + igstAmount;
+    };
+
+    const handleCustomerChange = (name: string) => {
+        const customer = customers.find(c => c.name === name);
+        if (customer) {
+            setInvoiceData({
+                ...invoiceData,
+                billingName: customer.name,
+                billingAddress: customer.address || '-',
+                billingGstin: customer.category || '-', // Assuming GSTIN might be in category or just placeholder
+                billingState: 'TAMIL NADU', // Default or from customer if available
+                customerPhone: customer.phone_no || '',
+                customerAddress: customer.address || ''
+            });
+        } else {
+            setInvoiceData({ ...invoiceData, billingName: name });
+        }
     };
 
     const handleItemChange = (id: string, field: keyof InvoiceItem, value: any) => {
         const updatedItems = items.map(item => {
             if (item.id === id) {
-                const updatedItem = { ...item, [field]: value };
+                let updatedItem = { ...item, [field]: value };
 
                 if (field === 'materialName') {
-                    const mat = materials.find(m => m.product_name === value);
-                    updatedItem.materialId = mat ? mat.product_id : null;
-                }
-
-                if (field === 'office') {
-                    const off = offices.find(o => o.office_name === value);
-                    updatedItem.officeId = off ? off.office_id : (value === 'Office 1' ? 1 : 2);
+                    // Expecting value to be "StockId"
+                    const stock = stocks.find(s => s.stock_id === parseInt(value));
+                    if (stock) {
+                        updatedItem.materialName = stock.product?.product_name || '';
+                        updatedItem.office = stock.office?.office_name || '';
+                        updatedItem.materialId = stock.product_id;
+                        updatedItem.officeId = stock.office_id;
+                        if (stock.product?.hsn_code) updatedItem.hsnCode = stock.product.hsn_code;
+                    }
                 }
 
                 updatedItem.total = calculateItemTotal(updatedItem);
@@ -164,8 +186,8 @@ const AddInvoice: React.FC = () => {
 
     const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
     const subTotalValue = items.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
-    const totalSgst = items.reduce((sum, item) => sum + ((item.quantity * item.rate * item.sgst) / 100), 0);
-    const totalCgst = items.reduce((sum, item) => sum + ((item.quantity * item.rate * item.cgst) / 100), 0);
+    const totalSgst = items.reduce((sum, item) => sum + ((item.quantity * item.rate * invoiceData.sgstRate) / 100), 0);
+    const totalCgst = items.reduce((sum, item) => sum + ((item.quantity * item.rate * invoiceData.cgstRate) / 100), 0);
     const totalIgst = items.reduce((sum, item) => sum + ((item.quantity * item.rate * item.igst) / 100), 0);
     const finalAmount = subTotalValue + totalSgst + totalCgst + totalIgst;
     const roundOffValue = Math.round(finalAmount) - finalAmount;
@@ -214,8 +236,8 @@ const AddInvoice: React.FC = () => {
                     unit: item.unit,
                     ratePerUnit: item.rate,
                     hsnCode: item.hsnCode,
-                    sgst: item.sgst,
-                    cgst: item.cgst,
+                    sgst: invoiceData.sgstRate,
+                    cgst: invoiceData.cgstRate,
                     igst: item.igst,
                     totalAmount: item.total,
                     roundOff: roundOffValue,
@@ -279,16 +301,15 @@ const AddInvoice: React.FC = () => {
 
             const uploadRes = await fetch(`${BASE_URL}/notepad/upload-pdf`, {
                 method: 'POST',
-                headers: getAuthHeader(),
+                headers: { ...getAuthHeader(), 'x-folder-name': 'invoices' },
                 body: formDataUpload
             });
 
             if (uploadRes.ok) {
-                const uploadResult = await uploadRes.json();
                 await fetch(`${BASE_URL}/invoices/pdf/${dbId}`, {
                     method: 'PATCH',
                     headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pdfPath: uploadResult.path, filename: fileName })
+                    body: JSON.stringify({ pdfPath: `/invoices/${fileName}`, filename: fileName })
                 });
             }
         } catch (err) {
@@ -332,7 +353,7 @@ const AddInvoice: React.FC = () => {
                                 <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Vehicle No</label>
                                 <select value={invoiceData.vehicleNumber} onChange={e => setInvoiceData({ ...invoiceData, vehicleNumber: e.target.value })} className="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                                     <option value="">Select Vehicle</option>
-                                    {vehicles.map(v => <option key={v.id} value={v.vehicle_number}>{v.vehicle_number}</option>)}
+                                    {vehicles.map(v => <option key={v.id} value={v.vehicleNumber}>{v.vehicleNumber}</option>)}
                                 </select>
                             </div>
                             <div>
@@ -352,7 +373,14 @@ const AddInvoice: React.FC = () => {
                         </div>
                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
                             <p className="text-[10px] font-black text-black uppercase">Billed To</p>
-                            <input type="text" placeholder="Customer Name" value={invoiceData.billingName} onChange={e => setInvoiceData({ ...invoiceData, billingName: e.target.value })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm" />
+                            <select
+                                value={invoiceData.billingName}
+                                onChange={e => handleCustomerChange(e.target.value)}
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm"
+                            >
+                                <option value="">Select Customer</option>
+                                {customers.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                            </select>
                             <textarea placeholder="Full Address" value={invoiceData.billingAddress} onChange={e => setInvoiceData({ ...invoiceData, billingAddress: e.target.value })} rows={2} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm resize-none" />
                             <div className="grid grid-cols-2 gap-2">
                                 <input type="text" placeholder="GSTIN" value={invoiceData.billingGstin} onChange={e => setInvoiceData({ ...invoiceData, billingGstin: e.target.value })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm" />
@@ -380,30 +408,49 @@ const AddInvoice: React.FC = () => {
                         {items.map((item) => (
                             <div key={item.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3 relative">
                                 <button onClick={() => removeItem(item.id)} className="absolute top-2 right-2 text-red-400"><Trash2 size={14} /></button>
-                                <select value={item.materialName} onChange={e => handleItemChange(item.id, 'materialName', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold">
-                                    <option value="">Select Product</option>
-                                    {materials.map(m => <option key={m.product_id} value={m.product_name}>{m.product_name}</option>)}
+                                <select
+                                    value={stocks.find(s => s.product_id === item.materialId && s.office_id === item.officeId)?.stock_id || ""}
+                                    onChange={e => handleItemChange(item.id, 'materialName', e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold"
+                                >
+                                    <option value="">Select Material & Office</option>
+                                    {stocks.map(s => (
+                                        <option key={s.stock_id} value={s.stock_id}>
+                                            {s.product?.product_name} ({s.office?.office_name}) - Stock: {s.quantity}
+                                        </option>
+                                    ))}
                                 </select>
                                 <div className="grid grid-cols-3 gap-2">
-                                    <input type="number" placeholder="Qty" value={item.quantity} onChange={e => handleItemChange(item.id, 'quantity', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border rounded-xl text-sm" />
-                                    <input type="number" placeholder="Rate" value={item.rate} onChange={e => handleItemChange(item.id, 'rate', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border rounded-xl text-sm" />
-                                    <input type="text" placeholder="HSN" value={item.hsnCode} onChange={e => handleItemChange(item.id, 'hsnCode', e.target.value)} className="w-full px-3 py-2 border rounded-xl text-sm" />
-                                </div>
-                                <div className="grid grid-cols-3 gap-2">
-                                    <input type="number" placeholder="SGST%" value={item.sgst} onChange={e => handleItemChange(item.id, 'sgst', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border rounded-xl text-sm" />
-                                    <input type="number" placeholder="CGST%" value={item.cgst} onChange={e => handleItemChange(item.id, 'cgst', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border rounded-xl text-sm" />
-                                    <select value={item.office} onChange={e => handleItemChange(item.id, 'office', e.target.value)} className="w-full px-3 py-2 border rounded-xl text-sm">
-                                        {offices.map(o => <option key={o.office_id} value={o.office_name}>{o.office_name}</option>)}
-                                        {offices.length === 0 && <><option value="Office 1">Office 1</option><option value="Office 2">Office 2</option></>}
-                                    </select>
+                                    <div className="col-span-1">
+                                        <label className="text-[9px] font-bold text-slate-400 ml-1 uppercase">Quantity</label>
+                                        <input type="number" placeholder="Qty" value={item.quantity} onChange={e => handleItemChange(item.id, 'quantity', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border rounded-xl text-sm" />
+                                    </div>
+                                    <div className="col-span-1">
+                                        <label className="text-[9px] font-bold text-slate-400 ml-1 uppercase">Rate</label>
+                                        <input type="number" placeholder="Rate" value={item.rate} onChange={e => handleItemChange(item.id, 'rate', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border rounded-xl text-sm" />
+                                    </div>
+                                    <div className="col-span-1">
+                                        <label className="text-[9px] font-bold text-slate-400 ml-1 uppercase">HSN</label>
+                                        <input type="text" placeholder="HSN" value={item.hsnCode} onChange={e => handleItemChange(item.id, 'hsnCode', e.target.value)} className="w-full px-3 py-2 border rounded-xl text-sm" />
+                                    </div>
                                 </div>
                             </div>
                         ))}
                     </section>
 
                     <section className="space-y-4">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bank Details</h3>
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tax & Bank Details</h3>
                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="text-[9px] font-bold text-slate-400 ml-1 uppercase">SGST %</label>
+                                    <input type="number" value={invoiceData.sgstRate} onChange={e => setInvoiceData({ ...invoiceData, sgstRate: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm" />
+                                </div>
+                                <div>
+                                    <label className="text-[9px] font-bold text-slate-400 ml-1 uppercase">CGST %</label>
+                                    <input type="number" value={invoiceData.cgstRate} onChange={e => setInvoiceData({ ...invoiceData, cgstRate: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm" />
+                                </div>
+                            </div>
                             <input type="text" placeholder="Bank Name" value={invoiceData.bankName} onChange={e => setInvoiceData({ ...invoiceData, bankName: e.target.value })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm" />
                             <input type="text" placeholder="Account No" value={invoiceData.accountNo} onChange={e => setInvoiceData({ ...invoiceData, accountNo: e.target.value })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm" />
                             <input type="text" placeholder="IFSC" value={invoiceData.ifscCode} onChange={e => setInvoiceData({ ...invoiceData, ifscCode: e.target.value })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm" />
@@ -503,8 +550,8 @@ const AddInvoice: React.FC = () => {
                                 <p className="text-[11px] font-black uppercase leading-relaxed pr-10">{numberToWords(grandTotal)}</p>
                             </div>
                             <div className="w-[204px] flex flex-col">
-                                <div className="flex border-b border-slate-800 py-1 text-[11px] font-bold px-2"><span className="flex-1 text-right font-black uppercase">SGST :</span><span className="w-16 text-center">9.00 %</span><span className="w-20 text-right">{totalSgst.toFixed(2)}</span></div>
-                                <div className="flex border-b border-slate-800 py-1 text-[11px] font-bold px-2"><span className="flex-1 text-right font-black uppercase">CGST :</span><span className="w-16 text-center">9.00 %</span><span className="w-20 text-right">{totalCgst.toFixed(2)}</span></div>
+                                <div className="flex border-b border-slate-800 py-1 text-[11px] font-bold px-2"><span className="flex-1 text-right font-black uppercase">SGST :</span><span className="w-16 text-center">{invoiceData.sgstRate.toFixed(2)} %</span><span className="w-20 text-right">{totalSgst.toFixed(2)}</span></div>
+                                <div className="flex border-b border-slate-800 py-1 text-[11px] font-bold px-2"><span className="flex-1 text-right font-black uppercase">CGST :</span><span className="w-16 text-center">{invoiceData.cgstRate.toFixed(2)} %</span><span className="w-20 text-right">{totalCgst.toFixed(2)}</span></div>
                                 <div className="flex border-b border-slate-800 py-1 text-[11px] font-bold px-2"><span className="flex-1 text-right font-black uppercase">IGST :</span><span className="w-16 text-center">%</span><span className="w-20 text-right">{totalIgst > 0 ? totalIgst.toFixed(2) : ''}</span></div>
                                 <div className="flex border-b border-slate-800 py-1 text-[11px] font-bold px-2"><span className="flex-1 text-right font-black uppercase">Round Off :</span><span className="w-16 text-center"></span><span className="w-20 text-right">{roundOffValue.toFixed(2)}</span></div>
                                 <div className="flex-1 flex bg-slate-50 items-center justify-between px-2 text-[12px] font-black uppercase tracking-widest"><span>T O T A L ...:</span><span>{grandTotal.toFixed(2)}</span></div>

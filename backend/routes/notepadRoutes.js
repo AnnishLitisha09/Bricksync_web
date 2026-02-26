@@ -7,10 +7,11 @@ const notepadController = require("../controllers/notepadController");
 // Multer config for PDF storage
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "pdfs/");
+        const folder = req.headers['x-folder-name'] || 'notepad';
+        cb(null, path.join(__dirname, "../", folder));
     },
     filename: (req, file, cb) => {
-        cb(null, `Notepad_${Date.now()}${path.extname(file.originalname)}`);
+        cb(null, file.originalname);
     },
 });
 

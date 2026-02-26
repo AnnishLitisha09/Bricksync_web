@@ -41,24 +41,6 @@ exports.createInvoice = async (req, res) => {
             officeId
         } = req.body;
 
-        // 1. Stock Management
-        if (materialId && officeId) {
-            const stock = await ProductStock.findOne({
-                where: { product_id: materialId, office_id: officeId },
-                transaction
-            });
-
-            if (!stock) {
-                throw new Error(`Stock record not found for ${materialName} at the selected office.`);
-            }
-
-            if (Number(stock.quantity) < Number(quantity)) {
-                throw new Error(`Insufficient stock for ${materialName}. Available: ${stock.quantity}`);
-            }
-
-            await stock.decrement("quantity", { by: quantity, transaction });
-        }
-
         // 2. Create Invoice
         const newInvoice = await Invoice.create({
             invoiceId,

@@ -48,6 +48,12 @@ const NotepadHistory: React.FC = () => {
         }
     }, [page, search]);
 
+    const getPdfUrl = (record: NotepadRecord) => {
+        if (record.filename) return `${FILE_BASE_URL}/notepad/${record.filename}`;
+        if (record.pdfPath) return `${FILE_BASE_URL}${record.pdfPath.replace('/pdfs/', '/notepad/').replace('/pdf/', '/notepad/')}`;
+        return null;
+    };
+
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
             fetchRecords();
@@ -146,9 +152,9 @@ const NotepadHistory: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                {record.pdfPath ? (
+                                                {getPdfUrl(record) ? (
                                                     <a
-                                                        href={`${FILE_BASE_URL}${record.pdfPath}`}
+                                                        href={getPdfUrl(record)!}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-bold text-xs bg-indigo-50 px-3 py-2 rounded-lg transition-colors"

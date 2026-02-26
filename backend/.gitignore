@@ -16,11 +16,13 @@ logs/
 .env.*
 
 # =========================
-# Uploaded files
+# Static folders
 # =========================
 images/
 uploads/
-pdfs/
+pdf/
+notepad/
+invoices/
 
 # Ignore all PDF files anywhere
 *.pdf
