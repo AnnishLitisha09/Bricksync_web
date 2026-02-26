@@ -49,6 +49,19 @@ const TransactionsPage: React.FC = () => {
   const [exportBankId, setExportBankId] = useState("");
   const { banks, fetchBanks } = useBankStore();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [analytics, setAnalytics] = useState({ todayIncome: 0, todayExpenses: 0 });
+
+  const loadStats = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/analytics/today-summary`, { headers: getAuthHeader() });
+      const data = await res.json();
+      if (data.success) {
+        setAnalytics({ todayIncome: data.todayIncome, todayExpenses: data.todayExpenses });
+      }
+    } catch (error) {
+      console.error("Failed to fetch treasury stats", error);
+    }
+  };
 
   const fetchTransactions = async () => {
     try {
@@ -74,6 +87,7 @@ const TransactionsPage: React.FC = () => {
   useEffect(() => {
     fetchTransactions();
     fetchBanks();
+    loadStats();
   }, [page]);
 
   // Handle Debounced Search
@@ -306,6 +320,44 @@ const TransactionsPage: React.FC = () => {
           <Download size={16} className="group-hover:translate-y-0.5 transition-transform" />
           Export Statement
         </button>
+      </div>
+
+      {/* Analytics Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center justify-between group overflow-hidden relative"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-emerald-500 text-white rounded-2xl shadow-lg shadow-emerald-100">
+              <ArrowUpRight size={24} />
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Today's Income</p>
+              <h3 className="text-3xl font-black text-slate-900 tracking-tighter">₹{analytics.todayIncome.toLocaleString()}</h3>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center justify-between group overflow-hidden relative"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-rose-50 text-rose-600 rounded-2xl shadow-lg shadow-rose-100">
+              <ArrowDownLeft size={24} />
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Today's Expenses</p>
+              <h3 className="text-3xl font-black text-slate-900 tracking-tighter">₹{analytics.todayExpenses.toLocaleString()}</h3>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
       {/* Control Bar */}

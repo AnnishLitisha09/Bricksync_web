@@ -12,13 +12,20 @@ const moment = require("moment");
 
 exports.getTodaySummary = async (req, res) => {
     try {
-        const todayDate = moment().format('YYYY-MM-DD');
+        const todayStr = moment().format('YYYY-MM-DD');
+        const startOfTodayUTC = moment().startOf('day').utc().format('YYYY-MM-DD HH:mm:ss');
+        const endOfTodayUTC = moment().endOf('day').utc().format('YYYY-MM-DD HH:mm:ss');
 
         // Income 1: Customer payments
         const incoming = await CustomerStatement.sum('amount', {
             where: {
                 [Op.and]: [
-                    sequelize.where(sequelize.fn('DATE', sequelize.col('date')), todayDate),
+                    {
+                        [Op.or]: [
+                            { date: todayStr },
+                            { [Op.and]: [{ date: null }, { created_at: { [Op.between]: [startOfTodayUTC, endOfTodayUTC] } }] }
+                        ]
+                    },
                     { is_deleted: false }
                 ]
             }
@@ -28,40 +35,41 @@ exports.getTodaySummary = async (req, res) => {
         const walletIncoming = await WalletTransaction.sum('amount', {
             where: {
                 type: 'received',
-                [Op.and]: [
-                    sequelize.where(sequelize.fn('DATE', sequelize.col('date')), todayDate)
+                [Op.or]: [
+                    { date: { [Op.between]: [startOfTodayUTC, endOfTodayUTC] } }, // Wallet date is inclusive of time
+                    { [Op.and]: [{ date: null }, { createdAt: { [Op.between]: [startOfTodayUTC, endOfTodayUTC] } }] }
                 ]
             }
         }) || 0;
 
-        // Expenses: Material Statements, Bunk Statements, Service Statements, Fuel Statements, Wallet Sent
+        // Expenses 1: Material Statements (Paid to Suppliers)
         const materialExp = await MaterialStatement.sum('amount', {
-            where: sequelize.where(sequelize.fn('DATE', sequelize.col('createdAt')), todayDate)
+            where: { createdAt: { [Op.between]: [startOfTodayUTC, endOfTodayUTC] } }
         }) || 0;
 
-        const bunkExp = await BunkStatement.sum('amount', {
-            where: sequelize.where(sequelize.fn('DATE', sequelize.col('date')), todayDate)
-        }) || 0;
-
+        // Expenses 2: Service Statements (Paid to Service Shops)
         const serviceExp = await ServiceStatement.sum('amount', {
-            where: sequelize.where(sequelize.fn('DATE', sequelize.col('createdAt')), todayDate)
+            where: { createdAt: { [Op.between]: [startOfTodayUTC, endOfTodayUTC] } }
         }) || 0;
 
+        // Expenses 3: Fuel Statements (Paid to Bunks)
         const fuelExp = await FuelStatement.sum('amount', {
-            where: sequelize.where(sequelize.fn('DATE', sequelize.col('createdAt')), todayDate)
+            where: { createdAt: { [Op.between]: [startOfTodayUTC, endOfTodayUTC] } }
         }) || 0;
 
+        // Expenses 4: Wallet Outgoing (Sent)
         const walletOutgoing = await WalletTransaction.sum('amount', {
             where: {
                 type: 'sent',
-                [Op.and]: [
-                    sequelize.where(sequelize.fn('DATE', sequelize.col('date')), todayDate)
+                [Op.or]: [
+                    { date: { [Op.between]: [startOfTodayUTC, endOfTodayUTC] } },
+                    { [Op.and]: [{ date: null }, { createdAt: { [Op.between]: [startOfTodayUTC, endOfTodayUTC] } }] }
                 ]
             }
         }) || 0;
 
         const totalIncome = Number(incoming) + Number(walletIncoming);
-        const totalOutgoing = Number(materialExp) + Number(bunkExp) + Number(serviceExp) + Number(fuelExp) + Number(walletOutgoing);
+        const totalOutgoing = Number(materialExp) + Number(serviceExp) + Number(fuelExp) + Number(walletOutgoing);
 
         return res.status(200).json({
             success: true,
