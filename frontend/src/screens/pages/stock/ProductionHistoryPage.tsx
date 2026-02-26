@@ -198,8 +198,8 @@ export default function ProductionHistoryPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex flex-wrap justify-end gap-1 max-w-[150px] ml-auto">
-                      {log.employees?.slice(0, 2).map((emp, idx) => (
+                    <div className="flex flex-wrap justify-end gap-1 ml-auto">
+                      {log.employees?.map((emp, idx) => (
                         <span
                           key={idx}
                           className="bg-white border border-gray-100 text-[9px] font-bold text-slate-500 px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1"
@@ -208,9 +208,6 @@ export default function ProductionHistoryPage() {
                           {emp.employee?.name.split(' ')[0]}
                         </span>
                       ))}
-                      {log.employees.length > 2 && (
-                        <span className="text-[9px] font-bold text-orange-500">+{log.employees.length - 2}</span>
-                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
