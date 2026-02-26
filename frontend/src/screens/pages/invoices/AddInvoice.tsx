@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     Save, ArrowLeft, Plus, Trash2,
-    Eye, FileText
+    Eye, FileText, Calendar, Truck, MapPin,
+    Building2, Receipt, CreditCard, Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -136,12 +137,11 @@ const AddInvoice: React.FC = () => {
     };
 
     const handleItemChange = (id: string, field: keyof InvoiceItem, value: any) => {
-        const updatedItems = items.map(item => {
+        setItems(prevItems => prevItems.map(item => {
             if (item.id === id) {
                 let updatedItem = { ...item, [field]: value };
 
                 if (field === 'materialName') {
-                    // Expecting value to be "StockId"
                     const stock = stocks.find(s => s.stock_id === parseInt(value));
                     if (stock) {
                         updatedItem.materialName = stock.product?.product_name || '';
@@ -152,52 +152,41 @@ const AddInvoice: React.FC = () => {
                     }
                 }
 
-                updatedItem.total = calculateItemTotal(updatedItem);
+                // Recalculate item total immediately
+                const subtotal = updatedItem.quantity * updatedItem.rate;
+                const tax = (subtotal * invoiceData.sgstRate) / 100;
+                updatedItem.total = subtotal + (tax * 2); // SGST + CGST
                 return updatedItem;
             }
             return item;
-        });
-        setItems(updatedItems);
+        }));
     };
 
     const addItem = () => {
         setItems([...items, {
             id: Math.random().toString(36).substr(2, 9),
-            materialName: '',
-            materialId: null,
-            office: 'Office 1',
-            officeId: 1,
-            quantity: 0,
-            unit: 'NOS',
-            rate: 0,
-            hsnCode: '69022090',
-            sgst: 9,
-            cgst: 9,
-            igst: 0,
-            total: 0
+            materialName: '', materialId: null,
+            office: 'Office 1', officeId: 1,
+            quantity: 0, unit: 'NOS', rate: 0,
+            hsnCode: '69022090', sgst: 9, cgst: 9, igst: 0, total: 0
         }]);
     };
 
     const removeItem = (id: string) => {
-        if (items.length > 1) {
-            setItems(items.filter(item => item.id !== id));
-        }
+        if (items.length > 1) setItems(items.filter(item => item.id !== id));
     };
 
-
+    // --- CALCULATIONS ---
     const subTotalValue = items.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
-    const totalSgst = items.reduce((sum, item) => sum + ((item.quantity * item.rate * invoiceData.sgstRate) / 100), 0);
-    const totalCgst = items.reduce((sum, item) => sum + ((item.quantity * item.rate * invoiceData.cgstRate) / 100), 0);
-    const totalIgst = items.reduce((sum, item) => sum + ((item.quantity * item.rate * item.igst) / 100), 0);
-    const finalAmount = subTotalValue + totalSgst + totalCgst + totalIgst;
-    const roundOffValue = Math.round(finalAmount) - finalAmount;
+    const totalTax = (subTotalValue * invoiceData.sgstRate) / 100;
+    const finalAmount = subTotalValue + (totalTax * 2);
     const grandTotal = Math.round(finalAmount);
+    const roundOffValue = (grandTotal - finalAmount).toFixed(2);
 
     const numberToWords = (num: number): string => {
         if (num === 0) return 'ZERO ONLY';
         const ones = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'TEN', 'ELEVEN', 'TWELVE', 'THIRTEEN', 'FOURTEEN', 'FIFTEEN', 'SIXTEEN', 'SEVENTEEN', 'EIGHTEEN', 'NINETEEN'];
         const tens = ['', '', 'TWENTY', 'THIRTY', 'FORTY', 'FIFTY', 'SIXTY', 'SEVENTY', 'EIGHTY', 'NINETY'];
-
         const convert = (n: number): string => {
             if (n < 20) return ones[n];
             if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
@@ -206,24 +195,21 @@ const AddInvoice: React.FC = () => {
             if (n < 10000000) return convert(Math.floor(n / 100000)) + ' LAKH' + (n % 100000 !== 0 ? ' ' + convert(n % 100000) : '');
             return convert(Math.floor(n / 10000000)) + ' CRORE' + (n % 10000000 !== 0 ? ' ' + convert(n % 10000000) : '');
         };
-
         return convert(num) + ' ONLY';
     };
 
+    // --- UPDATED SAVE LOGIC ---
     const saveInvoice = async () => {
         if (!invoiceData.billingName || !invoiceData.vehicleNumber) {
             toast.error("Please fill required fields (Billed To Name & Vehicle)");
             return;
         }
 
-        if (items.some(item => !item.materialId)) {
-            toast.error("Please select material for all items");
-            return;
-        }
-
         setIsSaving(true);
         try {
             const savedIds: number[] = [];
+            let latestInvoiceId = invoiceData.invoiceId;
+
             for (const item of items) {
                 const payload = {
                     ...invoiceData,
@@ -231,22 +217,13 @@ const AddInvoice: React.FC = () => {
                     customerAddress: invoiceData.billingAddress,
                     materialName: item.materialName,
                     materialId: item.materialId,
-                    office: item.office,
-                    officeId: item.officeId,
                     quantity: item.quantity,
-                    unit: item.unit,
                     ratePerUnit: item.rate,
-                    hsnCode: item.hsnCode,
-                    sgst: invoiceData.sgstRate,
-                    cgst: invoiceData.cgstRate,
-                    igst: item.igst,
                     totalAmount: item.total,
                     roundOff: roundOffValue,
                     totalInWords: numberToWords(grandTotal),
                     shippingName: sameAsBilled ? invoiceData.billingName : invoiceData.shippingName,
                     shippingAddress: sameAsBilled ? invoiceData.billingAddress : invoiceData.shippingAddress,
-                    shippingGstin: sameAsBilled ? invoiceData.billingGstin : invoiceData.shippingGstin,
-                    shippingState: sameAsBilled ? invoiceData.billingState : invoiceData.shippingState
                 };
 
                 const response = await fetch(`${BASE_URL}/invoices/create`, {
@@ -255,31 +232,24 @@ const AddInvoice: React.FC = () => {
                     body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.message || "Failed to save invoice");
-                }
-
                 const result = await response.json();
-                savedIds.push(result.data.id);
+                if (!response.ok) throw new Error(result.message || "Failed to save");
 
-                // CRITICAL: Sync the generated invoice ID from the backend to the UI state
-                if (result.data.invoiceId && invoiceData.invoiceId !== result.data.invoiceId) {
-                    setInvoiceData(prev => ({ ...prev, invoiceId: result.data.invoiceId }));
-                }
+                savedIds.push(result.data.id);
+                latestInvoiceId = result.data.invoiceId; // Get the actual ID from DB
             }
 
-            // Small delay to ensure React state update renders the new ID in the DOM
-            await new Promise(resolve => setTimeout(resolve, 300));
+            // Update state with the REAL Invoice ID from the database
+            setInvoiceData(prev => ({ ...prev, invoiceId: latestInvoiceId }));
 
-            // Generate ONE PDF for all items and upload
-            const pdfSuccess = await generateAndUploadPDF(savedIds);
+            // Force a DOM re-render wait so the new Invoice ID appears in the preview
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const pdfSuccess = await generateAndUploadPDF(savedIds, latestInvoiceId);
 
             if (pdfSuccess) {
-                toast.success("Invoices saved successfully!");
+                toast.success("Invoice and PDF saved!");
                 navigate('/invoices/history');
-            } else {
-                toast.error("Invoice records created, but PDF sync failed. Check history.");
             }
         } catch (error: any) {
             toast.error(error.message);
@@ -288,146 +258,142 @@ const AddInvoice: React.FC = () => {
         }
     };
 
-    const generateAndUploadPDF = async (dbIds: number[]) => {
+    // --- ENHANCED PDF GENERATION ---
+    const generateAndUploadPDF = async (dbIds: number[], currentId: string) => {
         if (!previewRef.current) return false;
-        const wasPreview = showPreview;
+
         setShowPreview(true);
-        window.scrollTo(0, 0); // Ensure no scroll offset
-        await new Promise(resolve => setTimeout(resolve, 800));
+        window.scrollTo(0, 0);
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         try {
             const element = previewRef.current;
-            const fileName = `Invoice_${invoiceData.invoiceId.replace(/\//g, '-')}_${Date.now()}.pdf`;
+            const fileName = `Invoice_${currentId.replace(/\//g, '-')}.pdf`;
 
-            console.log("Generating Canvas...");
+            // FORCE the invoice ID into the live DOM element (bypasses React state timing)
+            const idEl = document.getElementById('invoice-id-display');
+            const originalText = idEl?.textContent || '';
+            if (idEl) idEl.textContent = currentId;
+
+            // Save original styles and force A4 width on the element
+            const parent = element.parentElement as HTMLElement;
+            const origParentStyle = parent?.style.cssText || '';
+            const origElementStyle = element.style.cssText || '';
+            if (parent) {
+                parent.style.cssText = 'display:flex;justify-content:center;padding:0;overflow:visible;';
+            }
+            element.style.width = '794px';
+            element.style.minWidth = '794px';
+
+            // Wait for layout reflow
+            await new Promise(resolve => setTimeout(resolve, 200));
+
             const canvas = await html2canvas(element, {
-                scale: 3, // Increased scale for crispness
+                scale: 2,
                 useCORS: true,
                 backgroundColor: "#ffffff",
-                logging: false,
-                width: 794, // Fixed width for A4 (210mm @ 96dpi)
+                width: 794,
+                height: element.scrollHeight,
                 windowWidth: 794,
+                scrollX: 0,
+                scrollY: 0,
             });
 
-            console.log("Creating PDF...");
-            const imgData = canvas.toDataURL('image/jpeg', 0.98); // High quality JPEG
-            const pdf = new jsPDF({
-                orientation: 'p',
-                unit: 'mm',
-                format: 'a4',
-                hotfixes: ["px_tracking"]
-            });
+            // RESTORE original styles and text
+            if (parent) parent.style.cssText = origParentStyle;
+            element.style.cssText = origElementStyle;
+            if (idEl) idEl.textContent = originalText;
 
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-            // Calculate dimensions to fill A4 width exactly
-            const canvasAspectRatio = canvas.height / canvas.width;
-            const finalWidth = pdfWidth;
-            const finalHeight = pdfWidth * canvasAspectRatio;
-
-            // Align to top-left (0,0) to use full A4 area
-            pdf.addImage(imgData, 'JPEG', 0, 0, finalWidth, finalHeight, undefined, 'FAST');
-
-            console.log("Saving PDF locally...");
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
             pdf.save(fileName);
 
+            // Upload to Server
             const pdfBlob = pdf.output('blob');
-            const formDataUpload = new FormData();
-            formDataUpload.append('pdf', pdfBlob, fileName);
+            const formData = new FormData();
+            formData.append('pdf', pdfBlob, fileName);
 
-            console.log("Uploading PDF to backend...");
             const uploadRes = await fetch(`${BASE_URL}/notepad/upload-pdf`, {
                 method: 'POST',
                 headers: { ...getAuthHeader(), 'x-folder-name': 'invoices' },
-                body: formDataUpload
+                body: formData
             });
 
-            if (!uploadRes.ok) {
-                const errorText = await uploadRes.text();
-                console.error("Upload failed:", errorText);
-                throw new Error(`Upload failed: ${uploadRes.status} ${errorText}`);
-            }
+            if (!uploadRes.ok) throw new Error("PDF Upload Failed");
 
-            const uploadResult = await uploadRes.json();
-            const pdfPath = uploadResult.path;
-            console.log("Upload success, path:", pdfPath);
+            const { path } = await uploadRes.json();
 
-            console.log("Updating database records:", dbIds);
-            const patchResults = await Promise.all(dbIds.map(async id => {
-                const res = await fetch(`${BASE_URL}/invoices/pdf/${id}`, {
+            await Promise.all(dbIds.map(id =>
+                fetch(`${BASE_URL}/invoices/pdf/${id}`, {
                     method: 'PATCH',
                     headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pdfPath: pdfPath, filename: fileName })
-                });
-                if (!res.ok) {
-                    const errTxt = await res.text();
-                    console.error(`Failed to update DB for ID ${id}:`, errTxt);
-                    return false;
-                }
-                return true;
-            }));
-
-            if (patchResults.includes(false)) {
-                throw new Error("Some database path updates failed");
-            }
+                    body: JSON.stringify({ pdfPath: path, filename: fileName })
+                })
+            ));
 
             return true;
-        } catch (err: any) {
-            console.error("PDF Process Error:", err);
-            toast.error(err.message || "PDF storage failed");
+        } catch (err) {
+            console.error(err);
             return false;
-        } finally {
-            setShowPreview(wasPreview);
         }
     };
 
+    // --- DERIVED VALUES FOR PREVIEW ---
+    const totalSgst = totalTax;
+    const totalCgst = totalTax;
+    const totalIgst = 0;
+
     return (
-        <div className="flex flex-col lg:flex-row h-screen w-full bg-[#F8FAFC] overflow-hidden">
+        <div className="flex flex-col lg:flex-row h-screen w-full bg-[#F8FAFC]  overflow-hidden">
             <aside className={`fixed inset-0 lg:relative lg:flex lg:w-[480px] flex-col bg-white border-r border-slate-200 z-30 shadow-xl transition-transform duration-300 ${!showPreview ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-                <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-900 to-slate-800 sticky top-0 z-10">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-100">
-                            <FileText size={20} />
+                        <div className="w-10 h-10 bg-white/10 backdrop-blur rounded-xl flex items-center justify-center text-white border border-white/10">
+                            <Receipt size={20} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-black text-slate-800">Tax Invoice</h2>
-                            <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">Template Studio</p>
+                            <h2 className="text-lg font-black text-white">Tax Invoice</h2>
+                            <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">Create & Generate</p>
                         </div>
                     </div>
-                    <button onClick={() => navigate('/invoices/history')} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all">
+                    <button onClick={() => navigate('/invoices/history')} className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all">
                         <ArrowLeft size={18} />
                     </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
                     <section className="space-y-4">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">Basic Information</h3>
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Calendar size={12} className="text-slate-300" /> Basic Information</h3>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Invoice No</label>
-                                <input type="text" value={invoiceData.invoiceId} onChange={e => setInvoiceData({ ...invoiceData, invoiceId: e.target.value })} className="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white" />
+                                <input type="text" value={invoiceData.invoiceId} onChange={e => setInvoiceData({ ...invoiceData, invoiceId: e.target.value })} className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none" />
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Invoice Date</label>
                                 <input type="date" value={invoiceData.date} onChange={e => setInvoiceData({ ...invoiceData, date: e.target.value })} className="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Vehicle No</label>
-                                <select value={invoiceData.vehicleNumber} onChange={e => setInvoiceData({ ...invoiceData, vehicleNumber: e.target.value })} className="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 flex items-center gap-1"><Truck size={10} className="text-slate-400" /> Vehicle No</label>
+                                <select value={invoiceData.vehicleNumber} onChange={e => setInvoiceData({ ...invoiceData, vehicleNumber: e.target.value })} className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none">
                                     <option value="">Select Vehicle</option>
                                     {vehicles.map(v => <option key={v.id} value={v.vehicleNumber}>{v.vehicleNumber}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Delivery Place</label>
-                                <input type="text" value={invoiceData.deliveryPlace} onChange={e => setInvoiceData({ ...invoiceData, deliveryPlace: e.target.value })} placeholder="e.g. TIRUPUR" className="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
+                                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 flex items-center gap-1"><MapPin size={10} className="text-slate-400" /> Delivery Place</label>
+                                <input type="text" value={invoiceData.deliveryPlace} onChange={e => setInvoiceData({ ...invoiceData, deliveryPlace: e.target.value })} placeholder="e.g. TIRUPUR" className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none" />
                             </div>
                         </div>
                     </section>
 
                     <section className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Billing & Shipping</h3>
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Building2 size={12} className="text-slate-300" /> Billing & Shipping</h3>
                             <div className="flex items-center gap-2">
                                 <span className="text-[10px] font-bold text-slate-400">Same as Billed</span>
                                 <input type="checkbox" checked={sameAsBilled} onChange={e => setSameAsBilled(e.target.checked)} className="rounded border-slate-300 text-black focus:ring-black" />
@@ -464,8 +430,8 @@ const AddInvoice: React.FC = () => {
 
                     <section className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Material Details</h3>
-                            <button onClick={addItem} className="p-1 text-black bg-slate-50 border border-slate-200 rounded-lg"><Plus size={16} /></button>
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><FileText size={12} className="text-slate-300" /> Material Details</h3>
+                            <button onClick={addItem} className="p-1.5 text-white bg-slate-900 hover:bg-black rounded-lg transition-all shadow-sm"><Plus size={14} /></button>
                         </div>
                         {items.map((item) => (
                             <div key={item.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3 relative">
@@ -501,7 +467,7 @@ const AddInvoice: React.FC = () => {
                     </section>
 
                     <section className="space-y-4">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tax & Bank Details</h3>
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><CreditCard size={12} className="text-slate-300" /> Tax & Bank Details</h3>
                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
@@ -526,9 +492,9 @@ const AddInvoice: React.FC = () => {
                         <span className="text-xl font-black text-black">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex gap-3">
-                        <button onClick={() => setShowPreview(!showPreview)} className="flex-1 bg-white border border-slate-200 text-slate-700 py-3 rounded-xl lg:hidden"><Eye size={16} /> {showPreview ? 'Edit' : 'Preview'}</button>
-                        <button onClick={saveInvoice} disabled={isSaving} className="flex-[2] bg-black hover:bg-slate-900 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50">
-                            {isSaving ? "Saving..." : <><Save size={16} /> Save & Generate</>}
+                        <button onClick={() => setShowPreview(!showPreview)} className="flex-1 bg-white border border-slate-200 text-slate-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2 lg:hidden hover:bg-slate-50 transition-all"><Eye size={16} /> {showPreview ? 'Edit' : 'Preview'}</button>
+                        <button onClick={saveInvoice} disabled={isSaving} className="flex-[2] bg-gradient-to-r from-slate-900 to-black hover:from-black hover:to-slate-800 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-slate-900/20">
+                            {isSaving ? <><Loader2 size={16} className="animate-spin" /> Generating...</> : <><Save size={16} /> Save & Generate</>}
                         </button>
                     </div>
                 </div>
@@ -550,9 +516,9 @@ const AddInvoice: React.FC = () => {
                             </div>
                         </div>
                         <div className="text-right">
-                            <div className="bg-[#f8fafc] border border-[#e2e8f0] px-3 py-1.5 rounded-lg inline-block text-right">
-                                <p className="text-[8px] font-black text-[#64748b] uppercase tracking-widest mb-0.5">Invoice Number</p>
-                                <p className="text-base font-black text-[#0f172a] leading-none">{invoiceData.invoiceId}</p>
+                            <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '6px 12px', borderRadius: '8px', display: 'block', textAlign: 'right' }}>
+                                <p style={{ fontSize: '8px', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px' }}>Invoice Number</p>
+                                <p id="invoice-id-display" style={{ fontSize: '16px', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{invoiceData.invoiceId}</p>
                             </div>
                             <p className="mt-1.5 text-[9px] font-bold text-[#94a3b8] italic">Date: {new Date(invoiceData.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
                         </div>
@@ -689,7 +655,7 @@ const AddInvoice: React.FC = () => {
                                 )}
                                 <div className="flex justify-between items-center text-[9px] px-2 text-[#94a3b8] italic">
                                     <span className="font-medium">Round off</span>
-                                    <span>₹{roundOffValue.toFixed(2)}</span>
+                                    <span>₹{roundOffValue}</span>
                                 </div>
                                 <div className="h-[1px] bg-[#e5e7eb] my-1.5"></div>
                                 <div className="bg-[#0f172a] text-white p-4 rounded-xl border-4 border-white mb-1">
