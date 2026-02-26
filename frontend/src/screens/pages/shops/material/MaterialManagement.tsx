@@ -15,6 +15,7 @@ import MerchantModal from "./components/modals/MerchantModal";
 import CategoryFilter from "./components/CategoryFilter";
 import DeleteConfirmationModal from "./components/modals/DeleteConfirmationModal";
 import Pagination from "./components/Pagination";
+import { BASE_URL } from "../../../../api/base";
 
 // --- INTERFACES ---
 interface ShopEntry {
@@ -40,7 +41,7 @@ export default function ShopLedgerPage() {
 
   const fetchSuppliers = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/suppliers`, {
+      const response = await fetch(`${BASE_URL}/materials/suppliers`, {
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("token")}`,
         },
@@ -60,7 +61,7 @@ export default function ShopLedgerPage() {
     if (!deletingShopId) return;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/suppliers/${deletingShopId}`, {
+      const response = await fetch(`${BASE_URL}/materials/suppliers/${deletingShopId}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("token")}`,

@@ -10,9 +10,12 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
-  Trash2
+  Trash2,
+  AlertTriangle,
+  X
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { getProductionHistory, deleteProductionLog } from "../../../api/inventory";
 import toast from "react-hot-toast";
@@ -44,6 +47,7 @@ export default function ProductionHistoryPage() {
   const [history, setHistory] = useState<ProductionLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -73,14 +77,14 @@ export default function ProductionHistoryPage() {
     setCurrentPage(1);
   }, [search]);
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this production log? Stock will be reversed.")) return;
+  const handleDelete = async () => {
+    if (!deleteId) return;
     setLoading(true);
     try {
-      console.log("Attempting to delete production log ID:", id);
-      await deleteProductionLog(id);
+      await deleteProductionLog(deleteId);
       toast.success("Production deleted and stock reversed");
-      setHistory(prev => prev.filter(log => log.production_id !== id));
+      setHistory(prev => prev.filter(log => log.production_id !== deleteId));
+      setDeleteId(null);
     } catch (error) {
       console.error("Delete error:", error);
       toast.error("Failed to delete production log");
@@ -137,7 +141,7 @@ export default function ProductionHistoryPage() {
       )}
 
       {/* TABLE CONTAINER */}
-      <div className={`bg-white rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className={`bg-white rounded-3xl md:rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
         {/* Horizontal Scroll Wrapper */}
         <div className="overflow-x-auto scrollbar-hide">
           <table className="w-full min-w-[800px]"> {/* Ensures table doesn't squish too much on mobile */}
@@ -211,7 +215,7 @@ export default function ProductionHistoryPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <button
-                      onClick={() => handleDelete(log.production_id)}
+                      onClick={() => setDeleteId(log.production_id)}
                       className="p-2 text-slate-400 hover:text-red-500 transition-colors bg-slate-50 hover:bg-red-50 rounded-xl"
                     >
                       <Trash2 size={16} />
@@ -268,6 +272,70 @@ export default function ProductionHistoryPage() {
           </div>
         )}
       </div>
+      {/* DELETE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {deleteId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setDeleteId(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl border border-slate-100 p-8 overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 p-6">
+                <button
+                  onClick={() => setDeleteId(null)}
+                  className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="flex flex-col items-center text-center space-y-6">
+                <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center text-red-500 animate-pulse">
+                  <AlertTriangle size={40} />
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black text-slate-800 tracking-tight">Reverse Logs?</h3>
+                  <p className="text-slate-500 font-bold text-sm leading-relaxed px-4">
+                    Are you sure you want to delete this production log? This action will <span className="text-red-500">reverse the stock levels</span> immediately.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 w-full pt-4">
+                  <button
+                    onClick={() => setDeleteId(null)}
+                    className="py-4 rounded-2xl font-black text-slate-400 hover:bg-slate-50 transition-all border border-slate-100 text-xs uppercase tracking-widest"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={loading}
+                    className="py-4 bg-red-500 text-white rounded-2xl font-black hover:bg-red-600 transition-all shadow-lg shadow-red-200 text-xs uppercase tracking-widest flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Trash2 size={14} /> Delete
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

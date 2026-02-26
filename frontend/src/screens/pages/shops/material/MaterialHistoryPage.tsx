@@ -14,6 +14,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import { BASE_URL } from "../../../../api/base";
 
 // NEW COMPONENTS
 import SummaryCards from "./components/SummaryCards";
@@ -80,13 +81,13 @@ export default function MaterialHistoryPage() {
     try {
       const token = localStorage.getItem("token");
       const [entriesRes, statementsRes, supplierRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/entries/supplier/${shopId}`, {
+        fetch(`${BASE_URL}/materials/entries/supplier/${shopId}`, {
           headers: { "Authorization": `Bearer ${token}` }
         }),
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/statements/supplier/${shopId}`, {
+        fetch(`${BASE_URL}/materials/statements/supplier/${shopId}`, {
           headers: { "Authorization": `Bearer ${token}` }
         }),
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/suppliers/${shopId}`, {
+        fetch(`${BASE_URL}/materials/suppliers/${shopId}`, {
           headers: { "Authorization": `Bearer ${token}` }
         })
       ]);
@@ -109,8 +110,8 @@ export default function MaterialHistoryPage() {
     if (!window.confirm(`Are you sure you want to delete this ${type === 'ENTRY' ? 'procurement entry' : 'payment statement'}? Stock and balances will be reversed.`)) return;
 
     try {
-      const endpoint = type === 'ENTRY' ? `/api/materials/entries/${id}` : `/api/materials/statements/${id}`;
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${endpoint}`, {
+      const endpoint = type === 'ENTRY' ? `/materials/entries/${id}` : `/materials/statements/${id}`;
+      const response = await fetch(`${BASE_URL}${endpoint}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
       });
@@ -311,8 +312,8 @@ export default function MaterialHistoryPage() {
 function MaterialLogRow({ log, idx, onEdit, onDelete }: { log: any; idx: number; onEdit: () => void; onDelete: () => void }) {
   const date = new Date(log.date);
   return (
-    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="group bg-white p-2 pr-6 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
-      <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-indigo-50 border border-indigo-100 flex flex-col items-center justify-center group-hover:bg-indigo-100 transition-colors">
+    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="group bg-white p-2 pr-6 rounded-4xl shadow-sm border border-slate-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
+      <div className="w-full md:w-32 h-24 rounded-3xl bg-indigo-50 border border-indigo-100 flex flex-col items-center justify-center group-hover:bg-indigo-100 transition-colors">
         <span className="text-[10px] font-black text-indigo-400 uppercase mb-1">{date.getFullYear()}</span>
         <span className="text-2xl font-black text-indigo-800 leading-none">{date.getDate()}</span>
         <span className="text-[10px] font-black uppercase text-indigo-600 mt-1">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>

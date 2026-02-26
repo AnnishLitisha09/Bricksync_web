@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Tag } from "lucide-react";
 import toast from "react-hot-toast";
+import { BASE_URL } from "../../../../../../api/base";
 
 interface EntryModalProps {
     isOpen: boolean;
@@ -78,13 +79,13 @@ const EntryModal: React.FC<EntryModalProps> = ({
             const fetchInitialData = async () => {
                 try {
                     const [pRes, oRes, sRes] = await Promise.all([
-                        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/products`, {
+                        fetch(`${BASE_URL}/products`, {
                             headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
                         }),
-                        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/offices`, {
+                        fetch(`${BASE_URL}/offices`, {
                             headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
                         }),
-                        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/stock`, {
+                        fetch(`${BASE_URL}/stock`, {
                             headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
                         })
                     ]);
@@ -108,8 +109,8 @@ const EntryModal: React.FC<EntryModalProps> = ({
         try {
             const payload = { ...form, supplier_id: supplierId, fields: dynamicFields };
             const url = editData
-                ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/entries/${editData.id}`
-                : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/entries`;
+                ? `${BASE_URL}/materials/entries/${editData.id}`
+                : `${BASE_URL}/materials/entries`;
 
             const response = await fetch(url, {
                 method: editData ? "PUT" : "POST",

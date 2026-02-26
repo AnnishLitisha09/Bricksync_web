@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import toast from "react-hot-toast";
+import { BASE_URL } from "../../../../../../api/base";
 
 interface Bank {
     id: number;
@@ -56,7 +57,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
     const fetchBanks = async () => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/banks`, {
+            const response = await fetch(`${BASE_URL}/banks`, {
                 headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
             });
             const result = await response.json();
@@ -72,8 +73,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         try {
             const payload = { ...form, supplier_id: supplierId };
             const url = editData
-                ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/statements/${editData.id}`
-                : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/materials/statements`;
+                ? `${BASE_URL}/materials/statements/${editData.id}`
+                : `${BASE_URL}/materials/statements`;
 
             const response = await fetch(url, {
                 method: editData ? "PUT" : "POST",

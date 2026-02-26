@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { getAllOffices, createProduct, updateProduct, updateStock } from "../../../api/inventory";
 import toast from "react-hot-toast";
+import { FILE_BASE_URL } from "../../../api/base";
 
 interface Office {
     office_id: number;
@@ -274,7 +275,7 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, editData }
                                         ) : (
                                             <div className="relative w-full aspect-video rounded-4xl overflow-hidden group">
                                                 <img
-                                                    src={imagePreview?.startsWith('data:') || imagePreview?.startsWith('http') ? imagePreview : `http://localhost:3002${imagePreview}`}
+                                                    src={imagePreview?.startsWith('data:') || imagePreview?.startsWith('http') ? imagePreview : `${FILE_BASE_URL}${imagePreview}`}
                                                     alt="Preview"
                                                     className="w-full h-full object-cover"
                                                 />

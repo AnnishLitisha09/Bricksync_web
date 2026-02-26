@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search, ShieldCheck, Users, User, CreditCard,
-  Mail, Phone, ExternalLink, Loader2, Plus, X, Pencil, Trash2
+  Mail, Phone, ExternalLink, Loader2, Plus, X, Pencil, Trash2,
+  AlertTriangle
 } from "lucide-react";
 import { fetchCustomers, createCustomer, updateCustomer, deleteCustomer } from "../../../api/customer";
 import type { CustomerData } from "../../../api/customer";
 import { toast } from "react-hot-toast";
+import { motion, AnimatePresence } from "framer-motion";
 
 const CustomerHub: React.FC = () => {
   const [search, setSearch] = useState<string>("");
@@ -25,6 +27,7 @@ const CustomerHub: React.FC = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalCustomers, setTotalCustomers] = useState(0);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
@@ -113,15 +116,20 @@ const CustomerHub: React.FC = () => {
     }
   };
 
-  const handleDeleteCustomer = async (id: number) => {
+  const handleDeleteCustomer = async () => {
+    if (!deleteId) return;
     try {
-      await deleteCustomer(id);
+      setSubmitting(true);
+      await deleteCustomer(deleteId);
       toast.success("Client deleted successfully!");
       setPage(1);
       loadData(1, search, false);
+      setDeleteId(null);
     } catch (error) {
       console.error(error);
       toast.error("Failed to delete client");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -220,11 +228,7 @@ const CustomerHub: React.FC = () => {
                     <Pencil size={18} />
                   </button>
                   <button
-                    onClick={() => {
-                      if (window.confirm("Are you sure you want to delete this client?")) {
-                        handleDeleteCustomer(customer.id!);
-                      }
-                    }}
+                    onClick={() => setDeleteId(customer.id!)}
                     className="p-3 bg-slate-100 text-slate-600 rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all shadow-sm"
                     title="Delete Client"
                   >
@@ -375,7 +379,70 @@ const CustomerHub: React.FC = () => {
           </div>
         </div>
       )}
+      {/* DELETE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {deleteId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setDeleteId(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl border border-slate-100 p-8 overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 p-6">
+                <button
+                  onClick={() => setDeleteId(null)}
+                  className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
+              <div className="flex flex-col items-center text-center space-y-6">
+                <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center text-red-500 animate-pulse">
+                  <AlertTriangle size={40} />
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black text-slate-800 tracking-tight">Remove Client?</h3>
+                  <p className="text-slate-500 font-bold text-sm leading-relaxed px-4">
+                    Are you sure you want to remove this client? This will move their account to the <span className="text-red-500">archived records</span>.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 w-full pt-4">
+                  <button
+                    onClick={() => setDeleteId(null)}
+                    className="py-4 rounded-2xl font-black text-slate-400 hover:bg-slate-50 transition-all border border-slate-100 text-xs uppercase tracking-widest"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteCustomer}
+                    disabled={submitting}
+                    className="py-4 bg-red-500 text-white rounded-2xl font-black hover:bg-red-600 transition-all shadow-lg shadow-red-200 text-xs uppercase tracking-widest flex items-center justify-center gap-2"
+                  >
+                    {submitting ? (
+                      <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Trash2 size={14} /> Delete
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
