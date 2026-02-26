@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useVehicleStore } from "../../../store/vechicle/useVehicleStore";
 import toast from "react-hot-toast";
-import { ArrowLeft, Car, UploadCloud, CheckCircle2, FileText, Image as ImageIcon, X, AlertCircle } from "lucide-react";
+import { ArrowLeft, Car, UploadCloud, CheckCircle2, FileText, Image as ImageIcon, X } from "lucide-react";
 import Input from "../../../components/InputBox";
 
 // Define the shape of our validation errors
@@ -37,7 +37,7 @@ export default function AddVehicle() {
     if (!form.vehicleName.trim()) newErrors.vehicleName = "Vehicle name is required";
     if (!form.vehicleNumber.trim()) newErrors.vehicleNumber = "Vehicle number is required";
     if (!form.kilometer) newErrors.kilometer = "Odometer reading is required";
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -64,7 +64,7 @@ export default function AddVehicle() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       toast.error("Please fill in all required fields");
       return;
@@ -72,7 +72,7 @@ export default function AddVehicle() {
 
     setLoading(true);
     const data = new FormData();
-    
+
     Object.entries(form).forEach(([key, value]) => {
       if (value !== null && value !== "") {
         data.append(key, value as any);
@@ -91,14 +91,6 @@ export default function AddVehicle() {
     }
   };
 
-  const renderError = (message?: string) => {
-    if (!message) return null;
-    return (
-      <p className="flex items-center gap-1 mt-1 text-xs font-medium text-red-500 animate-in fade-in slide-in-from-top-1">
-        <AlertCircle size={12} /> {message}
-      </p>
-    );
-  };
 
   const FileUploadCard = ({ name, label }: { name: keyof typeof form; label: string }) => {
     const file = form[name] as File | null;

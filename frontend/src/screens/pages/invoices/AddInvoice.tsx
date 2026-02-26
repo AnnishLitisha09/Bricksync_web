@@ -111,14 +111,6 @@ const AddInvoice: React.FC = () => {
         }
     };
 
-    const calculateItemTotal = (item: InvoiceItem) => {
-        const subtotal = item.quantity * item.rate;
-        const sgstAmount = (subtotal * invoiceData.sgstRate) / 100;
-        const cgstAmount = (subtotal * invoiceData.cgstRate) / 100;
-        const igstAmount = (subtotal * item.igst) / 100;
-        return subtotal + sgstAmount + cgstAmount + igstAmount;
-    };
-
     const handleCustomerChange = (name: string) => {
         const customer = customers.find(c => c.name === name);
         if (customer) {

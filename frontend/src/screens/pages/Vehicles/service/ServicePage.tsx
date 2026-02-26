@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { 
-  ChevronLeft, ChevronRight, CreditCard, 
-  Loader2, MapPin, Plus, Search, Trash2, Wrench, Calendar, IndianRupee 
+import {
+  ChevronLeft, ChevronRight, CreditCard,
+  Loader2, MapPin, Plus, Search, Trash2, Wrench
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -9,9 +9,9 @@ import { useVehicleServiceStore } from "../../../../store/services/useVehicleSer
 
 export default function ServicePage() {
   const navigate = useNavigate();
-  const { 
-    services, fetchServices, searchServices, 
-    loading, totalPages, currentPage, deleteService 
+  const {
+    services, fetchServices, searchServices,
+    loading, totalPages, currentPage, deleteService
   } = useVehicleServiceStore();
 
   const [search, setSearch] = useState("");
@@ -45,7 +45,7 @@ export default function ServicePage() {
   const totalSpent = services.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="min-h-screen bg-gray-50/50 p-4 md:p-8 space-y-6 pb-24 md:pb-8"
@@ -75,7 +75,7 @@ export default function ServicePage() {
           </h1>
           <p className="text-slate-500 text-xs md:text-sm font-medium">Manage your vehicle maintenance history</p>
         </div>
-        <button 
+        <button
           onClick={() => navigate("/vehicles/services/add")}
           className="hidden md:flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-3.5 rounded-2xl font-bold hover:bg-orange-600 transition-all shadow-xl active:scale-95"
         >
@@ -85,15 +85,15 @@ export default function ServicePage() {
 
       {/* STATS - Consolidated Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard 
-          title="Total Count" 
-          value={services.length.toString()} 
-          icon={<Wrench className="text-orange-500" size={18} />} 
+        <StatCard
+          title="Total Count"
+          value={services.length.toString()}
+          icon={<Wrench className="text-orange-500" size={18} />}
         />
-        <StatCard 
-          title="Total Spent" 
-          value={`₹${totalSpent.toLocaleString()}`} 
-          icon={<CreditCard className="text-emerald-500" size={18} />} 
+        <StatCard
+          title="Total Spent"
+          value={`₹${totalSpent.toLocaleString()}`}
+          icon={<CreditCard className="text-emerald-500" size={18} />}
         />
       </div>
 
@@ -153,7 +153,7 @@ export default function ServicePage() {
                         {new Date(service.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </td>
                       <td className="px-8 py-5 text-right">
-                        <button 
+                        <button
                           onClick={() => setDeleteModal({ show: true, id: service.id })}
                           className="p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
                         >
@@ -190,13 +190,13 @@ export default function ServicePage() {
                     <div className="flex flex-col border-l border-gray-200 pl-3">
                       <span className="text-[9px] uppercase font-black text-slate-400">Date</span>
                       <span className="text-sm font-bold text-slate-600">
-                         {new Date(service.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                        {new Date(service.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    <button 
+                    <button
                       onClick={() => setDeleteModal({ show: true, id: service.id })}
                       className="flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 rounded-xl text-xs font-bold"
                     >
@@ -211,7 +211,7 @@ export default function ServicePage() {
       </div>
 
       {/* MOBILE FLOATING ACTION BUTTON */}
-      <button 
+      <button
         onClick={() => navigate("/vehicles/services/add")}
         className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-slate-900 text-white rounded-2xl shadow-2xl flex items-center justify-center active:scale-90 transition-transform z-50 border-4 border-white"
       >
@@ -221,19 +221,19 @@ export default function ServicePage() {
       {/* PAGINATION */}
       {!loading && !search && totalPages > 1 && (
         <div className="flex flex-col sm:flex-row items-center justify-between bg-white p-4 rounded-3xl shadow-sm border border-gray-100 gap-4">
-          <button 
-            disabled={currentPage === 1} 
-            onClick={() => { fetchServices(currentPage - 1); window.scrollTo(0,0); }} 
+          <button
+            disabled={currentPage === 1}
+            onClick={() => { fetchServices(currentPage - 1); window.scrollTo(0, 0); }}
             className="w-full sm:w-auto flex items-center justify-center gap-1 text-sm font-bold text-slate-500 disabled:opacity-30 p-2 hover:bg-gray-50 rounded-xl"
           >
             <ChevronLeft size={20} /> Prev
           </button>
-          
+
           <div className="flex gap-2">
             {[...Array(totalPages)].map((_, i) => (
-              <button 
-                key={i} 
-                onClick={() => { fetchServices(i + 1); window.scrollTo(0,0); }} 
+              <button
+                key={i}
+                onClick={() => { fetchServices(i + 1); window.scrollTo(0, 0); }}
                 className={`w-10 h-10 rounded-xl text-sm font-black transition-all ${currentPage === i + 1 ? "bg-orange-600 text-white shadow-lg" : "bg-gray-50 text-slate-400"}`}
               >
                 {i + 1}
@@ -241,9 +241,9 @@ export default function ServicePage() {
             ))}
           </div>
 
-          <button 
-            disabled={currentPage === totalPages} 
-            onClick={() => { fetchServices(currentPage + 1); window.scrollTo(0,0); }} 
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => { fetchServices(currentPage + 1); window.scrollTo(0, 0); }}
             className="w-full sm:w-auto flex items-center justify-center gap-1 text-sm font-bold text-slate-500 disabled:opacity-30 p-2 hover:bg-gray-50 rounded-xl"
           >
             Next <ChevronRight size={20} />

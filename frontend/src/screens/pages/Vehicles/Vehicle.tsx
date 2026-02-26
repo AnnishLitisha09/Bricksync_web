@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, ArrowRight, Calendar, Car, Check, ChevronLeft, ChevronRight, Gauge, Plus, Search, Sliders } from "lucide-react";
+import { AlertCircle, ArrowRight, Calendar, Car, Check, ChevronLeft, ChevronRight, Gauge, Plus, Search, Sliders } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FILE_BASE_URL } from "../../../api/base";

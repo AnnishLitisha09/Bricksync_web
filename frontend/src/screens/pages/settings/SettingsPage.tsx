@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
-    Building2, Database, Info, Plus, Trash2, 
-    MapPin, RefreshCcw, ShieldCheck, ChevronLeft, 
-    Monitor, Server, Download, History, Mail, 
+    Building2, Database, Plus, Trash2,
+    MapPin, RefreshCcw, ShieldCheck, ChevronLeft,
+    Monitor, Server, Download, History, Mail,
     CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,7 +27,7 @@ const SettingsPage: React.FC = () => {
 
     // State Management
     const [offices, setOffices] = useState<Office[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [_loading, setLoading] = useState(true);
     const [backupStatus, setBackupStatus] = useState<BackupStatus | null>(null);
     const [appVersion, setAppVersion] = useState<string>("1.0.0");
     const [systemModeActive, setSystemModeActive] = useState(true);
@@ -269,7 +269,7 @@ const SettingsPage: React.FC = () => {
                                 </div>
                                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-400">Security & Integrity</span>
                             </div>
-                            <h2 className="text-4xl md:text-5xl font-black leading-tight">Database <br/>Snapshot</h2>
+                            <h2 className="text-4xl md:text-5xl font-black leading-tight">Database <br />Snapshot</h2>
                             <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-sm">
                                 Full system backup. Sync an encrypted database dump directly to your administrator Gmail account for off-site disaster recovery.
                             </p>
