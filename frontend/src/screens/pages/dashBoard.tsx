@@ -4,7 +4,6 @@ import {
   Package,
   AlertCircle,
   ArrowRight,
-  Plus,
   Calendar,
   Fuel,
   LayoutDashboard,
@@ -26,16 +25,16 @@ import {
   Cell,
   Legend
 } from "recharts";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
-  getOfficeSummary,
   getTodayProductionStats,
   getLowStock,
   getProductionHistory
 } from "../../api/inventory";
 import { useBankStore } from "../../store/bankStore";
 import { useFuelStore } from "../../store/fuel/useFuelStore";
+import { BASE_URL, getAuthHeader } from "../../api/base";
 import StatCard from "../../components/StatCard";
 import { useUserStore } from "../../store/useUserStore";
 
@@ -74,16 +73,17 @@ export const Dashboard: React.FC = () => {
   const [lowStock, setLowStock] = useState<any[]>([]);
   const [productionHistory, setProductionHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState({ todayIncome: 0, todayExpenses: 0 });
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [_stats, lowStockData, historyRes, _summary] = await Promise.all([
+        const [_stats, lowStockData, historyRes, _resAnalytics] = await Promise.all([
           getTodayProductionStats(),
           getLowStock(),
           getProductionHistory(),
-          getOfficeSummary(),
+          fetch(`${BASE_URL}/analytics/today-summary`, { headers: getAuthHeader() }).then(r => r.json()),
           fetchBanks(),
           getFuels(1)
         ]);
@@ -91,6 +91,13 @@ export const Dashboard: React.FC = () => {
         setLowStock(lowStockData);
         const logs = Array.isArray(historyRes) ? historyRes : (historyRes?.data || []);
         setProductionHistory(logs);
+
+        if (_resAnalytics?.success) {
+          setAnalytics({
+            todayIncome: _resAnalytics.todayIncome,
+            todayExpenses: _resAnalytics.todayExpenses
+          });
+        }
       } catch (error) {
         console.error("Failed to fetch dashboard data", error);
       } finally {
@@ -209,16 +216,6 @@ export const Dashboard: React.FC = () => {
               <span>{new Date().toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
             </div>
           </motion.div>
-
-          {/* <motion.button
-            whileHover={{ scale: 1.05, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate("/inventory/add")}
-            className="flex items-center gap-3 rounded-2xl bg-gray-900 px-8 py-4 text-sm font-bold text-white shadow-xl transition-all"
-          >
-            <Plus className="h-5 w-5" />
-            New Log
-          </motion.button> */}
         </div>
       </motion.div>
 
@@ -226,13 +223,13 @@ export const Dashboard: React.FC = () => {
       <div className="mb-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Today's Incoming"
-          amount={12340} // Placeholder for daily metric
+          amount={analytics.todayIncome}
           icon={<ArrowUpRight className="h-6 w-6 text-emerald-600" />}
           delay={0.1}
         />
         <StatCard
           title="Today's Outgoing"
-          amount={8254} // Placeholder for daily metric
+          amount={analytics.todayExpenses}
           icon={<ArrowDownLeft className="h-6 w-6 text-rose-600" />}
           delay={0.2}
         />

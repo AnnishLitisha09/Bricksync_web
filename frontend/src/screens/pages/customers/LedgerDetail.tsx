@@ -6,13 +6,14 @@ import {
   Receipt, Loader2, Truck, Plus, Wallet,
   PhoneCall, X, BellRing, User, HardHat, Building2,
   Pencil, Trash2, CreditCard, Navigation,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Download
 } from "lucide-react";
 import { fetchCustomerById, deleteCustomerStatement } from "../../../api/customer";
 import { createCallLog } from "../../../api/callLog";
 import { deleteOrder } from "../../../api/order";
 import AddMaterialModal from "./AddMaterialModal";
 import RecordPaymentModal from "./RecordPaymentModal";
+import ExportLedgerModal from "./ExportLedgerModal";
 import { toast } from "react-hot-toast";
 
 const CustomerDetails: React.FC = () => {
@@ -24,6 +25,7 @@ const CustomerDetails: React.FC = () => {
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [editOrderData, setEditOrderData] = useState<any>(null);
   const [editPaymentData, setEditPaymentData] = useState<any>(null);
 
@@ -210,6 +212,16 @@ const CustomerDetails: React.FC = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  setIsExportModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 hover:border-indigo-200 hover:text-indigo-600 transition-all shadow-sm"
+              >
+                <Download size={18} /> Export Ledger
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   setEditOrderData(null);
                   setIsMaterialModalOpen(true);
                 }}
@@ -341,7 +353,8 @@ const CustomerDetails: React.FC = () => {
                                   setEditOrderData(tx.raw);
                                   setIsMaterialModalOpen(true);
                                 } else {
-                                  toast.error("Payment editing not yet implemented");
+                                  setEditPaymentData(tx.raw);
+                                  setIsPaymentModalOpen(true);
                                 }
                               }}
                               className="p-3 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-xl text-slate-400 transition-all"
@@ -503,6 +516,13 @@ const CustomerDetails: React.FC = () => {
         }}
         customerId={id || ""}
         editData={editPaymentData}
+      />
+
+      <ExportLedgerModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        customer={customer}
+        ledgerEntries={ledgerEntries}
       />
     </div>
   );

@@ -18,11 +18,6 @@ import { useBankStore } from "../../../store/bankStore";
 import toast from "react-hot-toast";
 import { deobfuscate } from "../../../utils/encryption";
 
-const treasuryData = [
-    { title: "Today's Income", amount: "12,340.00", icon: <ArrowUpRight size={24} />, color: "bg-emerald-500", shadow: "shadow-emerald-200" },
-    { title: "Today's Expenses", amount: "8,254.18", icon: <ArrowDownLeft size={24} />, color: "bg-rose-500", shadow: "shadow-rose-200" },
-];
-
 const BankSkeleton = () => (
     <div className="relative h-64 w-full p-8 rounded-[2.5rem] bg-slate-200 shadow-sm overflow-hidden animate-pulse border border-slate-100">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
@@ -82,7 +77,28 @@ const Banks: React.FC = () => {
         gpay: false
     });
 
-    useEffect(() => { fetchBanks(); }, [fetchBanks]);
+    const [analytics, setAnalytics] = useState({ todayIncome: 0, todayExpenses: 0 });
+
+    useEffect(() => {
+        fetchBanks();
+        const loadStats = async () => {
+            try {
+                const res = await fetch(`${BASE_URL}/analytics/today-summary`, { headers: getAuthHeader() });
+                const data = await res.json();
+                if (data.success) {
+                    setAnalytics({ todayIncome: data.todayIncome, todayExpenses: data.todayExpenses });
+                }
+            } catch (error) {
+                console.error("Failed to fetch treasury stats", error);
+            }
+        };
+        loadStats();
+    }, [fetchBanks]);
+
+    const treasuryData = [
+        { title: "Today's Income", amount: analytics.todayIncome.toLocaleString(undefined, { minimumFractionDigits: 2 }), icon: <ArrowUpRight size={24} />, color: "bg-emerald-500", shadow: "shadow-emerald-200" },
+        { title: "Today's Expenses", amount: analytics.todayExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 }), icon: <ArrowDownLeft size={24} />, color: "bg-rose-500", shadow: "shadow-rose-200" },
+    ];
 
     const bankArray = Array.isArray(banks) ? banks : [];
     const visibleBanks = showAllBanks ? bankArray : bankArray.slice(0, 4);
@@ -348,11 +364,7 @@ const Banks: React.FC = () => {
                             <div className={`p-6 rounded-[2rem] ${stat.color} text-white shadow-2xl ${stat.shadow}`}>{stat.icon}</div>
                         </div>
                         <p className="text-slate-400 text-[13px] font-black uppercase tracking-[0.3em] mb-2">{stat.title}</p>
-                        {isVerified ? (
-                            <h3 className="text-6xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">₹{stat.amount}</h3>
-                        ) : (
-                            <h3 className="text-6xl font-black text-slate-900 tracking-tighter tabular-nums leading-none select-none">••••</h3>
-                        )}
+                        <h3 className="text-6xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">₹{stat.amount}</h3>
                     </div>
                 ))}
             </section>

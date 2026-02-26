@@ -4,7 +4,7 @@ const { CustomerStatement, Customer, BankTable, sequelize } = require("../models
 exports.createStatement = async (req, res) => {
     const transaction = await sequelize.transaction();
     try {
-        const { cus_id, bank_type, bank_id, amount, description } = req.body;
+        const { cus_id, bank_type, bank_id, amount, description, date } = req.body;
 
         const newStatement = await CustomerStatement.create({
             cus_id,
@@ -12,6 +12,7 @@ exports.createStatement = async (req, res) => {
             bank_id: bank_id || null,
             amount,
             description,
+            date: date || null,
         }, { transaction });
 
         // 1. Update Customer Balance (Decrement - they paid)
@@ -75,7 +76,7 @@ exports.updateStatement = async (req, res) => {
     const transaction = await sequelize.transaction();
     try {
         const { id } = req.params;
-        const { cus_id, bank_type, bank_id, amount, description } = req.body;
+        const { cus_id, bank_type, bank_id, amount, description, date } = req.body;
 
         const statement = await CustomerStatement.findByPk(id);
         if (!statement) {
@@ -115,7 +116,8 @@ exports.updateStatement = async (req, res) => {
             bank_type,
             bank_id: bank_id || null,
             amount,
-            description
+            description,
+            date: date || null
         }, { transaction });
 
         await transaction.commit();

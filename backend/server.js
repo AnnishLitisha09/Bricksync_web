@@ -62,6 +62,7 @@ console.log("🔌 Mounting /api/call-logs...");
 app.use("/api/call-logs", require("./routes/callLogRoutes"));
 app.use("/api/notepad", require("./routes/notepadRoutes"));
 app.use("/api/invoices", require("./routes/invoiceRoutes"));
+app.use("/api/analytics", require("./routes/analyticsRoutes"));
 
 
 
