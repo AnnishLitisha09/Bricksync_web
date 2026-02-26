@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
   Search, Download, FileText, Calendar,
-  ChevronLeft, ChevronRight, Layout, ArrowUpRight, ArrowDownLeft, X
+  ChevronLeft, ChevronRight, Layout, ArrowUpRight, ArrowDownLeft, X,
+  ArrowRight
 } from "lucide-react";
 import { BASE_URL, getAuthHeader } from "../../../api/base";
 import { useBankStore } from "../../../store/bankStore";
@@ -83,6 +84,17 @@ const TransactionsPage: React.FC = () => {
     }, 500);
     return () => clearTimeout(timer);
   }, [searchText]);
+  // Handle Pagination Centering
+  useEffect(() => {
+    const activeBtn = document.getElementById(`page-btn-${page}`);
+    if (activeBtn) {
+      activeBtn.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  }, [page, totalPages]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
@@ -370,10 +382,22 @@ const TransactionsPage: React.FC = () => {
                 {/* Details */}
                 <div className="flex-1 flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-2 w-full">
                   <div>
-                    <h3 className="text-xl font-black text-slate-800 tracking-tight uppercase group-hover:text-indigo-600 transition-colors">
-                      {t.name}
-                    </h3>
-                    <div className="flex flex-wrap gap-2 mt-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      {t.isSent ? (
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 bg-slate-900 text-white text-[8px] font-black uppercase rounded-md tracking-widest">{t.bankName}</span>
+                          <ArrowRight size={14} className="text-slate-300" />
+                          <h3 className="text-xl font-black text-slate-800 tracking-tight uppercase group-hover:text-indigo-600 transition-colors">{t.name}</h3>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-xl font-black text-slate-800 tracking-tight uppercase group-hover:text-indigo-600 transition-colors">{t.name}</h3>
+                          <ArrowRight size={14} className="text-slate-300" />
+                          <span className="px-2 py-0.5 bg-slate-900 text-white text-[8px] font-black uppercase rounded-md tracking-widest">{t.bankName}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
                       <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[8px] font-black uppercase rounded-md border border-slate-200 tracking-widest">
                         {t.type}
                       </span>
@@ -388,7 +412,6 @@ const TransactionsPage: React.FC = () => {
 
                   <div className="flex items-center gap-8">
                     <div className="text-right">
-                      <p className="text-[8px] font-black text-slate-400 uppercase mb-1 tracking-widest">{t.bankName}</p>
                       <span className={`text-2xl font-black tracking-tighter ${t.isSent ? "text-rose-600" : "text-emerald-600"}`}>
                         {t.isSent ? "-" : "+"} {formatToRupees(t.amount)}
                       </span>
@@ -403,37 +426,52 @@ const TransactionsPage: React.FC = () => {
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="mt-10 flex items-center justify-center gap-4">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage(p => p - 1)}
-            className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm"
-          >
-            <ChevronLeft size={20} />
-          </button>
+        <div className="mt-10 flex flex-col items-center gap-6">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, totalItems)} of {totalItems} entries
+          </p>
 
-          <div className="flex gap-2">
-            {[...Array(totalPages)].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setPage(i + 1)}
-                className={`w-10 h-10 rounded-xl text-[10px] font-black transition-all ${page === i + 1
-                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
-                  : "bg-white text-slate-400 border border-slate-100 hover:bg-slate-50"
-                  }`}
-              >
-                {i + 1}
-              </button>
-            ))}
+          <div className="flex items-center gap-4">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage(p => p - 1)}
+              className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm"
+            >
+              <ChevronLeft size={20} />
+            </button>
+
+            <div
+              id="pagination-container"
+              className="flex items-center gap-2 max-w-[250px] md:max-w-[400px] overflow-x-auto no-scrollbar py-2 px-1 scroll-smooth"
+            >
+              {[...Array(totalPages)].map((_, i) => {
+                const pageNum = i + 1;
+                return (
+                  <button
+                    key={pageNum}
+                    id={`page-btn-${pageNum}`}
+                    onClick={() => {
+                      setPage(pageNum);
+                    }}
+                    className={`flex-shrink-0 w-10 h-10 rounded-xl text-[10px] font-black transition-all ${page === pageNum
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                      : "bg-white text-slate-400 border border-slate-100 hover:bg-slate-50"
+                      }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage(p => p + 1)}
+              className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm"
+            >
+              <ChevronRight size={20} />
+            </button>
           </div>
-
-          <button
-            disabled={page === totalPages}
-            onClick={() => setPage(p => p + 1)}
-            className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm"
-          >
-            <ChevronRight size={20} />
-          </button>
         </div>
       )}
 

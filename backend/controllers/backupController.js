@@ -39,7 +39,7 @@ exports.triggerBackup = (req, res) => {
         try {
             // Send email to the requested address
             await sendEmail(
-                "bricksync0001@gmail.com",
+                "bricksync001@gmail.com",
                 "Bricksync Daily Backup - SQL Export",
                 `<p>System Backup Generated: <b>${new Date().toLocaleString()}</b></p>
                  <p>File: <b>${fileName}</b></p>

@@ -37,7 +37,8 @@ const CustomerDetails: React.FC = () => {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 10;
+
 
   const loadData = async () => {
     if (!id) return;
@@ -164,6 +165,18 @@ const CustomerDetails: React.FC = () => {
   }, [ledgerEntries, currentPage]);
 
   const totalPages = Math.ceil(ledgerEntries.length / itemsPerPage);
+
+  // Handle Pagination Centering
+  useEffect(() => {
+    const activeBtn = document.getElementById(`ledger-page-btn-${currentPage}`);
+    if (activeBtn) {
+      activeBtn.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  }, [currentPage, totalPages]);
 
   if (!customer && !loading) return <div className="p-12 text-center font-bold text-slate-400">Customer not found.</div>;
 
@@ -383,38 +396,42 @@ const CustomerDetails: React.FC = () => {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="px-8 py-6 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+              <div className="px-8 py-10 bg-slate-50/50 border-t border-slate-100 flex flex-col items-center gap-6">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                   Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, ledgerEntries.length)} of {ledgerEntries.length} entries
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
-                    className="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="p-3 rounded-2xl border border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
                   >
-                    <ChevronLeft size={18} />
+                    <ChevronLeft size={20} />
                   </button>
-                  <div className="flex items-center gap-1">
-                    {[...Array(totalPages)].map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setCurrentPage(i + 1)}
-                        className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${currentPage === i + 1
-                          ? "bg-slate-900 text-white shadow-lg shadow-slate-200"
-                          : "bg-white border border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"
-                          }`}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-2 max-w-[250px] md:max-w-[400px] overflow-x-auto no-scrollbar py-2 px-1 scroll-smooth">
+                    {[...Array(totalPages)].map((_, i) => {
+                      const pageNum = i + 1;
+                      return (
+                        <button
+                          key={pageNum}
+                          id={`ledger-page-btn-${pageNum}`}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`flex-shrink-0 w-10 h-10 rounded-xl text-[10px] font-black transition-all ${currentPage === pageNum
+                            ? "bg-slate-900 text-white shadow-lg shadow-slate-200"
+                            : "bg-white border border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"
+                            }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
                   </div>
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    className="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="p-3 rounded-2xl border border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
                   >
-                    <ChevronRight size={18} />
+                    <ChevronRight size={20} />
                   </button>
                 </div>
               </div>
