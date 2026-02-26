@@ -6,5 +6,6 @@ router.post("/create", invoiceController.createInvoice);
 router.get("/", invoiceController.getAllInvoices);
 router.patch("/status/:id", invoiceController.toggleInvoiceStatus);
 router.patch("/pdf/:id", invoiceController.updatePdfPath);
+router.get("/public/status", invoiceController.getInvoiceStatus);
 
 module.exports = router;
