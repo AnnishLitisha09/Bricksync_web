@@ -11,7 +11,7 @@ const sendEmail = require("./sendEmail");
  */
 const initScheduledTasks = () => {
     // 10 0 * * * = 12:10 AM - POPULATE NOTIFICATIONS
-    cron.schedule("10 0 * * *", async () => {
+    cron.schedule("50 0 * * *", async () => {
         console.log("🕒 [Scheduler] Running 12:10 AM Notification Population...");
         await populateNotifications();
     });
