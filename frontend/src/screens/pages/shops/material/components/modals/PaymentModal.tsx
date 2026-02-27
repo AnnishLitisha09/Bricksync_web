@@ -8,6 +8,9 @@ interface Bank {
     id: number;
     name: string;
     amount: string | number;
+    gpay?: boolean;
+    phonepe?: boolean;
+    bankTransfer?: boolean;
 }
 
 interface PaymentModalProps {
@@ -54,6 +57,37 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             }
         }
     }, [isOpen, editData]);
+
+    const selectedBankData = React.useMemo(() =>
+        banks.find(b => b.id.toString() === form.bank_id),
+        [form.bank_id, banks]
+    );
+
+    const availableModes = React.useMemo(() => {
+        if (!selectedBankData) return [];
+        if (selectedBankData.name.toLowerCase() === 'cash') return ["CASH"];
+        const modes = [];
+        if (selectedBankData.gpay) modes.push("GPAY");
+        if (selectedBankData.phonepe) modes.push("PHONEPE");
+        if (selectedBankData.bankTransfer) modes.push("BANK TRANSFER");
+
+        // Fallback if none are true but it's not cash
+        if (modes.length === 0) return ["BANK TRANSFER", "CHEQUE", "UPI"];
+
+        return modes;
+    }, [selectedBankData]);
+
+    React.useEffect(() => {
+        if (availableModes.length > 0) {
+            // Automatically switch if the current payment mode is invalid for this bank
+            const currentModeUpper = form.payment_mode.toUpperCase();
+            if (!availableModes.includes(currentModeUpper)) {
+                setForm(prev => ({ ...prev, payment_mode: availableModes[0] }));
+            }
+        } else if (form.bank_id === "") {
+            setForm(prev => ({ ...prev, payment_mode: "BANK TRANSFER" }));
+        }
+    }, [availableModes]);
 
     const fetchBanks = async () => {
         try {
@@ -153,14 +187,15 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Payment Mode</label>
                                 <select
                                     required
+                                    disabled={!form.bank_id || availableModes.length === 0}
                                     value={form.payment_mode}
                                     onChange={e => setForm({ ...form, payment_mode: e.target.value })}
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-bold outline-none"
+                                    className={`w-full border rounded-xl p-3 text-xs font-bold outline-none ${(!form.bank_id || availableModes.length === 0) ? 'bg-slate-100 border-slate-200 cursor-not-allowed text-slate-400' : 'bg-slate-50 border-slate-100'}`}
                                 >
-                                    <option>Bank Transfer</option>
-                                    <option>Cash</option>
-                                    <option>Cheque</option>
-                                    <option>UPI</option>
+                                    {!form.bank_id && <option value="">Select Bank First</option>}
+                                    {availableModes.map(mode => (
+                                        <option key={mode} value={mode}>{mode}</option>
+                                    ))}
                                 </select>
                             </div>
 
@@ -176,7 +211,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
                             <button
                                 type="submit"
-                                disabled={loading}
+                                disabled={loading || !form.bank_id || !form.payment_mode}
                                 className="w-full mt-4 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all disabled:opacity-50"
                             >
                                 {loading ? "Processing..." : editData ? "Update Payment" : "Confirm Payment"}

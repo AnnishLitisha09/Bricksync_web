@@ -51,8 +51,12 @@ const InvoiceHistory: React.FC = () => {
     };
 
     const getViewUrl = (inv: any) => {
-        if (!inv.filename) return null;
-        return `https://www.aswath.online/view/invoice/${inv.filename}`;
+        let filename = inv.filename;
+        if (!filename && inv.invoiceId) {
+            filename = `Invoice_${inv.invoiceId.replace(/\//g, '-')}.pdf`;
+        }
+        if (!filename) return null;
+        return `https://www.aswath.online/view/invoice/${filename}`;
     };
 
     const copyUrl = (inv: any) => {

@@ -52,10 +52,14 @@ export default function AddVehicle() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
 
     // Prevent negative numbers for kilometer
     if (name === "kilometer" && Number(value) < 0) return;
+
+    if (name === "vehicleNumber") {
+      value = value.toUpperCase();
+    }
 
     setForm({ ...form, [name]: value });
     // Clear error when user starts typing

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { FileText, AlertCircle, Loader2, Download, ExternalLink } from 'lucide-react';
+import { FileText, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BASE_URL, FILE_BASE_URL } from '../../../api/base';
 
@@ -18,15 +18,7 @@ const ViewInvoicePublic: React.FC = () => {
             }
 
             try {
-                // Parse invoiceId from filename: "Invoice_00037-2526.pdf" → "00037/2526"
-                // Formula: strip "Invoice_" prefix + ".pdf" suffix, then replace last -YYYY with /YYYY
-                const base = filename.replace(/^Invoice_/i, '').replace(/\.pdf$/i, '');
-                // base = "00037-2526"
-                const invoiceId = base.replace(/-(\d{4})$/, '/$1');
-                // invoiceId = "00037/2526"
-
-                // Use the existing search endpoint — no new backend route needed
-                const response = await fetch(`${BASE_URL}/invoices?search=${encodeURIComponent(invoiceId)}&limit=1&page=1`);
+                const response = await fetch(`${BASE_URL}/invoices/public/status?filename=${encodeURIComponent(filename)}`);
                 const data = await response.json();
 
                 if (!response.ok || !data.success) {
@@ -34,15 +26,7 @@ const ViewInvoicePublic: React.FC = () => {
                     return;
                 }
 
-                const invoices: any[] = data.data || [];
-                if (invoices.length === 0) {
-                    setStatus('error');
-                    return;
-                }
-
-                // If any invoice record with this ID is active, show the PDF
-                const anyActive = invoices.some((inv: any) => inv.isActive);
-                setStatus(anyActive ? 'active' : 'inactive');
+                setStatus(data.isActive ? 'active' : 'inactive');
             } catch (error) {
                 console.error("Error checking invoice status:", error);
                 setStatus('error');
@@ -50,6 +34,25 @@ const ViewInvoicePublic: React.FC = () => {
         };
 
         checkStatus();
+
+        // Lock Inspect
+        const handleContextMenu = (e: MouseEvent) => e.preventDefault();
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (
+                e.key === "F12" ||
+                (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "C")) ||
+                (e.ctrlKey && e.key === "U")
+            ) {
+                e.preventDefault();
+            }
+        };
+        document.addEventListener("contextmenu", handleContextMenu);
+        document.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            document.removeEventListener("contextmenu", handleContextMenu);
+            document.removeEventListener("keydown", handleKeyDown);
+        };
     }, [filename]);
 
     if (status === 'loading') {
@@ -123,14 +126,6 @@ const ViewInvoicePublic: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <a
-                            href={pdfUrl}
-                            download
-                            className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm group"
-                        >
-                            <Download size={16} className="group-hover:translate-y-0.5 transition-transform" />
-                            Download
-                        </a>
                         <a
                             href={pdfUrl}
                             target="_blank"
