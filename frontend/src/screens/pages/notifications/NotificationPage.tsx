@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, CheckCircle2, Clock, ShieldAlert, Loader2, RefreshCcw, BellRing, ChevronRight, Calendar } from 'lucide-react';
+import { CheckCircle2, Clock, ShieldAlert, Loader2, RefreshCcw, BellRing, ChevronRight, Calendar } from 'lucide-react';
 import { BASE_URL, getAuthHeader } from '../../../api/base';
 import toast from 'react-hot-toast';
 

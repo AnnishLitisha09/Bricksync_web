@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { BASE_URL, getAuthHeader } from "../api/base";
 import { isStale } from "./storeUtils";
 import { fetchTodayAttendance, saveAttendance } from "../api/attendance";
 
