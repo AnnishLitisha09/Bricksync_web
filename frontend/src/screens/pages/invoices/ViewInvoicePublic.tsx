@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { FileText, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
+import { FileText, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BASE_URL, FILE_BASE_URL } from '../../../api/base';
 
 const ViewInvoicePublic: React.FC = () => {
-    // React Router v6 splat route (/view/invoice/*) — useParams()['*'] captures the full filename including .pdf
     const params = useParams();
     const filename = params['*'] ?? '';
     const [status, setStatus] = useState<'loading' | 'active' | 'inactive' | 'error'>('loading');
@@ -35,17 +34,25 @@ const ViewInvoicePublic: React.FC = () => {
 
         checkStatus();
 
-        // Lock Inspect
+        // Security: Prevent Right Click, Print (Ctrl+P), and Save (Ctrl+S)
         const handleContextMenu = (e: MouseEvent) => e.preventDefault();
+        
         const handleKeyDown = (e: KeyboardEvent) => {
+            const key = e.key.toLowerCase();
+            const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+
             if (
                 e.key === "F12" ||
-                (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "C")) ||
-                (e.ctrlKey && e.key === "U")
+                (isCmdOrCtrl && e.shiftKey && (key === "i" || key === "j" || key === "c")) ||
+                (isCmdOrCtrl && (key === "u" || key === "p" || key === "s"))
             ) {
                 e.preventDefault();
+                if (key === 'p' || key === 's') {
+                    alert("Printing and saving is disabled for this secure document.");
+                }
             }
         };
+        
         document.addEventListener("contextmenu", handleContextMenu);
         document.addEventListener("keydown", handleKeyDown);
 
@@ -89,72 +96,67 @@ const ViewInvoicePublic: React.FC = () => {
                         </h2>
                         <p className="text-slate-500 font-medium text-sm leading-relaxed">
                             {status === 'inactive'
-                                ? "This bill is no longer available for viewing. It has been deactivated by the administrator."
-                                : "We couldn't find the requested invoice. Please verify the link and try again."}
+                                ? "This bill is no longer available for viewing."
+                                : "We couldn't find the requested invoice. Please verify the link."}
                         </p>
-                    </div>
-                    <div className="pt-4">
-                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 italic text-slate-400 text-xs">
-                            "Transparency and security are our priorities."
-                        </div>
                     </div>
                 </motion.div>
             </div>
         );
     }
 
-    const pdfUrl = `${FILE_BASE_URL}/invoices/${filename}`;
+    // PDF parameters to strip UI
+    const pdfUrl = `${FILE_BASE_URL}/invoices/${filename}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] flex flex-col p-4 md:p-8">
-            <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col space-y-6">
+        <div className="min-h-screen bg-[#F1F5F9] flex flex-col items-center overflow-y-auto py-12 px-4 selection:bg-transparent">
+            <div className="max-w-4xl w-full flex flex-col space-y-8">
 
-                {/* Header */}
+                {/* Centered Header */}
                 <motion.div
-                    initial={{ opacity: 0, y: -20 }}
+                    initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="flex flex-col items-center text-center space-y-3"
                 >
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center shadow-lg shadow-black/20">
-                            <FileText size={24} />
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-black text-slate-800 uppercase tracking-tight">Invoice Document</h1>
-                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">{filename}</p>
-                        </div>
+                    <div className="w-14 h-14 bg-black text-white rounded-2xl flex items-center justify-center shadow-2xl rotate-3">
+                        <FileText size={28} />
                     </div>
-
-                    <div className="flex items-center gap-3">
-                        <a
-                            href={pdfUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-5 py-2.5 bg-black text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-black/20 group"
-                        >
-                            <ExternalLink size={16} className="group-hover:-translate-y-0.5 transition-transform" />
-                            Open Full
-                        </a>
+                    <div className="space-y-1">
+                        <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Invoice Document</h1>
+                        <p className="text-[11px] text-slate-400 font-bold uppercase tracking-[0.2em]">{filename}</p>
                     </div>
                 </motion.div>
 
-                {/* PDF Viewer */}
+                {/* PDF Paper-style Container */}
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="flex-1 bg-white rounded-[32px] border border-slate-200 shadow-xl overflow-hidden relative"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="relative w-full bg-white rounded-xl shadow-[0_40px_100px_-20px_rgba(0,0,0,0.15)] border border-slate-200 overflow-hidden"
                 >
-                    <iframe
-                        src={`${pdfUrl}#toolbar=0`}
-                        className="w-full h-full min-h-[70vh] border-none"
-                        title="Invoice PDF"
+                    {/* Security Shield Overlay: Blocks interaction with the underlying object */}
+                    <div 
+                        className="absolute inset-0 z-10 bg-transparent cursor-default" 
+                        onContextMenu={(e) => e.preventDefault()}
                     />
+
+                    {/* PDF Object */}
+                    <object
+                        data={pdfUrl}
+                        type="application/pdf"
+                        className="w-full h-[1150px] block pointer-events-none"
+                    >
+                        <div className="p-20 text-center flex flex-col items-center justify-center space-y-4">
+                            <AlertCircle className="text-slate-300 w-12 h-12" />
+                            <p className="text-slate-500 font-medium">Unable to load the secure viewer.</p>
+                        </div>
+                    </object>
                 </motion.div>
 
-                <p className="text-center text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">
-                    Powered by Bricksync Secure Document Viewer
-                </p>
+                <footer className="pb-12 pt-4">
+                    <p className="text-center text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] opacity-50">
+                        Bricksync Secure Document Viewer
+                    </p>
+                </footer>
             </div>
         </div>
     );

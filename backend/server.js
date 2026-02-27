@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 const path = require("path");
 const os = require("os");
+const fs = require("fs");
 
 const app = express();
 const db = require("./models");
@@ -23,6 +24,36 @@ app.use(express.urlencoded({ extended: true }));
 
 // Static folders
 app.use("/images", express.static(path.join(__dirname, "images")));
+
+// Custom static file serving for PDF folders to support .gz compression
+app.use("/:folder(invoices|notepad)", (req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+
+  let cleanFilename = req.path;
+  if (cleanFilename.startsWith('/')) cleanFilename = cleanFilename.slice(1);
+  if (!cleanFilename) return next();
+
+  try {
+    cleanFilename = decodeURIComponent(cleanFilename);
+  } catch (e) { }
+
+  const folder = req.params.folder;
+  const filePath = path.join(__dirname, folder, cleanFilename);
+  const gzFilePath = filePath + ".gz";
+
+  if (fs.existsSync(gzFilePath)) {
+    res.set('Content-Encoding', 'gzip');
+    res.set('Content-Type', 'application/pdf');
+    res.set('Vary', 'Accept-Encoding');
+    return res.sendFile(gzFilePath);
+  } else if (fs.existsSync(filePath)) {
+    res.set('Content-Type', 'application/pdf');
+    return res.sendFile(filePath);
+  }
+
+  next();
+});
+
 app.use("/notepad", express.static(path.join(__dirname, "notepad")));
 app.use("/invoices", express.static(path.join(__dirname, "invoices")));
 

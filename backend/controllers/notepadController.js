@@ -34,9 +34,21 @@ exports.uploadPDF = async (req, res) => {
             return res.status(400).json({ success: false, message: "No PDF file uploaded" });
         }
         const folder = req.headers['x-folder-name'] || 'notepad';
+        const originalPath = req.file.path;
+        const compressedPath = originalPath + '.gz';
+
+        const zlib = require('zlib');
+        // Compress the saved file using gzip
+        const fileData = fs.readFileSync(originalPath);
+        const compressedBuffer = zlib.gzipSync(fileData);
+        fs.writeFileSync(compressedPath, compressedBuffer);
+
+        // Remove the uncompressed original to save disk space
+        fs.unlinkSync(originalPath);
+
         res.status(200).json({
             success: true,
-            message: "PDF uploaded successfully",
+            message: "PDF uploaded and compressed successfully",
             filename: req.file.filename,
             path: `/${folder}/${req.file.filename}`
         });
