@@ -337,7 +337,7 @@ const AddInvoice: React.FC = () => {
     // --- DERIVED VALUES FOR PREVIEW ---
     const totalSgst = totalTax;
     const totalCgst = totalTax;
-    const totalIgst = 0;
+    // const totalIgst = 0;
 
     return (
         <div className="flex flex-col lg:flex-row h-screen w-full bg-[#F8FAFC]  overflow-hidden">
