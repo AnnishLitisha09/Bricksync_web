@@ -23,3 +23,53 @@
 2026/02/27-13:55:52.718 df12 Level-0 table #174: started
 2026/02/27-13:55:52.760 df12 Level-0 table #174: 986178 bytes OK
 2026/02/27-13:55:52.762 df12 Delete type=0 #165
+2026/02/27-13:56:15.247 df12 Compacting 1@1 + 4@2 files
+2026/02/27-13:56:15.286 df12 Generated table #175@1: 52161 keys, 2218973 bytes
+2026/02/27-13:56:15.300 df12 Generated table #176@1: 2365 keys, 2151118 bytes
+2026/02/27-13:56:15.330 df12 Generated table #177@1: 17352 keys, 2214400 bytes
+2026/02/27-13:56:15.358 df12 Generated table #178@1: 28310 keys, 2089400 bytes
+2026/02/27-13:56:15.358 df12 Compacted 1@1 + 4@2 files => 8673891 bytes
+2026/02/27-13:56:15.359 df12 compacted to: files[ 0 0 6 0 0 0 0 ]
+2026/02/27-13:56:15.360 df12 Delete type=2 #174
+2026/02/27-13:56:15.360 df12 Delete type=2 #167
+2026/02/27-13:56:15.360 df12 Delete type=2 #170
+2026/02/27-13:56:15.360 df12 Delete type=2 #168
+2026/02/27-13:56:15.360 df12 Delete type=2 #169
+2026/02/27-14:00:46.872 df12 Level-0 table #180: started
+2026/02/27-14:00:46.882 df12 Level-0 table #180: 1045599 bytes OK
+2026/02/27-14:00:46.884 df12 Delete type=0 #173
+2026/02/27-14:02:32.149 df12 Compacting 1@1 + 6@2 files
+2026/02/27-14:02:32.179 df12 Generated table #181@1: 53099 keys, 2222460 bytes
+2026/02/27-14:02:32.188 df12 Generated table #182@1: 2315 keys, 2150356 bytes
+2026/02/27-14:02:32.207 df12 Generated table #183@1: 17163 keys, 2211658 bytes
+2026/02/27-14:02:32.230 df12 Generated table #184@1: 30176 keys, 2179057 bytes
+2026/02/27-14:02:32.259 df12 Generated table #185@1: 104511 keys, 2257127 bytes
+2026/02/27-14:02:32.267 df12 Generated table #186@1: 24933 keys, 722212 bytes
+2026/02/27-14:02:32.267 df12 Compacted 1@1 + 6@2 files => 11742870 bytes
+2026/02/27-14:02:32.269 df12 compacted to: files[ 0 0 6 0 0 0 0 ]
+2026/02/27-14:02:32.269 df12 Delete type=2 #175
+2026/02/27-14:02:32.269 df12 Delete type=2 #176
+2026/02/27-14:02:32.269 df12 Delete type=2 #177
+2026/02/27-14:02:32.269 df12 Delete type=2 #172
+2026/02/27-14:02:32.269 df12 Delete type=2 #171
+2026/02/27-14:02:32.269 df12 Delete type=2 #180
+2026/02/27-14:02:32.269 df12 Delete type=2 #178
+2026/02/27-14:04:27.649 df12 Level-0 table #188: started
+2026/02/27-14:04:27.660 df12 Level-0 table #188: 1020294 bytes OK
+2026/02/27-14:04:27.664 df12 Delete type=0 #179
+2026/02/27-14:06:41.449 df12 Compacting 1@1 + 6@2 files
+2026/02/27-14:06:41.503 df12 Generated table #189@1: 53074 keys, 2217768 bytes
+2026/02/27-14:06:41.513 df12 Generated table #190@1: 2274 keys, 2150040 bytes
+2026/02/27-14:06:41.553 df12 Generated table #191@1: 17014 keys, 2210820 bytes
+2026/02/27-14:06:41.577 df12 Generated table #192@1: 29423 keys, 2180299 bytes
+2026/02/27-14:06:41.606 df12 Generated table #193@1: 104569 keys, 2255777 bytes
+2026/02/27-14:06:41.615 df12 Generated table #194@1: 25843 keys, 743332 bytes
+2026/02/27-14:06:41.615 df12 Compacted 1@1 + 6@2 files => 11758036 bytes
+2026/02/27-14:06:41.617 df12 compacted to: files[ 0 0 6 0 0 0 0 ]
+2026/02/27-14:06:41.617 df12 Delete type=2 #188
+2026/02/27-14:06:41.617 df12 Delete type=2 #183
+2026/02/27-14:06:41.617 df12 Delete type=2 #182
+2026/02/27-14:06:41.617 df12 Delete type=2 #181
+2026/02/27-14:06:41.617 df12 Delete type=2 #185
+2026/02/27-14:06:41.617 df12 Delete type=2 #184
+2026/02/27-14:06:41.617 df12 Delete type=2 #186
