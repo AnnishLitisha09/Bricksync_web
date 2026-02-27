@@ -1,21 +1,21 @@
 import { BASE_URL, getAuthHeader } from "./base";
 
 export const fetchUnreadCount = async () => {
-    const res = await fetch(`${BASE_URL}/notification/unread-count`, {
+    const res = await fetch(`${BASE_URL}/notifications/unread-count`, {
         headers: getAuthHeader(),
     });
     return await res.json();
 };
 
 export const fetchNotifications = async () => {
-    const res = await fetch(`${BASE_URL}/notification`, {
+    const res = await fetch(`${BASE_URL}/notifications`, {
         headers: getAuthHeader(),
     });
     return await res.json();
 };
 
 export const markAsRead = async (id: number) => {
-    const res = await fetch(`${BASE_URL}/notification/${id}/read`, {
+    const res = await fetch(`${BASE_URL}/notifications/${id}/read`, {
         method: "PATCH",
         headers: getAuthHeader(),
     });

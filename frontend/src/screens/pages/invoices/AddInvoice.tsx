@@ -62,7 +62,6 @@ const AddInvoice: React.FC = () => {
 
         sgstRate: 9,
         cgstRate: 9,
-        notifyDriver: false,
         driverId: null as number | null
     });
 
@@ -110,7 +109,13 @@ const AddInvoice: React.FC = () => {
             setStocks(stockData || []);
             setVehicles(vehData || []); // Vehicle controller returns array directly
             setCustomers(custData.data || []);
-            setDrivers(dryRes.ok ? await dryRes.json() : []);
+
+            if (dryRes.ok) {
+                const driverData = await dryRes.json();
+                setDrivers(driverData.drivers || []); // Extract 'drivers' array from response
+            } else {
+                setDrivers([]);
+            }
         } catch (error) {
             toast.error("Failed to load backend data");
         }
@@ -247,18 +252,6 @@ const AddInvoice: React.FC = () => {
             const pdfSuccess = await generateAndUploadPDF(savedIds, latestInvoiceId);
 
             if (pdfSuccess) {
-                if (invoiceData.notifyDriver && savedIds.length > 0) {
-                    // Notify about the first item's ID (they all share the same invoiceId)
-                    try {
-                        await fetch(`${BASE_URL}/invoices/notify-driver/${savedIds[0]}`, {
-                            method: 'POST',
-                            headers: getAuthHeader()
-                        });
-                        toast.success("Notification sent to driver!");
-                    } catch (err) {
-                        toast.error("Failed to send driver notification");
-                    }
-                }
                 toast.success("Invoice and PDF saved!");
                 navigate('/invoices/history');
             }
@@ -404,18 +397,6 @@ const AddInvoice: React.FC = () => {
                                     <label className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2">
                                         <Truck size={12} /> Assign Driver
                                     </label>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[10px] font-bold text-indigo-600">Notify WhatsApp</span>
-                                        <label className="relative inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={invoiceData.notifyDriver}
-                                                onChange={e => setInvoiceData({ ...invoiceData, notifyDriver: e.target.checked })}
-                                                className="sr-only peer"
-                                            />
-                                            <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
-                                        </label>
-                                    </div>
                                 </div>
                                 <select
                                     value={invoiceData.driverId || ""}
