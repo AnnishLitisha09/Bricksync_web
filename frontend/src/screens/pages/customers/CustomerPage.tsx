@@ -134,25 +134,26 @@ const CustomerHub: React.FC = () => {
   };
 
   return (
-    <div className="p-8 lg:p-12 min-h-screen bg-[#FBFDFF] space-y-8 font-sans relative">
+    <div className="p-4 sm:p-8 lg:p-12 min-h-screen bg-[#FBFDFF] space-y-6 sm:space-y-8 font-sans relative">
       {/* Header */}
       <header className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
-        <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 rounded-full text-indigo-600 font-bold text-[10px] uppercase tracking-widest border border-indigo-100">
+        <div className="space-y-3 sm:space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 rounded-full text-indigo-600 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest border border-indigo-100">
             <ShieldCheck size={14} /> Secure Ledger System
           </div>
-          <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-none">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-none">
             Client <span className="text-indigo-600">Hub</span>
           </h1>
         </div>
 
-        <div className="bg-white p-2 rounded-3xl border border-slate-200 flex items-center gap-4 pr-6 shadow-sm">
-          <div className="bg-slate-900 p-4 rounded-2xl text-white">
-            <Users size={24} />
+        <div className="bg-white p-2 rounded-3xl border border-slate-200 flex flex-row items-center gap-3 sm:gap-4 pr-4 sm:pr-6 shadow-sm w-full xl:w-auto overflow-x-auto hide-scrollbar">
+          <div className="bg-slate-900 p-3 sm:p-4 rounded-2xl text-white shrink-0">
+            <Users size={20} className="sm:hidden" />
+            <Users size={24} className="hidden sm:block" />
           </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase">Active Accounts</p>
-            <p className="text-2xl font-black text-slate-900 leading-none">
+          <div className="flex-1 sm:flex-none">
+            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">Active Accounts</p>
+            <p className="text-xl sm:text-2xl font-black text-slate-900 leading-none">
               {loading && customers.length === 0 ? "..." : totalCustomers}
             </p>
           </div>
@@ -161,20 +162,23 @@ const CustomerHub: React.FC = () => {
               setFormData({ name: "", email: "", phone_no: "", address: "", balance: 0, category: "other" });
               setIsModalOpen(true);
             }}
-            className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition shadow-lg shadow-indigo-200"
+            className="bg-indigo-600 text-white px-4 py-3 sm:px-6 sm:py-4 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 text-sm sm:text-base shrink-0 ml-auto"
           >
-            <Plus size={20} /> Create Client
+            <Plus size={18} className="sm:hidden" />
+            <Plus size={20} className="hidden sm:block" />
+            <span className="hidden sm:inline">Create Client</span>
+            <span className="sm:hidden">New</span>
           </button>
         </div>
       </header>
 
       {/* Search Bar */}
-      <div className="relative group max-w-2xl">
-        <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={22} />
+      <div className="relative group max-w-2xl w-full">
+        <Search className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors w-5 h-5 sm:w-[22px] sm:h-[22px]" />
         <input
           type="text"
           placeholder="Search by client name or phone..."
-          className="w-full pl-16 pr-8 py-6 rounded-3xl border border-slate-200 bg-white shadow-sm focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all font-semibold text-slate-700 text-lg"
+          className="w-full pl-12 pr-6 py-4 sm:pl-16 sm:pr-8 sm:py-6 rounded-[2rem] sm:rounded-3xl border border-slate-200 bg-white shadow-sm focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all font-semibold text-slate-700 text-base sm:text-lg"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -205,31 +209,31 @@ const CustomerHub: React.FC = () => {
                 </div>
               </div>
 
-              <div className="px-8 space-y-3 py-4">
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-semibold text-slate-600">
-                  <Mail size={16} className="text-slate-400" /> {customer.email || 'No email provided'}
+              <div className="px-5 sm:px-8 space-y-3 py-4">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs sm:text-sm font-semibold text-slate-600 break-all sm:break-normal">
+                  <Mail size={16} className="text-slate-400 shrink-0" /> {customer.email || 'No email provided'}
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-semibold text-slate-600">
-                  <Phone size={16} className="text-slate-400" /> {customer.phone_no || 'No phone provided'}
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs sm:text-sm font-semibold text-slate-600">
+                  <Phone size={16} className="text-slate-400 shrink-0" /> {customer.phone_no || 'No phone provided'}
                 </div>
               </div>
 
-              <div className="mt-auto p-8 pt-4 flex items-center justify-between border-t border-slate-50">
+              <div className="mt-auto p-5 sm:p-8 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-slate-50">
                 <span className="text-sm font-black text-slate-900">Balance: ₹{Number(customer.balance).toFixed(2)}</span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   <button
                     onClick={() => {
                       setFormData(customer);
                       setIsModalOpen(true);
                     }}
-                    className="p-3 bg-slate-100 text-slate-600 rounded-2xl hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm"
+                    className="p-3 bg-slate-100 text-slate-600 rounded-2xl hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm flex-1 sm:flex-none flex justify-center items-center"
                     title="Edit Client"
                   >
                     <Pencil size={18} />
                   </button>
                   <button
                     onClick={() => setDeleteId(customer.id!)}
-                    className="p-3 bg-slate-100 text-slate-600 rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all shadow-sm"
+                    className="p-3 bg-slate-100 text-slate-600 rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all shadow-sm flex-1 sm:flex-none flex justify-center items-center"
                     title="Delete Client"
                   >
                     <Trash2 size={18} />
@@ -239,9 +243,9 @@ const CustomerHub: React.FC = () => {
                       e.stopPropagation();
                       navigate(`/customer/details/${customer.id}`);
                     }}
-                    className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-indigo-600 transition-all shadow-lg"
+                    className="flex-2 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 sm:px-6 sm:py-3 bg-slate-900 text-white rounded-2xl text-xs sm:text-sm font-bold hover:bg-indigo-600 transition-all shadow-lg w-full sm:w-auto"
                   >
-                    View Ledger <ExternalLink size={14} />
+                    <span className="hidden xs:inline">View</span> Ledger <ExternalLink size={14} className="hidden xs:block" />
                   </button>
                 </div>
               </div>
@@ -272,14 +276,14 @@ const CustomerHub: React.FC = () => {
       {/* Create Client Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-4xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h2 className="text-2xl font-black text-slate-900">{formData.id ? 'Edit Client' : 'Create New Client'}</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition text-slate-400 hover:text-slate-700">
-                <X size={20} />
+          <div className="bg-white rounded-4xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
+            <div className="px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 sticky top-0 z-10 backdrop-blur-xl">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900">{formData.id ? 'Edit Client' : 'Create Client'}</h2>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition text-slate-400 hover:text-slate-700 bg-white shadow-sm border border-slate-200">
+                <X size={18} className="sm:w-5 sm:h-5" />
               </button>
             </div>
-            <form onSubmit={handleCreateCustomer} className="p-8 space-y-5">
+            <form onSubmit={handleCreateCustomer} className="p-6 sm:p-8 space-y-4 sm:space-y-5">
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Full Name *</label>
@@ -293,7 +297,7 @@ const CustomerHub: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Phone</label>
                   <input
@@ -357,18 +361,18 @@ const CustomerHub: React.FC = () => {
                 />
               </div>
 
-              <div className="pt-4 flex justify-end gap-3">
+              <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 sticky bottom-0 bg-white shadow-[0_-20px_20px_-15px_rgba(255,255,255,1)] pb-4 sm:pb-0 z-10 w-full mt-2 sm:mt-0">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition"
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-slate-500 bg-slate-100 sm:bg-transparent hover:bg-slate-200 sm:hover:bg-slate-100 transition text-center"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-6 py-3 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition disabled:opacity-70 flex items-center gap-2"
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition disabled:opacity-70 flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
                   {formData.id ? 'Update Client' : 'Save Client'}
@@ -417,17 +421,17 @@ const CustomerHub: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 w-full pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full pt-4">
                   <button
                     onClick={() => setDeleteId(null)}
-                    className="py-4 rounded-2xl font-black text-slate-400 hover:bg-slate-50 transition-all border border-slate-100 text-xs uppercase tracking-widest"
+                    className="py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-slate-500 bg-slate-50 sm:bg-transparent sm:text-slate-400 hover:bg-slate-100 sm:hover:bg-slate-50 transition-all border border-slate-200 sm:border-slate-100 text-xs uppercase tracking-widest order-2 sm:order-1"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleDeleteCustomer}
                     disabled={submitting}
-                    className="py-4 bg-red-500 text-white rounded-2xl font-black hover:bg-red-600 transition-all shadow-lg shadow-red-200 text-xs uppercase tracking-widest flex items-center justify-center gap-2"
+                    className="py-3 sm:py-4 bg-red-500 text-white rounded-xl sm:rounded-2xl font-black hover:bg-red-600 transition-all shadow-lg shadow-red-200 text-xs uppercase tracking-widest flex items-center justify-center gap-2 order-1 sm:order-2"
                   >
                     {submitting ? (
                       <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
