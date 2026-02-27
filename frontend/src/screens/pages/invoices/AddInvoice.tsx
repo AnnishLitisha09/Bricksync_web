@@ -493,189 +493,213 @@ const AddInvoice: React.FC = () => {
             </aside>
 
             <main className={`flex-1 overflow-y-auto bg-[#f1f5f9] p-4 lg:p-10 flex justify-center custom-scrollbar ${!showPreview ? 'hidden lg:flex' : 'flex'}`}>
-                <div ref={previewRef} className="bg-white w-[210mm] min-h-[297mm] p-[12mm] flex flex-col font-sans text-[#1e293b] relative border border-[#e2e8f0]">
+                <div ref={previewRef} className="bg-white w-[210mm] min-h-[297mm] flex flex-col font-sans text-black relative mx-auto p-4" style={{ fontFamily: 'Arial, sans-serif' }}>
+                    <div className="border border-black flex-1 flex flex-col">
+                        {/* Header Section */}
+                        <div className="text-center border-b border-black py-3">
+                            <h1 className="text-xl font-bold mb-1">M.ASWATH HOLLOW BRICKS & LORRY SERVICES</h1>
+                            <p className="text-xs font-bold mb-0.5">8/3157 ANDITHOTTAM . PANDIAN NAGAR</p>
+                            <p className="text-xs font-bold mb-0.5">TIRUPUR - 641 602 *</p>
+                            <p className="text-xs font-bold mb-0.5">Phone: 9843083521 . 9842048181 * Email : </p>
+                            <p className="text-xs font-bold">GSTIN : 33CPWPB5671P1Z4</p>
+                        </div>
 
-                    {/* Top Accent Bar */}
-                    <div className="absolute top-0 left-0 w-full h-1 bg-[#0f172a]"></div>
+                        {/* Title */}
+                        <div className="text-center border-b border-black py-1.5">
+                            <h2 className="text-sm font-bold tracking-[0.3em]">T A X I N V O I C E</h2>
+                        </div>
 
-                    {/* Header Section */}
-                    <div className="flex justify-between items-start mb-6 mt-2">
-                        <div className="space-y-1.5">
-                            <h1 className="text-2xl font-black tracking-tight text-[#0f172a] leading-none">M.ASWATH</h1>
-                            <div className="flex flex-col text-[9px] font-bold text-[#64748b] tracking-wider uppercase">
-                                <span>Hollow Bricks & Lorry Services</span>
-                                <span className="text-[#8b97a8]">Tirupur, Tamil Nadu</span>
+                        {/* Invoice & Logistics Details */}
+                        <div className="grid grid-cols-2 border-b border-black">
+                            {/* Left Side: Invoice Info */}
+                            <div className="border-r border-black p-2 flex flex-col justify-center">
+                                <table className="w-full text-xs font-bold">
+                                    <tbody>
+                                        <tr>
+                                            <td className="w-2/5 text-right pr-4 py-1.5">Invoice No. :</td>
+                                            <td className="py-1.5" id="invoice-id-display">{invoiceData.invoiceId}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="text-right pr-4 py-1.5">Date :</td>
+                                            <td className="py-1.5">{new Date(invoiceData.date).toLocaleDateString('en-GB')}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Right Side: Transport Info */}
+                            <div className="p-2">
+                                <table className="w-full text-xs font-bold">
+                                    <tbody>
+                                        <tr>
+                                            <td className="w-2/5 text-right pr-4 py-1">Transport Mode :</td>
+                                            <td className="py-1">{invoiceData.transportMode}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="text-right pr-4 py-1">Vehicle Number :</td>
+                                            <td className="py-1">{invoiceData.vehicleNumber}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="text-right pr-4 py-1">Date Of Supply :</td>
+                                            <td className="py-1">{new Date(invoiceData.dateOfSupply).toLocaleDateString('en-GB')}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="text-right pr-4 py-1">Delivery Place :</td>
+                                            <td className="py-1 uppercase">{invoiceData.deliveryPlace}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '6px 12px', borderRadius: '8px', display: 'block', textAlign: 'right' }}>
-                                <p style={{ fontSize: '8px', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px' }}>Invoice Number</p>
-                                <p id="invoice-id-display" style={{ fontSize: '16px', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{invoiceData.invoiceId}</p>
+
+                        {/* Billing & Shipping */}
+                        <div className="grid grid-cols-2 border-b border-black min-h-[120px]">
+                            {/* Billed To */}
+                            <div className="border-r border-black flex flex-col">
+                                <div className="text-center font-bold text-xs border-b border-black py-1.5">Billed To</div>
+                                <div className="p-2 text-xs font-bold flex flex-col flex-1">
+                                    <p className="uppercase mb-1">{invoiceData.billingName}</p>
+                                    <p className="uppercase mb-1 whitespace-pre-wrap">{invoiceData.billingAddress}</p>
+                                    <div className="mt-auto pt-4 space-y-1">
+                                        <p>GSTIN : <span className="font-normal uppercase">{invoiceData.billingGstin || '-'}</span></p>
+                                        <p>State : <span className="font-normal uppercase text-left">{invoiceData.billingState || '-'}</span></p>
+                                    </div>
+                                </div>
                             </div>
-                            <p className="mt-1.5 text-[9px] font-bold text-[#94a3b8] italic">Date: {new Date(invoiceData.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-                        </div>
-                    </div>
-
-                    {/* Corporate Info Row */}
-                    <div className="grid grid-cols-3 gap-6 mb-6 py-4 border-y border-[#f1f5f9] bg-[#fbfcfd] px-2">
-                        <div className="space-y-0.5">
-                            <h3 className="text-[8px] font-black text-[#64748b] uppercase tracking-[0.15em] mb-1">Registered Office</h3>
-                            <p className="text-[10px] font-bold leading-relaxed">8/3157 Andithottam, Pandian Nagar<br />Tirupur - 641 602, TN</p>
-                        </div>
-                        <div className="space-y-0.5 text-center">
-                            <h3 className="text-[8px] font-black text-[#64748b] uppercase tracking-[0.15em] mb-1">Contact Details</h3>
-                            <p className="text-[10px] font-black text-[#0f172a]">+91 98430 83521</p>
-                            <p className="text-[10px] font-black text-[#0f172a]">+91 98420 48181</p>
-                        </div>
-                        <div className="space-y-0.5 text-right">
-                            <h3 className="text-[8px] font-black text-[#64748b] uppercase tracking-[0.15em] mb-1">Tax Registration</h3>
-                            <p className="text-[11px] font-black text-[#0f172a]">GSTIN: 33CPWPB5671P1Z4</p>
-                            <span className="text-[8px] bg-[#f1f5f9] text-[#64748b] px-2 py-0.5 rounded font-black uppercase tracking-wider mt-0.5 inline-block">Tamil Nadu (33)</span>
-                        </div>
-                    </div>
-
-                    {/* Billing & Logistics Section */}
-                    <div className="grid grid-cols-2 gap-8 mb-6">
-                        {/* Billed To */}
-                        <div className="space-y-3">
-                            <div className="border-l-2 border-[#0f172a] pl-3">
-                                <h3 className="text-[9px] font-black text-[#64748b] uppercase tracking-widest mb-2">Bill To</h3>
-                                <p className="text-[13px] font-black text-[#0f172a] uppercase mb-1">{invoiceData.billingName}</p>
-                                <p className="text-[10px] font-medium text-[#475569] leading-relaxed mb-3 uppercase min-h-[30px]">{invoiceData.billingAddress}</p>
-                                <div className="flex gap-4 mt-2 pt-2 border-t border-[#f1f5f9] text-[10px]">
-                                    <div className="flex flex-col"><span className="text-[8px] text-[#94a3b8] font-bold uppercase mb-0.5">GSTIN</span><span className="font-black text-[#0f172a] uppercase">{invoiceData.billingGstin || 'N/A'}</span></div>
-                                    <div className="flex flex-col"><span className="text-[8px] text-[#94a3b8] font-bold uppercase mb-0.5">Place</span><span className="font-black text-[#0f172a] uppercase">{invoiceData.deliveryPlace}</span></div>
+                            {/* Shipped To */}
+                            <div className="flex flex-col">
+                                <div className="text-center font-bold text-xs border-b border-black py-1.5">Shipped To</div>
+                                <div className="p-2 text-xs font-bold flex flex-col flex-1">
+                                    <p className="uppercase mb-1">{invoiceData.shippingName}</p>
+                                    <p className="uppercase mb-1 whitespace-pre-wrap">{invoiceData.shippingAddress}</p>
+                                    <div className="mt-auto pt-4 space-y-1">
+                                        <p>GSTIN : <span className="font-normal uppercase">{invoiceData.shippingGstin || '-'}</span></p>
+                                        <p>State : <span className="font-normal uppercase">{invoiceData.shippingState || '-'}</span></p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Logistics Details */}
-                        <div className="bg-[#f8fafc] p-4 rounded-xl border border-[#edeff2] relative overflow-hidden">
-                            <h3 className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-3">Transport Information</h3>
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-[#f1f5f9]">
-                                    <span className="text-[9px] font-bold text-[#94a3b8] uppercase">Vehicle</span>
-                                    <span className="text-[11px] font-black text-[#0f172a] uppercase">{invoiceData.vehicleNumber}</span>
-                                </div>
-                                <div className="flex justify-between items-center px-1 text-[10px]">
-                                    <span className="font-bold text-[#94a3b8] uppercase">Supply Date</span>
-                                    <span className="font-bold text-[#334155]">{new Date(invoiceData.dateOfSupply).toLocaleDateString('en-GB')}</span>
-                                </div>
-                                <div className="flex justify-between items-center px-1 text-[10px]">
-                                    <span className="font-bold text-[#94a3b8] uppercase">Transport Mode</span>
-                                    <span className="font-bold text-[#334155] uppercase">{invoiceData.transportMode}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Table Section */}
-                    <div className="flex-1 mb-6">
-                        <div className="rounded-lg border border-[#e2e8f0] overflow-hidden">
-                            <table className="w-full text-left border-collapse">
+                        {/* Items Table */}
+                        <div className="flex-1 flex flex-col">
+                            <table className="w-full text-xs font-bold border-collapse flex-1 h-full">
                                 <thead>
-                                    <tr className="bg-[#0f172a] text-white">
-                                        <th className="py-2.5 px-3 text-[9px] font-black uppercase tracking-widest w-10 text-center text-[#d1d5db]">#</th>
-                                        <th className="py-2.5 px-3 text-[9px] font-black uppercase tracking-widest">Product / Service Description</th>
-                                        <th className="py-2.5 px-3 text-[9px] font-black uppercase tracking-widest text-center">HSN</th>
-                                        <th className="py-2.5 px-3 text-[9px] font-black uppercase tracking-widest text-center">Quantity</th>
-                                        <th className="py-2.5 px-3 text-[9px] font-black uppercase tracking-widest text-right">Rate</th>
-                                        <th className="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-right">Amount (INR)</th>
+                                    <tr className="border-b border-black text-center">
+                                        <th className="py-2 border-r border-black w-16">Sr. No.</th>
+                                        <th className="py-2 border-r border-black w-auto">Product Details</th>
+                                        <th className="py-2 border-r border-black w-24">HSN Code</th>
+                                        <th className="py-2 border-r border-black w-24">Quantity</th>
+                                        <th className="py-2 border-r border-black w-20">Unit(s)</th>
+                                        <th className="py-2 border-r border-black w-24">Rate / Unit</th>
+                                        <th className="py-2 w-28">Value in Rs.</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {items.map((item, i) => (
-                                        <tr key={i} className={`border-b border-[#f1f5f9] ${i % 2 === 0 ? 'bg-white' : 'bg-[#fbfcfd]'}`}>
-                                            <td className="py-3 px-3 text-center text-[10px] font-bold text-[#94a3b8]">{i + 1}</td>
-                                            <td className="py-3 px-3">
-                                                <p className="text-[11px] font-black text-[#0f172a] uppercase leading-none">{item.materialName}</p>
-                                                <p className="text-[8px] font-bold text-[#bec7d1] mt-1 uppercase">Standard Unit: {item.unit}</p>
-                                            </td>
-                                            <td className="py-3 px-3 text-center text-[10px] font-bold text-[#475569]">{item.hsnCode}</td>
-                                            <td className="py-3 px-3 text-center text-[11px] font-black text-[#0f172a]">{item.quantity.toFixed(3)}</td>
-                                            <td className="py-3 px-3 text-right text-[10px] font-bold text-[#475569]">₹{item.rate.toFixed(2)}</td>
-                                            <td className="py-3 px-4 text-right text-[11px] font-black text-[#0f172a]">₹{(item.quantity * item.rate).toFixed(2)}</td>
+                                        <tr key={i}>
+                                            <td className="py-2 border-r border-black text-center align-top">{i + 1}</td>
+                                            <td className="py-2 px-2 border-r border-black uppercase align-top">{item.materialName}</td>
+                                            <td className="py-2 border-r border-black text-center align-top">{item.hsnCode}</td>
+                                            <td className="py-2 border-r border-black text-center align-top">{item.quantity.toFixed(3)}</td>
+                                            <td className="py-2 border-r border-black text-center align-top">{item.unit}</td>
+                                            <td className="py-2 border-r border-black text-center align-top">{item.rate.toFixed(2)}</td>
+                                            <td className="py-2 pr-2 text-right align-top">{(item.quantity * item.rate).toFixed(2)}</td>
                                         </tr>
                                     ))}
-                                    {/* Subtotal row within table for clean look */}
-                                    <tr className="bg-[#f8fafc]">
-                                        <td colSpan={5} className="py-2.5 px-4 text-right text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">Sub Total</td>
-                                        <td className="py-2.5 px-4 text-right text-[11px] font-black text-[#0f172a]">₹{subTotalValue.toFixed(2)}</td>
+                                    {/* Empty filler row to stretch height to bottom */}
+                                    <tr className="h-full">
+                                        <td className="border-r border-black"></td>
+                                        <td className="border-r border-black"></td>
+                                        <td className="border-r border-black"></td>
+                                        <td className="border-r border-black"></td>
+                                        <td className="border-r border-black"></td>
+                                        <td className="border-r border-black"></td>
+                                        <td></td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-                    </div>
 
-                    {/* Summary & Footer */}
-                    <div className="mt-auto">
-                        <div className="grid grid-cols-[1.3fr_1fr] gap-8">
-                            {/* Left Side: Bank & Words */}
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <h3 className="text-[8px] font-black text-[#94a3b8] uppercase tracking-widest">Amount in Words</h3>
-                                    <p className="text-[11px] font-black text-[#0f172a] uppercase italic bg-[#f8fafc] p-3 rounded-lg border border-[#f1f5f9] leading-tight underline decoration-[#e2e8f0] underline-offset-4">
-                                        {numberToWords(grandTotal)} Only
-                                    </p>
+                        {/* Subtotal Row */}
+                        <div className="border-t border-black grid grid-cols-[1fr_24px_24px_20px_24px_28px] text-xs font-bold" style={{ gridTemplateColumns: 'minmax(0,1fr) 96px 80px 96px 112px' }}>
+                            <div className="flex items-center justify-center tracking-[0.2em] py-1.5 border-r border-black">
+                                T O T A L ......
+                            </div>
+                            <div className="flex items-center justify-center py-1.5 border-r border-black">
+                                {items.reduce((sum, item) => sum + item.quantity, 0).toFixed(3)}
+                            </div>
+                            <div className="border-r border-black"></div>
+                            <div className="border-r border-black"></div>
+                            <div className="flex items-center justify-end pr-2 py-1.5">
+                                {subTotalValue.toFixed(2)}
+                            </div>
+                        </div>
+
+                        {/* Bottom Calculations Grid */}
+                        <div className="grid grid-cols-[1.5fr_1fr] border-b border-t border-black min-h-[140px]">
+                            {/* In Words & Bank */}
+                            <div className="border-r border-black flex flex-col h-full">
+                                <div className="p-2 border-b border-black flex-1 flex flex-col justify-end pb-4">
+                                    <p className="text-[10px] font-normal mb-1">In Words</p>
+                                    <p className="text-xs font-bold pl-2 uppercase">{numberToWords(grandTotal)}</p>
                                 </div>
-                                <div className="p-4 bg-white border border-[#e2e8f0] rounded-xl relative overflow-hidden group">
-                                    <div className="absolute top-0 right-0 w-16 h-16 bg-[#fafbfc] rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform"></div>
-                                    <h3 className="text-[8px] font-black text-[#94a3b8] uppercase tracking-widest mb-3 relative">Remittance Details</h3>
-                                    <div className="space-y-1.5 relative">
-                                        <div className="flex justify-between text-[10px]"><span className="text-[#94a3b8] font-bold uppercase">Bank</span><span className="font-black text-[#334155] uppercase">{invoiceData.bankName}</span></div>
-                                        <div className="flex justify-between text-[10px]"><span className="text-[#94a3b8] font-bold uppercase">Account</span><span className="font-black text-[#334155]">{invoiceData.accountNo}</span></div>
-                                        <div className="flex justify-between text-[10px]"><span className="text-[#94a3b8] font-bold uppercase">IFSC</span><span className="font-black text-[#334155] uppercase">{invoiceData.ifscCode}</span></div>
+                                <div className="p-2 text-xs font-bold space-y-2 py-4 pb-2">
+                                    <div className="grid grid-cols-[100px_1fr]">
+                                        <span>BANK NAME</span>
+                                        <span>: {invoiceData.bankName}</span>
+                                    </div>
+                                    <div className="grid grid-cols-[100px_1fr]">
+                                        <span>ACCOUNT NO.</span>
+                                        <span>: {invoiceData.accountNo}</span>
+                                    </div>
+                                    <div className="grid grid-cols-[100px_1fr]">
+                                        <span>IFSC CODE</span>
+                                        <span>: {invoiceData.ifscCode}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Right Side: Total Calculation */}
-                            <div className="space-y-2.5 bg-[#f8fafc] p-3 rounded-xl border border-[#f1f5f9]">
-                                <div className="flex justify-between items-center text-[10px] px-2">
-                                    <span className="font-bold text-[#64748b]">SGST ({invoiceData.sgstRate}%)</span>
-                                    <span className="font-black text-[#0f172a]">₹{totalSgst.toFixed(2)}</span>
+                            {/* Taxes & Sig */}
+                            <div className="flex flex-col h-full">
+                                <div className="border-b border-black">
+                                    <table className="w-full text-xs font-bold">
+                                        <tbody>
+                                            <tr>
+                                                <td className="py-1 text-center w-24">SGST :</td>
+                                                <td className="py-1 text-center w-24">{invoiceData.sgstRate.toFixed(2)} %</td>
+                                                <td className="py-1 pr-2 text-right">{totalSgst.toFixed(2)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="py-1 text-center">CGST :</td>
+                                                <td className="py-1 text-center">{invoiceData.cgstRate.toFixed(2)} %</td>
+                                                <td className="py-1 pr-2 text-right">{totalCgst.toFixed(2)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="py-1 text-center">IGST :</td>
+                                                <td className="py-1 text-center">%</td>
+                                                <td className="py-1 pr-2 text-right"></td>
+                                            </tr>
+                                            <tr>
+                                                <td className="py-1 text-center">Round Off :</td>
+                                                <td className="py-1 text-center"></td>
+                                                <td className="py-1 pr-2 text-right">{roundOffValue}</td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr className="border-t border-black">
+                                                <td colSpan={2} className="py-2 text-center tracking-[0.2em]">T O T A L ..:</td>
+                                                <td className="py-2 pr-2 text-right border-l border-black font-bold">{grandTotal.toFixed(2)}</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
                                 </div>
-                                <div className="flex justify-between items-center text-[10px] px-2">
-                                    <span className="font-bold text-[#64748b]">CGST ({invoiceData.cgstRate}%)</span>
-                                    <span className="font-black text-[#0f172a]">₹{totalCgst.toFixed(2)}</span>
-                                </div>
-                                {totalIgst > 0 && (
-                                    <div className="flex justify-between items-center text-[10px] px-2">
-                                        <span className="font-bold text-[#64748b]">IGST</span>
-                                        <span className="font-black text-[#0f172a]">₹{totalIgst.toFixed(2)}</span>
-                                    </div>
-                                )}
-                                <div className="flex justify-between items-center text-[9px] px-2 text-[#94a3b8] italic">
-                                    <span className="font-medium">Round off</span>
-                                    <span>₹{roundOffValue}</span>
-                                </div>
-                                <div className="h-[1px] bg-[#e5e7eb] my-1.5"></div>
-                                <div className="bg-[#0f172a] text-white p-4 rounded-xl border-4 border-white mb-1">
-                                    <div className="flex justify-between items-end">
-                                        <div className="space-y-0.5">
-                                            <p className="text-[8px] font-black uppercase tracking-widest text-[#9ca3af]">Total Payable</p>
-                                            <p className="text-xl font-black">₹{grandTotal.toFixed(2)}</p>
-                                        </div>
-                                        <div className="text-right pb-1">
-                                            <span className="text-[7px] font-black uppercase tracking-widest block text-[#6b7280] leading-none">Net Amount</span>
-                                        </div>
-                                    </div>
+                                <div className="flex-1 p-2 flex flex-col justify-between pt-3 pb-2 text-xs font-bold">
+                                    <p>For M.ASWATH HOLLOW BRICKS & LORRY SERVICES</p>
+                                    <p className="text-right pr-6 mt-12 mb-1">Authorised Signature</p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Signature & Disclaimer */}
-                        <div className="mt-8 flex justify-between items-end pt-6 border-t border-[#f1f5f9]">
-                            <div className="text-[8px] text-[#94a3b8] font-bold max-w-[280px] leading-relaxed italic">
-                                <p>* This is a secure system-generated document. No physical signature is required.</p>
-                                <p className="mt-1 text-[#bec7d1] uppercase tracking-tighter text-[7.5px]">Tirupur Jurisdiction</p>
-                            </div>
-                            <div className="text-center w-[220px]">
-                                <p className="text-[8px] font-black text-[#94a3b8] uppercase tracking-widest mb-8">Authorised Certification</p>
-                                <div className="h-[1px] bg-[#2d3748] w-full mb-2"></div>
-                                <p className="text-[10px] font-black text-[#0f172a] uppercase tracking-wide">For M.ASWATH HOLLOW BRICKS</p>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </main>
