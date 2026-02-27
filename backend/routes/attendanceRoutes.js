@@ -13,4 +13,6 @@ router.get("/monthly-count", ctrl.getMonthlyPresentCount);
 
 router.get("/yearly-count", ctrl.getYearlyPresentCount);
 
+router.get("/today", ctrl.getTodayAttendance);
+
 module.exports = router;

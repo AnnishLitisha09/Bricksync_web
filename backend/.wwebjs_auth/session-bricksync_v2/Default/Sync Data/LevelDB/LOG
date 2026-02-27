@@ -1,3 +1,3 @@
-2026/02/27-14:22:59.996 1cacc Reusing MANIFEST /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Sync Data/LevelDB/MANIFEST-000001
-2026/02/27-14:22:59.997 1cacc Recovering log #3
-2026/02/27-14:22:59.998 1cacc Reusing old log /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Sync Data/LevelDB/000003.log 
+2026/02/27-16:18:24.592 498d0 Reusing MANIFEST /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Sync Data/LevelDB/MANIFEST-000001
+2026/02/27-16:18:24.593 498d0 Recovering log #3
+2026/02/27-16:18:24.594 498d0 Reusing old log /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Sync Data/LevelDB/000003.log 

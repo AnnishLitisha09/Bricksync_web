@@ -42,6 +42,8 @@ import NotepadHistory from "../screens/pages/notepage/NotepadHistory";
 import AddInvoice from "../screens/pages/invoices/AddInvoice";
 import InvoiceHistory from "../screens/pages/invoices/InvoiceHistory";
 import SettingsPage from "../screens/pages/settings/SettingsPage";
+import NotificationPage from "../screens/pages/notifications/NotificationPage";
+import DailyAttendance from "../screens/pages/staff/DailyAttendance";
 
 // --- CUSTOMER & LEDGER IMPORTS ---
 
@@ -50,6 +52,10 @@ const privateRoutes = [
   {
     path: "/",
     element: <Navigate to={"/landing"} />,
+  },
+  {
+    path: "/notifications",
+    element: <NotificationPage />,
   },
   {
     path: "/dashboard",
@@ -142,6 +148,10 @@ const privateRoutes = [
   {
     path: "/staff",
     element: <Staff />,
+  },
+  {
+    path: "/staff/attendance",
+    element: <DailyAttendance />,
   },
   {
     path: "/shop",

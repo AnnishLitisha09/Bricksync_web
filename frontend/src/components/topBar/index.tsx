@@ -4,6 +4,7 @@ import { useCommonStore } from "../../store";
 import { useUserStore } from "../../store/useUserStore";
 import { FILE_BASE_URL } from "../../api/base";
 import { fetchTodayCalls } from "../../api/callLog";
+import { fetchUnreadCount } from "../../api/notification";
 
 /* 🔹 Role config */
 const roleConfig: Record<number, { label: string; className: string }> = {
@@ -18,6 +19,7 @@ export default function Topbar() {
   const user = useUserStore((state) => state.user);
   const [dateTime, setDateTime] = useState("");
   const [callCount, setCallCount] = useState(0);
+  const [notifCount, setNotifCount] = useState(0);
 
   useEffect(() => {
     const updateTime = () => {
@@ -52,6 +54,25 @@ export default function Topbar() {
     const interval = setInterval(getCallReminders, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const getNotificationCount = async () => {
+      try {
+        const res = await fetchUnreadCount();
+        if (res.success) {
+          setNotifCount(res.count);
+        }
+      } catch (error) {
+        console.error("Error fetching notification count in Topbar:", error);
+      }
+    };
+
+    getNotificationCount();
+    const interval = setInterval(getNotificationCount, 2 * 60 * 1000); // Every 2 mins
+    return () => clearInterval(interval);
+  }, []);
+
+  const totalBadges = callCount + notifCount;
 
   const role = user?.userRole ? roleConfig[user.userRole] : null;
 
@@ -89,9 +110,9 @@ export default function Topbar() {
           className="relative p-1 text-gray-400"
         >
           <Bell size={20} />
-          {callCount > 0 && (
+          {totalBadges > 0 && (
             <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white px-1 shadow-sm">
-              {callCount}
+              {totalBadges}
             </span>
           )}
         </div>
@@ -110,7 +131,7 @@ export default function Topbar() {
           </div>
 
           <img
-            src={user?.imageUrl ? `${FILE_BASE_URL}${user.imageUrl}` : "https://i.pravatar.cc/40"}
+            src={user?.imageUrl ? `${FILE_BASE_URL}${user.imageUrl}` : "https://imgs.search.brave.com/7wfVFlYLCmAQArDGf-kEdSyMw_dlZbUJw0u_bKOuwrY/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/cGl4YWJheS5jb20v/cGhvdG8vMjAxOS8w/OC8xMS8xOC81OS9p/Y29uLTQzOTk3MDFf/MTI4MC5wbmc"}
             alt="profile"
             className="w-8 h-8 md:w-9 md:h-9 rounded-full border border-gray-200 object-cover"
           />

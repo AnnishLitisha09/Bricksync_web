@@ -72,6 +72,12 @@ router.get("/", verifyToken, getAllUsers);
 router.put(
   "/admin/update/:userid",
   verifyToken,
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "aadhar", maxCount: 1 },
+    { name: "drivingLicence", maxCount: 1 },
+    { name: "drivingLicenceBack", maxCount: 1 },
+  ]),
   adminUpdateUser
 );
 

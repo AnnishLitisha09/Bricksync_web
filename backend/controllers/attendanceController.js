@@ -112,3 +112,29 @@ exports.getYearlyPresentCount = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.getTodayAttendance = async (req, res) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Fetch all users who are drivers/staff (role 2 is usually driver/staff based on Topbar config)
+    // Actually, let's fetch all users and then join with attendance for today
+    const users = await db.User.findAll({
+      where: {
+        userRole: 2, // Driver role
+        isDeleted: false
+      },
+      attributes: ['userid', 'name'],
+      include: [{
+        model: Attendance,
+        where: { date: today },
+        required: false
+      }]
+    });
+
+    res.json(users);
+  } catch (err) {
+    console.error("Get Today Attendance Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};

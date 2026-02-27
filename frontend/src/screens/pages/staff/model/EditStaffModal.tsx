@@ -51,7 +51,7 @@ const EditStaffModal: React.FC<Props> = ({ isOpen, onClose, staff, refresh }) =>
       if (files.drivingLicence) data.append("drivingLicence", files.drivingLicence);
       if (files.drivingLicenceBack) data.append("drivingLicenceBack", files.drivingLicenceBack);
 
-      const res = await fetch(`${BASE_URL}/users/admin/update/${staff.userid}`, {
+      const res = await fetch(`${BASE_URL}/user/admin/update/${staff.userid}`, {
         method: "PUT",
         headers: getAuthHeader(),
         body: data,
@@ -85,31 +85,31 @@ const EditStaffModal: React.FC<Props> = ({ isOpen, onClose, staff, refresh }) =>
             <form className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleUpdateStaff}>
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Full Name</label>
-                <input type="text" required value={editData.name} onChange={(e) => setEditData({...editData, name: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-800 outline-none" />
+                <input type="text" required value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-800 outline-none" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Phone Number</label>
-                <input type="text" required value={editData.phoneNumber} onChange={(e) => setEditData({...editData, phoneNumber: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-800 outline-none" />
+                <input type="text" required value={editData.phoneNumber} onChange={(e) => setEditData({ ...editData, phoneNumber: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-800 outline-none" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Email Address</label>
-                <input type="email" value={editData.email} onChange={(e) => setEditData({...editData, email: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-800 outline-none" />
+                <input type="email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-800 outline-none" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-1">DL Expiry Date</label>
-                <input type="date" value={editData.drivingLicenceValidity} onChange={(e) => setEditData({...editData, drivingLicenceValidity: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-800 outline-none" />
+                <input type="date" value={editData.drivingLicenceValidity} onChange={(e) => setEditData({ ...editData, drivingLicenceValidity: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-800 outline-none" />
               </div>
 
               <div className="md:col-span-2 grid grid-cols-2 gap-4 mt-4">
-                <FileUploadBox label="Profile Photo" onChange={(f) => setFiles({...files, image: f})} />
-                <FileUploadBox label="Aadhar Card" onChange={(f) => setFiles({...files, aadhar: f})} />
-                <FileUploadBox label="DL Front" onChange={(f) => setFiles({...files, drivingLicence: f})} />
-                <FileUploadBox label="DL Back" onChange={(f) => setFiles({...files, drivingLicenceBack: f})} />
+                <FileUploadBox label="Profile Photo" onChange={(f) => setFiles({ ...files, image: f })} />
+                <FileUploadBox label="Aadhar Card" onChange={(f) => setFiles({ ...files, aadhar: f })} />
+                <FileUploadBox label="DL Front" onChange={(f) => setFiles({ ...files, drivingLicence: f })} />
+                <FileUploadBox label="DL Back" onChange={(f) => setFiles({ ...files, drivingLicenceBack: f })} />
               </div>
 
               <div className="md:col-span-2 pt-6">
                 <button type="submit" disabled={modalLoading} className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-lg shadow-indigo-100">
-                  {modalLoading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} 
+                  {modalLoading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
                   Save Changes
                 </button>
               </div>

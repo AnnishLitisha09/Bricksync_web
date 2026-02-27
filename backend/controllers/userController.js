@@ -45,7 +45,16 @@ exports.adminUpdateUser = async (req, res) => {
       amount: req.body.amount,
       userRole: req.body.userRole,
       staffRole: req.body.staffRole,
+      drivingLicenceValidity: req.body.drivingLicenceValidity || null,
     };
+
+    // Handle File Uploads
+    if (req.files) {
+      if (req.files.image) updates.imageUrl = req.files.image[0].filename;
+      if (req.files.aadhar) updates.aadharUrl = req.files.aadhar[0].filename;
+      if (req.files.drivingLicence) updates.drivingLicenceUrl = req.files.drivingLicence[0].filename;
+      if (req.files.drivingLicenceBack) updates.drivingLicenceBackUrl = req.files.drivingLicenceBack[0].filename;
+    }
 
     // remove undefined fields
     Object.keys(updates).forEach(
@@ -236,15 +245,27 @@ exports.deleteUser = async (req, res) => {
 /* 🔹 Drivers Only */
 exports.getDriversOnly = async (req, res) => {
   try {
-    const drivers = await User.findAll({
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await User.findAndCountAll({
       where: {
         isDeleted: false,
         userRole: 2,
       },
       attributes: { exclude: ["password"] },
+      limit: limit,
+      offset: offset,
+      order: [["createdAt", "DESC"]],
     });
 
-    res.json(drivers);
+    res.json({
+      drivers: rows,
+      totalCount: count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

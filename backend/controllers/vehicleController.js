@@ -111,41 +111,7 @@ const sendExpiryEmail = async (vehicle, type) => {
 /* =========================
    CRON JOB - Daily Check
 ========================= */
-cron.schedule("0 0 * * *", async () => {
-  console.log("🔔 Running vehicle expiry check...");
-  try {
-    const vehicles = await Vehicle.findAll();
-    const today = new Date();
-
-    for (let vehicle of vehicles) {
-      let changed = false;
-      let alreadyInactive = !vehicle.isActive;
-
-      // Check Insurance
-      if (vehicle.insurance && new Date(vehicle.insurance) <= today && !alreadyInactive) {
-        vehicle.isActive = false;
-        await sendExpiryEmail(vehicle, "Insurance");
-        changed = true;
-      }
-      // Check Pollution
-      else if (vehicle.pollution && new Date(vehicle.pollution) <= today && !alreadyInactive) {
-        vehicle.isActive = false;
-        await sendExpiryEmail(vehicle, "Pollution");
-        changed = true;
-      }
-      // Check RC
-      else if (vehicle.rcDate && new Date(vehicle.rcDate) <= today && !alreadyInactive) {
-        vehicle.isActive = false;
-        await sendExpiryEmail(vehicle, "RC");
-        changed = true;
-      }
-
-      if (changed) await vehicle.save();
-    }
-  } catch (error) {
-    console.error("CRON JOB ERROR:", error);
-  }
-});
+// Redundant cron job removed - logic centralized in scheduler.js
 
 /* =========================
    CONTROLLER EXPORTS

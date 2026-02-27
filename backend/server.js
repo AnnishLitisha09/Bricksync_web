@@ -50,25 +50,53 @@ app.use("/:folder", (req, res, next) => {
   // Check database status for invoices
   if (folder === 'invoices') {
     const { Invoice } = require("./models");
-    Invoice.findOne({ where: { filename: cleanFilename } })
-      .then(invoice => {
-        if (invoice) {
-          let isActuallyActive = invoice.isActive;
-          if (isActuallyActive && invoice.notifiedAt) {
-            const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
-            if (new Date(invoice.notifiedAt) < threeHoursAgo) {
-              isActuallyActive = false;
-              invoice.update({ isActive: false }).catch(() => { });
-            }
-          }
+    const { Op } = require("sequelize");
 
-          if (!isActuallyActive) {
-            return res.status(403).send("This link has expired or is no longer active.");
+    // Robust lookup logic synchronized with invoiceController.js
+    Invoice.findOne({
+      where: {
+        [Op.or]: [
+          { filename: cleanFilename },
+          { pdfPath: { [Op.like]: `%${cleanFilename}` } }
+        ]
+      },
+      order: [['id', 'DESC']]
+    })
+      .then(async invoice => {
+        // Fallback: parse invoiceId from filename if exact filename match fails
+        if (!invoice) {
+          try {
+            const base = cleanFilename.replace(/^Invoice_/, '').replace(/\.pdf$/i, '');
+            const invoiceId = base.replace(/-(\d{4})$/, '/$1');
+            invoice = await Invoice.findOne({ where: { invoiceId }, order: [['id', 'DESC']] });
+          } catch (e) { }
+        }
+
+        if (!invoice) {
+          console.log(`🚫 [Access] Invoice not found in DB: ${cleanFilename}`);
+          return res.status(404).send("Document not found in our records.");
+        }
+
+        let isActuallyActive = invoice.isActive;
+        if (isActuallyActive && invoice.notifiedAt) {
+          const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+          if (new Date(invoice.notifiedAt) < threeHoursAgo) {
+            isActuallyActive = false;
+            invoice.update({ isActive: false }).catch(() => { });
           }
         }
+
+        if (!isActuallyActive) {
+          console.log(`🚫 [Access] Denied for inactive invoice: ${invoice.invoiceId}`);
+          return res.status(403).send("This link has expired or is no longer active.");
+        }
+
         serveFile();
       })
-      .catch(() => serveFile());
+      .catch(err => {
+        console.error("❌ [Access] DB Error during check:", err.message);
+        res.status(500).send("Internal Server Error during access check.");
+      });
   } else {
     serveFile();
   }
@@ -128,6 +156,7 @@ console.log("🔌 Mounting /api/call-logs...");
 app.use("/api/call-logs", require("./routes/callLogRoutes"));
 app.use("/api/notepad", require("./routes/notepadRoutes"));
 app.use("/api/invoices", require("./routes/invoiceRoutes"));
+app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/analytics", require("./routes/analyticsRoutes"));
 
 

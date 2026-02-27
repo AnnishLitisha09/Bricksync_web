@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Boxes,
@@ -15,10 +15,12 @@ import {
   ShoppingCart,
   Landmark,
   StickyNote,
+  Bell,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useCommonStore } from "../../store";
 import { useUserStore } from "../../store/useUserStore";
+import { BASE_URL, getAuthHeader } from "../../api/base";
 
 /* ✅ ASSETS */
 import Logo from "../../assets/logo.png";
@@ -33,10 +35,12 @@ interface MenuItem {
   icon: React.ElementType;
   path: string;
   children?: SubMenuItem[];
+  badge?: boolean;
 }
 
 const menu: MenuItem[] = [
   { name: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+  { name: "Notifications", icon: Bell, path: "/notifications", badge: true },
   {
     name: "Vehicles",
     icon: Truck,
@@ -121,10 +125,31 @@ export default function Sidebar({ className }: { className?: string }) {
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const isOpen = useCommonStore((state) => state.isOpen);
   const toggle = useCommonStore((state) => state.toggle);
   const logout = useUserStore((state) => state.logout);
+
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await fetch(`${BASE_URL}/notifications/unread-count`, {
+          headers: getAuthHeader()
+        });
+        const data = await response.json();
+        if (data.success) {
+          setUnreadCount(data.count);
+        }
+      } catch (error) {
+        console.error("Error fetching unread count:", error);
+      }
+    };
+
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 60000); // Polling every minute
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -254,7 +279,14 @@ export default function Sidebar({ className }: { className?: string }) {
                       `}
                     >
                       <div className="flex items-center gap-3">
-                        <item.icon size={18} className={`${isActive ? "text-orange-500" : "text-slate-400 group-hover:text-slate-600"}`} />
+                        <div className="relative">
+                          <item.icon size={18} className={`${isActive ? "text-orange-500" : "text-slate-400 group-hover:text-slate-600"}`} />
+                          {item.badge && unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white">
+                              {unreadCount > 9 ? "9+" : unreadCount}
+                            </span>
+                          )}
+                        </div>
                         <span className="text-sm font-semibold whitespace-nowrap">{item.name}</span>
                       </div>
                       {hasChildren && (
