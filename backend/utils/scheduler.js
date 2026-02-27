@@ -23,7 +23,41 @@ const initScheduledTasks = () => {
         console.log("🕒 [Scheduler] Running 12:05 AM Call Reminders check...");
         await checkDailyCallReminders();
     });
+
+    // Run every 30 minutes to deactivate expired invoices
+    cron.schedule("*/30 * * * *", async () => {
+        console.log("🕒 [Scheduler] Running expiry check for invoices...");
+        await deactivateExpiredInvoices();
+    });
 };
+
+/**
+ * 🔹 TASK 0: Deactivate Invoices older than 3 hours
+ */
+async function deactivateExpiredInvoices() {
+    try {
+        const { Invoice } = require("../models");
+        const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+
+        const [updatedCount] = await Invoice.update(
+            { isActive: false },
+            {
+                where: {
+                    isActive: true,
+                    notifiedAt: {
+                        [Op.lt]: threeHoursAgo
+                    }
+                }
+            }
+        );
+
+        if (updatedCount > 0) {
+            console.log(`✅ [Schedule] Deactivated ${updatedCount} expired invoices.`);
+        }
+    } catch (err) {
+        console.error("❌ [Schedule] Invoice deactivation failed:", err);
+    }
+}
 
 /**
  * 🔹 TASK 1: Automated SQL Backup

@@ -1,0 +1,25 @@
+2026/02/27-13:43:53.088 df10 Reusing MANIFEST /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/02/27-13:43:53.089 df10 Recovering log #156
+2026/02/27-13:43:53.097 df10 Reusing old log /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/000156.log 
+2026/02/27-13:54:42.765 df12 Level-0 table #166: started
+2026/02/27-13:54:42.780 df12 Level-0 table #166: 1239301 bytes OK
+2026/02/27-13:54:42.784 df12 Delete type=0 #156
+2026/02/27-13:55:52.443 df12 Compacting 1@1 + 6@2 files
+2026/02/27-13:55:52.482 df12 Generated table #167@1: 53298 keys, 2219756 bytes
+2026/02/27-13:55:52.493 df12 Generated table #168@1: 2246 keys, 2149533 bytes
+2026/02/27-13:55:52.514 df12 Generated table #169@1: 16874 keys, 2209506 bytes
+2026/02/27-13:55:52.535 df12 Generated table #170@1: 28971 keys, 2181687 bytes
+2026/02/27-13:55:52.565 df12 Generated table #171@1: 104582 keys, 2257343 bytes
+2026/02/27-13:55:52.576 df12 Generated table #172@1: 26421 keys, 755619 bytes
+2026/02/27-13:55:52.576 df12 Compacted 1@1 + 6@2 files => 11773444 bytes
+2026/02/27-13:55:52.578 df12 compacted to: files[ 0 0 6 0 0 0 0 ]
+2026/02/27-13:55:52.578 df12 Delete type=2 #161
+2026/02/27-13:55:52.578 df12 Delete type=2 #160
+2026/02/27-13:55:52.578 df12 Delete type=2 #162
+2026/02/27-13:55:52.578 df12 Delete type=2 #163
+2026/02/27-13:55:52.578 df12 Delete type=2 #166
+2026/02/27-13:55:52.578 df12 Delete type=2 #158
+2026/02/27-13:55:52.578 df12 Delete type=2 #159
+2026/02/27-13:55:52.718 df12 Level-0 table #174: started
+2026/02/27-13:55:52.760 df12 Level-0 table #174: 986178 bytes OK
+2026/02/27-13:55:52.762 df12 Delete type=0 #165

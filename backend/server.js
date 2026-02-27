@@ -8,9 +8,13 @@ const fs = require("fs");
 const app = express();
 const db = require("./models");
 const { initScheduledTasks } = require("./utils/scheduler");
+const { initWhatsApp } = require("./utils/whatsappService");
 
 // Initialize Automated Tasks (Midnight Backups & Expiration Alerts)
 initScheduledTasks();
+
+// Initialize WhatsApp Service
+initWhatsApp(); // Reset to normal initialization
 
 // ================= Middleware =================
 app.use(cors({
@@ -26,7 +30,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/images", express.static(path.join(__dirname, "images")));
 
 // Custom static file serving for PDF folders to support .gz compression
-app.use("/:folder(invoices|notepad)", (req, res, next) => {
+app.use("/:folder", (req, res, next) => {
+  const { folder } = req.params;
+  if (folder !== 'invoices' && folder !== 'notepad') return next();
+
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
 
   let cleanFilename = req.path;
@@ -37,21 +44,47 @@ app.use("/:folder(invoices|notepad)", (req, res, next) => {
     cleanFilename = decodeURIComponent(cleanFilename);
   } catch (e) { }
 
-  const folder = req.params.folder;
   const filePath = path.join(__dirname, folder, cleanFilename);
   const gzFilePath = filePath + ".gz";
 
-  if (fs.existsSync(gzFilePath)) {
-    res.set('Content-Encoding', 'gzip');
-    res.set('Content-Type', 'application/pdf');
-    res.set('Vary', 'Accept-Encoding');
-    return res.sendFile(gzFilePath);
-  } else if (fs.existsSync(filePath)) {
-    res.set('Content-Type', 'application/pdf');
-    return res.sendFile(filePath);
+  // Check database status for invoices
+  if (folder === 'invoices') {
+    const { Invoice } = require("./models");
+    Invoice.findOne({ where: { filename: cleanFilename } })
+      .then(invoice => {
+        if (invoice) {
+          let isActuallyActive = invoice.isActive;
+          if (isActuallyActive && invoice.notifiedAt) {
+            const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+            if (new Date(invoice.notifiedAt) < threeHoursAgo) {
+              isActuallyActive = false;
+              invoice.update({ isActive: false }).catch(() => { });
+            }
+          }
+
+          if (!isActuallyActive) {
+            return res.status(403).send("This link has expired or is no longer active.");
+          }
+        }
+        serveFile();
+      })
+      .catch(() => serveFile());
+  } else {
+    serveFile();
   }
 
-  next();
+  function serveFile() {
+    if (fs.existsSync(gzFilePath)) {
+      res.set('Content-Encoding', 'gzip');
+      res.set('Content-Type', 'application/pdf');
+      res.set('Vary', 'Accept-Encoding');
+      return res.sendFile(gzFilePath);
+    } else if (fs.existsSync(filePath)) {
+      res.set('Content-Type', 'application/pdf');
+      return res.sendFile(filePath);
+    }
+    next();
+  }
 });
 
 app.use("/notepad", express.static(path.join(__dirname, "notepad")));

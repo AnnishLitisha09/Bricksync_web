@@ -53,6 +53,12 @@ module.exports = (sequelize, DataTypes) => {
             filename: DataTypes.STRING,
             materialId: DataTypes.INTEGER,
             officeId: DataTypes.INTEGER,
+            notifyDriver: {
+                type: DataTypes.BOOLEAN,
+                defaultValue: false
+            },
+            driverId: DataTypes.INTEGER,
+            notifiedAt: DataTypes.DATE,
         },
         {
             tableName: "Invoices",

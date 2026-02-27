@@ -1,0 +1,23 @@
+2026/02/27-13:42:04.345 d208 Reusing MANIFEST /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/02/27-13:42:04.345 d208 Recovering log #147
+2026/02/27-13:42:04.366 d208 Reusing old log /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/000147.log 
+2026/02/27-13:42:07.086 d20a Level-0 table #157: started
+2026/02/27-13:42:07.098 d20a Level-0 table #157: 1010526 bytes OK
+2026/02/27-13:42:07.112 d20a Delete type=0 #147
+2026/02/27-13:42:07.125 d20a Compacting 1@1 + 7@2 files
+2026/02/27-13:42:07.155 d20a Generated table #158@1: 48421 keys, 2213849 bytes
+2026/02/27-13:42:07.164 d20a Generated table #159@1: 2407 keys, 2150496 bytes
+2026/02/27-13:42:07.182 d20a Generated table #160@1: 17217 keys, 2225164 bytes
+2026/02/27-13:42:07.204 d20a Generated table #161@1: 40314 keys, 2192357 bytes
+2026/02/27-13:42:07.235 d20a Generated table #162@1: 104410 keys, 2256716 bytes
+2026/02/27-13:42:07.243 d20a Generated table #163@1: 14202 keys, 485058 bytes
+2026/02/27-13:42:07.243 d20a Compacted 1@1 + 7@2 files => 11523640 bytes
+2026/02/27-13:42:07.244 d20a compacted to: files[ 0 0 6 0 0 0 0 ]
+2026/02/27-13:42:07.245 d20a Delete type=2 #111
+2026/02/27-13:42:07.245 d20a Delete type=2 #149
+2026/02/27-13:42:07.245 d20a Delete type=2 #154
+2026/02/27-13:42:07.245 d20a Delete type=2 #157
+2026/02/27-13:42:07.245 d20a Delete type=2 #152
+2026/02/27-13:42:07.245 d20a Delete type=2 #153
+2026/02/27-13:42:07.245 d20a Delete type=2 #151
+2026/02/27-13:42:07.245 d20a Delete type=2 #150

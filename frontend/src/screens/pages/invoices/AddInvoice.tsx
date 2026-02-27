@@ -61,7 +61,9 @@ const AddInvoice: React.FC = () => {
         customerAddress: '',
 
         sgstRate: 9,
-        cgstRate: 9
+        cgstRate: 9,
+        notifyDriver: false,
+        driverId: null as number | null
     });
 
     const [items, setItems] = useState<InvoiceItem[]>([
@@ -86,6 +88,7 @@ const AddInvoice: React.FC = () => {
     const [stocks, setStocks] = useState<any[]>([]);
     const [vehicles, setVehicles] = useState<any[]>([]);
     const [customers, setCustomers] = useState<any[]>([]);
+    const [drivers, setDrivers] = useState<any[]>([]);
 
     useEffect(() => {
         fetchInitialData();
@@ -93,10 +96,11 @@ const AddInvoice: React.FC = () => {
 
     const fetchInitialData = async () => {
         try {
-            const [stockRes, vehRes, custRes] = await Promise.all([
+            const [stockRes, vehRes, custRes, dryRes] = await Promise.all([
                 fetch(`${BASE_URL}/stock`, { headers: getAuthHeader() }),
                 fetch(`${BASE_URL}/vehicles`, { headers: getAuthHeader() }),
-                fetch(`${BASE_URL}/customers`, { headers: getAuthHeader() })
+                fetch(`${BASE_URL}/customers`, { headers: getAuthHeader() }),
+                fetch(`${BASE_URL}/user/drivers`, { headers: getAuthHeader() })
             ]);
 
             const stockData = await stockRes.json();
@@ -106,6 +110,7 @@ const AddInvoice: React.FC = () => {
             setStocks(stockData || []);
             setVehicles(vehData || []); // Vehicle controller returns array directly
             setCustomers(custData.data || []);
+            setDrivers(dryRes.ok ? await dryRes.json() : []);
         } catch (error) {
             toast.error("Failed to load backend data");
         }
@@ -216,6 +221,8 @@ const AddInvoice: React.FC = () => {
                     totalInWords: numberToWords(grandTotal),
                     shippingName: sameAsBilled ? invoiceData.billingName : invoiceData.shippingName,
                     shippingAddress: sameAsBilled ? invoiceData.billingAddress : invoiceData.shippingAddress,
+                    shippingGstin: sameAsBilled ? invoiceData.billingGstin : invoiceData.shippingGstin,
+                    shippingState: sameAsBilled ? invoiceData.billingState : invoiceData.shippingState,
                 };
 
                 const response = await fetch(`${BASE_URL}/invoices/create`, {
@@ -240,6 +247,18 @@ const AddInvoice: React.FC = () => {
             const pdfSuccess = await generateAndUploadPDF(savedIds, latestInvoiceId);
 
             if (pdfSuccess) {
+                if (invoiceData.notifyDriver && savedIds.length > 0) {
+                    // Notify about the first item's ID (they all share the same invoiceId)
+                    try {
+                        await fetch(`${BASE_URL}/invoices/notify-driver/${savedIds[0]}`, {
+                            method: 'POST',
+                            headers: getAuthHeader()
+                        });
+                        toast.success("Notification sent to driver!");
+                    } catch (err) {
+                        toast.error("Failed to send driver notification");
+                    }
+                }
                 toast.success("Invoice and PDF saved!");
                 navigate('/invoices/history');
             }
@@ -380,6 +399,35 @@ const AddInvoice: React.FC = () => {
                                 <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 flex items-center gap-1"><MapPin size={10} className="text-slate-400" /> Delivery Place</label>
                                 <input type="text" value={invoiceData.deliveryPlace} onChange={e => setInvoiceData({ ...invoiceData, deliveryPlace: e.target.value })} placeholder="e.g. TIRUPUR" className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none" />
                             </div>
+                            <div className="col-span-2 bg-indigo-50/50 p-3 rounded-2xl border border-indigo-100 flex flex-col gap-3">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2">
+                                        <Truck size={12} /> Assign Driver
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-bold text-indigo-600">Notify WhatsApp</span>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={invoiceData.notifyDriver}
+                                                onChange={e => setInvoiceData({ ...invoiceData, notifyDriver: e.target.checked })}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <select
+                                    value={invoiceData.driverId || ""}
+                                    onChange={e => setInvoiceData({ ...invoiceData, driverId: e.target.value ? parseInt(e.target.value) : null })}
+                                    className="w-full px-3 py-2 bg-white border border-indigo-100 rounded-xl text-sm font-bold focus:border-indigo-500 outline-none transition-all"
+                                >
+                                    <option value="">Select Driver</option>
+                                    {drivers.map(d => (
+                                        <option key={d.userid} value={d.userid}>{d.name} ({d.phoneNumber})</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                     </section>
 
@@ -500,7 +548,7 @@ const AddInvoice: React.FC = () => {
                             <h1 className="text-xl font-bold mb-1">M.ASWATH HOLLOW BRICKS & LORRY SERVICES</h1>
                             <p className="text-xs font-bold mb-0.5">8/3157 ANDITHOTTAM . PANDIAN NAGAR</p>
                             <p className="text-xs font-bold mb-0.5">TIRUPUR - 641 602 *</p>
-                            <p className="text-xs font-bold mb-0.5">Phone: 9843083521 . 9842048181 * Email : </p>
+                            <p className="text-xs font-bold mb-0.5">Phone: 9843083521 . 9842048181 * Email : bricksync001@gmail.com </p>
                             <p className="text-xs font-bold">GSTIN : 33CPWPB5671P1Z4</p>
                         </div>
 
@@ -570,11 +618,11 @@ const AddInvoice: React.FC = () => {
                             <div className="flex flex-col">
                                 <div className="text-center font-bold text-xs border-b border-black py-1.5">Shipped To</div>
                                 <div className="p-2 text-xs font-bold flex flex-col flex-1">
-                                    <p className="uppercase mb-1">{invoiceData.shippingName}</p>
-                                    <p className="uppercase mb-1 whitespace-pre-wrap">{invoiceData.shippingAddress}</p>
+                                    <p className="uppercase mb-1">{sameAsBilled ? invoiceData.billingName : invoiceData.shippingName}</p>
+                                    <p className="uppercase mb-1 whitespace-pre-wrap">{sameAsBilled ? invoiceData.billingAddress : invoiceData.shippingAddress}</p>
                                     <div className="mt-auto pt-4 space-y-1">
-                                        <p>GSTIN : <span className="font-normal uppercase">{invoiceData.shippingGstin || '-'}</span></p>
-                                        <p>State : <span className="font-normal uppercase">{invoiceData.shippingState || '-'}</span></p>
+                                        <p>GSTIN : <span className="font-normal uppercase">{(sameAsBilled ? invoiceData.billingGstin : invoiceData.shippingGstin) || '-'}</span></p>
+                                        <p>State : <span className="font-normal uppercase">{(sameAsBilled ? invoiceData.billingState : invoiceData.shippingState) || '-'}</span></p>
                                     </div>
                                 </div>
                             </div>
