@@ -47,6 +47,7 @@ const initWhatsApp = (forceReset = false) => {
         puppeteer: {
             handleSIGINT: false,
             executablePath: process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : undefined,
+            headless: true,
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -57,6 +58,10 @@ const initWhatsApp = (forceReset = false) => {
                 '--disable-gpu',
                 '--disable-extensions',
                 '--disable-software-rasterizer',
+                '--disable-features=site-per-process',
+                '--no-default-browser-check',
+                '--disable-infobars',
+                '--window-size=1280,720',
                 '--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
             ],
         }
@@ -84,20 +89,32 @@ const initWhatsApp = (forceReset = false) => {
 
     client.on('auth_failure', (msg) => {
         console.error('❌ [WhatsApp] Authentication failure:', msg);
+        isReady = false;
+        // If auth fails, we likely need to clear session and retry to get a new QR code
+        console.log('🔄 [WhatsApp] Retrying initialization with force reset due to auth failure...');
+        setTimeout(() => initWhatsApp(true), 10000);
     });
 
-    client.on('disconnected', (reason) => {
-        console.log('🔌 [WhatsApp] Client was logged out:', reason);
+    client.on('disconnected', async (reason) => {
+        console.log('🔌 [WhatsApp] Client was logged out or disconnected:', reason);
         isReady = false;
-        // Re-initialize after a delay
-        setTimeout(initWhatsApp, 5000);
+        try {
+            await client.destroy();
+        } catch (e) {
+            console.warn('⚠️ [WhatsApp] Error during client.destroy():', e.message);
+        }
+        // Re-initialize after a delay with force reset to ensure we get a new QR code
+        console.log('🔄 [WhatsApp] Re-initializing for new QR code...');
+        setTimeout(() => initWhatsApp(true), 5000);
     });
 
     console.log('🔄 [WhatsApp] Calling client.initialize()...');
-    client.initialize().then(() => {
-        console.log('⚙️ [WhatsApp] Client.initialize() promise resolved');
-    }).catch(err => {
-        console.error('❌ [WhatsApp] Initialization error:', err);
+    client.initialize().catch(err => {
+        console.error('❌ [WhatsApp] Initialization error (catch block):', err.message);
+        if (err.message.includes('ExecutionContext was destroyed') || err.message.includes('Protocol error')) {
+            console.log('🔄 [WhatsApp] Protocol error detected. Attempting recovery in 10s...');
+            setTimeout(() => initWhatsApp(false), 10000);
+        }
     });
 };
 
