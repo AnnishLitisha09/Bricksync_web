@@ -8,7 +8,7 @@ const { Op } = require("sequelize");
 /* ================= REGISTER ================= */
 exports.register = async (req, res) => {
   try {
-    const { name, email, phoneNumber, password, amount } = req.body;
+    const { name, email, phoneNumber, password, amount, userRole } = req.body;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -18,6 +18,7 @@ exports.register = async (req, res) => {
       phoneNumber,
       password: hashedPassword,
       amount,
+      userRole: userRole || 3,
     });
 
     res.status(201).json({ message: "User created", user });
