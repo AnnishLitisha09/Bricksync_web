@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { BASE_URL, getAuthHeader } from "../../api/base";
+import { isStale } from "../storeUtils";
 
 export interface Vehicle {
   id: number;
@@ -10,7 +11,6 @@ export interface Vehicle {
   rcDate: string;
   kilometer: number;
   isActive: boolean;
-
   vehicleImage?: string;
   rcImage?: string;
   insuranceImage?: string;
@@ -22,74 +22,59 @@ interface VehicleStore {
   vehicles: Vehicle[];
   loading: boolean;
   error: string | null;
+  lastFetched: number | null;
 
-  fetchVehicles: () => Promise<void>;
+  fetchVehicles: (force?: boolean) => Promise<void>;
   fetchVehicleById: (id: number) => Promise<Vehicle>;
   addVehicle: (data: FormData) => Promise<void>;
   updateVehicle: (id: number, data: FormData) => Promise<void>;
   deleteVehicle: (id: number) => Promise<void>;
+  invalidate: () => void;
 }
+
+const TTL = 120_000; // 2 minutes
 
 export const useVehicleStore = create<VehicleStore>((set, get) => ({
   vehicles: [],
   loading: false,
   error: null,
+  lastFetched: null,
 
-  /* 🔄 FETCH ALL VEHICLES */
-  fetchVehicles: async () => {
+  /* 🔄 FETCH ALL VEHICLES — skips if data is fresh */
+  fetchVehicles: async (force = false) => {
+    if (!force && !isStale(get().lastFetched, TTL)) return;
     set({ loading: true, error: null });
-
     try {
       const res = await fetch(`${BASE_URL}/vehicles`, {
-        headers: {
-          ...getAuthHeader(),
-        },
+        headers: { ...getAuthHeader() },
       });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch vehicles");
-      }
-
+      if (!res.ok) throw new Error("Failed to fetch vehicles");
       const data = await res.json();
-      set({ vehicles: data });
+      set({ vehicles: data, loading: false, lastFetched: Date.now() });
     } catch (err: any) {
-      set({ error: err.message });
-    } finally {
-      set({ loading: false });
+      set({ error: err.message, loading: false });
     }
   },
 
   /* ➕ ADD VEHICLE */
   addVehicle: async (formData: FormData) => {
     set({ loading: true, error: null });
-
     try {
       const res = await fetch(`${BASE_URL}/vehicles`, {
         method: "POST",
-        headers: {
-          ...getAuthHeader(), // ⚠️ do NOT add Content-Type when using FormData
-        },
+        headers: { ...getAuthHeader() },
         body: formData,
       });
-
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.message || "Failed to add vehicle");
       }
-
-      const newVehicle = await res.json();
-
-      // Update store instantly after adding
-      set({
-        vehicles: [...get().vehicles, newVehicle],
-      });
-      await useVehicleStore.getState().fetchVehicles();
+      get().invalidate();
+      await get().fetchVehicles(true);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
-      set({ error: errorMessage });
+      const msg = err instanceof Error ? err.message : "An unknown error occurred";
+      set({ error: msg, loading: false });
       throw err;
-    } finally {
-      set({ loading: false });
     }
   },
 
@@ -100,11 +85,10 @@ export const useVehicleStore = create<VehicleStore>((set, get) => ({
         headers: getAuthHeader(),
       });
       const data = await res.json();
-
       return data;
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
-      set({ error: errorMessage });
+      const msg = err instanceof Error ? err.message : "An unknown error occurred";
+      set({ error: msg });
       throw err;
     } finally {
       set({ loading: false });
@@ -113,27 +97,19 @@ export const useVehicleStore = create<VehicleStore>((set, get) => ({
 
   updateVehicle: async (id: number, formData: FormData) => {
     set({ loading: true, error: null });
-
     try {
       const res = await fetch(`${BASE_URL}/vehicles/${id}`, {
         method: "PUT",
-        headers: {
-          ...getAuthHeader(), // ❌ DO NOT SET content-type
-        },
+        headers: { ...getAuthHeader() },
         body: formData,
       });
-
-      if (!res.ok) {
-        throw new Error("Failed to update vehicle");
-      }
-
-      await get().fetchVehicles();
+      if (!res.ok) throw new Error("Failed to update vehicle");
+      get().invalidate();
+      await get().fetchVehicles(true);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Update failed";
-      set({ error: msg });
+      set({ error: msg, loading: false });
       throw err;
-    } finally {
-      set({ loading: false });
     }
   },
 
@@ -142,27 +118,21 @@ export const useVehicleStore = create<VehicleStore>((set, get) => ({
     try {
       const res = await fetch(`${BASE_URL}/vehicles/${id}`, {
         method: "DELETE",
-        headers: {
-          ...getAuthHeader(),
-        },
+        headers: { ...getAuthHeader() },
       });
-
-      if (!res.ok) {
-        throw new Error("Failed to delete vehicle");
-      }
-
-      set({
-        vehicles: get().vehicles.filter((v) => v.id !== id),
-      });
+      if (!res.ok) throw new Error("Failed to delete vehicle");
+      set((state) => ({
+        vehicles: state.vehicles.filter((v) => v.id !== id),
+        lastFetched: null,
+      }));
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Deletion failed";
-      set({ error: msg });
+      set({ error: msg, loading: false });
       throw err;
     } finally {
       set({ loading: false });
     }
   },
 
-
-
+  invalidate: () => set({ lastFetched: null }),
 }));

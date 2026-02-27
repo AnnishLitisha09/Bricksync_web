@@ -8,100 +8,40 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-
-// NEW COMPONENTS
 import MerchantCard from "./components/MerchantCard";
 import MerchantModal from "./components/modals/MerchantModal";
 import CategoryFilter from "./components/CategoryFilter";
 import DeleteConfirmationModal from "./components/modals/DeleteConfirmationModal";
 import Pagination from "./components/Pagination";
-import { BASE_URL } from "../../../../api/base";
-
-// --- INTERFACES ---
-interface ShopEntry {
-  id: number;
-  shop_name: string;
-  owner_name: string;
-  phone_no: string;
-  address: string;
-  category: string;
-  balance: string | number;
-  createdAt: string;
-}
-
+import { useMaterialStore } from "../../../../store/useMaterialStore";
 
 export default function ShopLedgerPage() {
   const navigate = useNavigate();
-  const [entries, setEntries] = useState<ShopEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { suppliers, loading, fetchSuppliers, deleteSupplier } = useMaterialStore();
 
-  useEffect(() => {
-    fetchSuppliers();
-  }, []);
-
-  const fetchSuppliers = async () => {
-    try {
-      const response = await fetch(`${BASE_URL}/materials/suppliers`, {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      const result = await response.json();
-      if (result.success) {
-        setEntries(result.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch suppliers:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const confirmDelete = async () => {
-    if (!deletingShopId) return;
-
-    try {
-      const response = await fetch(`${BASE_URL}/materials/suppliers/${deletingShopId}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      const result = await response.json();
-      if (result.success) {
-        toast.success("Merchant deleted successfully");
-        fetchSuppliers();
-        setDeletingShopId(null);
-      } else {
-        toast.error(result.message || "Failed to delete merchant");
-      }
-    } catch (error) {
-      toast.error("An error occurred");
-    }
-  };
-
-  const [editingShop, setEditingShop] = useState<ShopEntry | null>(null);
+  const [editingShop, setEditingShop] = useState<typeof suppliers[0] | null>(null);
   const [isMerchantModalOpen, setIsMerchantModalOpen] = useState(false);
   const [deletingShopId, setDeletingShopId] = useState<number | null>(null);
-
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilter, setShowFilter] = useState(false);
   const [activeCategory, setActiveCategory] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
-
   const categories = ["ALL", "Retail", "Wholesale", "Distributor", "Contractor"];
 
-  // Filter Logic
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
+
   const filteredEntries = useMemo(() => {
-    return entries.filter((s) => {
+    return suppliers.filter((s) => {
       const matchSearch =
         s.shop_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.owner_name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchCategory = activeCategory === "ALL" || s.category.toUpperCase() === activeCategory.toUpperCase();
       return matchSearch && matchCategory;
     });
-  }, [entries, searchTerm, activeCategory]);
+  }, [suppliers, searchTerm, activeCategory]);
 
   const paginatedEntries = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -114,8 +54,19 @@ export default function ShopLedgerPage() {
     setCurrentPage(1);
   }, [searchTerm, activeCategory]);
 
-  // Navigation Handler
-  const handleViewHistory = (shop: ShopEntry) => {
+  const confirmDelete = async () => {
+    if (!deletingShopId) return;
+    try {
+      await deleteSupplier(deletingShopId);
+      toast.success("Merchant deleted successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete merchant");
+    } finally {
+      setDeletingShopId(null);
+    }
+  };
+
+  const handleViewHistory = (shop: typeof suppliers[0]) => {
     navigate(`/shop/materials/history?shopId=${shop.id}&shopName=${encodeURIComponent(shop.shop_name)}`);
   };
 
@@ -127,7 +78,7 @@ export default function ShopLedgerPage() {
     >
       <Toaster position="top-right" />
 
-      {/* GLOSSY HEADER SECTION */}
+      {/* HEADER */}
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-end justify-between gap-8">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
@@ -135,7 +86,7 @@ export default function ShopLedgerPage() {
               <Store className="text-white" size={24} />
             </div>
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-              SHOP <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-violet-500 italic">LEDGER</span>
+              SHOP <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500 italic">LEDGER</span>
             </h1>
           </div>
           <p className="text-slate-400 text-xs font-black uppercase tracking-[0.3em] pl-1">Merchant Credit Directory</p>
@@ -162,10 +113,7 @@ export default function ShopLedgerPage() {
           </button>
 
           <button
-            onClick={() => {
-              setEditingShop(null);
-              setIsMerchantModalOpen(true);
-            }}
+            onClick={() => { setEditingShop(null); setIsMerchantModalOpen(true); }}
             className="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-slate-300 hover:bg-indigo-600 hover:shadow-indigo-200 transition-all active:scale-95 group"
           >
             <Plus size={18} className="group-hover:rotate-90 transition-transform" />
@@ -181,7 +129,7 @@ export default function ShopLedgerPage() {
         onCategoryChange={setActiveCategory}
       />
 
-      {/* CONTENT AREA */}
+      {/* CONTENT */}
       <div className="max-w-7xl mx-auto">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 space-y-4">
@@ -197,10 +145,7 @@ export default function ShopLedgerPage() {
                   shop={shop}
                   idx={idx}
                   onViewHistory={handleViewHistory}
-                  onEdit={(s) => {
-                    setEditingShop(s);
-                    setIsMerchantModalOpen(true);
-                  }}
+                  onEdit={(s) => { setEditingShop(s); setIsMerchantModalOpen(true); }}
                   onDelete={setDeletingShopId}
                 />
               ))}
@@ -208,12 +153,9 @@ export default function ShopLedgerPage() {
 
             <MerchantModal
               isOpen={isMerchantModalOpen}
-              onClose={() => {
-                setIsMerchantModalOpen(false);
-                setEditingShop(null);
-              }}
+              onClose={() => { setIsMerchantModalOpen(false); setEditingShop(null); }}
               shop={editingShop}
-              onSuccess={fetchSuppliers}
+              onSuccess={() => fetchSuppliers(true)}
             />
 
             <DeleteConfirmationModal

@@ -7,77 +7,30 @@ import {
     Calendar,
     UserCheck,
     Search,
-    User,
     Check
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import { fetchTodayAttendance, saveAttendance } from "../../../api/attendance";
+import { useAttendanceStore } from "../../../store/useAttendanceStore";
 import { FILE_BASE_URL } from "../../../api/base";
 
 const DailyAttendance: React.FC = () => {
     const navigate = useNavigate();
-    const [attendance, setAttendance] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { attendance, loading, saving, fetchAttendance, toggleAttendance, saveAllAttendance } = useAttendanceStore();
     const [search, setSearch] = useState("");
-    const [saving, setSaving] = useState(false);
-
-    const getAttendance = async () => {
-        try {
-            setLoading(true);
-            const data = await fetchTodayAttendance();
-            const formattedData = data.map((staff: any) => ({
-                ...staff,
-                forenoon: staff.Attendances?.[0]?.forenoon || false,
-                afternoon: staff.Attendances?.[0]?.afternoon || false,
-            }));
-            setAttendance(formattedData);
-        } catch (error) {
-            console.error("Error fetching today attendance", error);
-            toast.error("Cloud Error: Records synchronization failed.");
-        } finally {
-            setLoading(false);
-        }
-    };
 
     useEffect(() => {
-        getAttendance();
+        fetchAttendance();
     }, []);
-
-    const toggleAttendance = (userid: number, field: 'forenoon' | 'afternoon') => {
-        setAttendance(prev => prev.map(staff =>
-            staff.userid === userid ? { ...staff, [field]: !staff[field] } : staff
-        ));
-    };
 
     const handleSaveAll = async () => {
         try {
-            setSaving(true);
-            const today = new Date().toISOString().slice(0, 10);
-
-            const promises = attendance.map(staff => {
-                const payload = {
-                    userid: staff.userid,
-                    records: [
-                        {
-                            date: today,
-                            forenoon: staff.forenoon,
-                            afternoon: staff.afternoon
-                        }
-                    ]
-                };
-                return saveAttendance(payload);
-            });
-
-            await Promise.all(promises);
+            await saveAllAttendance();
             toast.success("All attendance records saved and synced!");
-            getAttendance();
         } catch (error) {
             console.error("Save error:", error);
             toast.error("Sync Failure: Some records could not be persisted.");
-        } finally {
-            setSaving(false);
         }
     };
 
@@ -178,10 +131,7 @@ const DailyAttendance: React.FC = () => {
                             <tbody className="divide-y divide-slate-50">
                                 <AnimatePresence mode="popLayout">
                                     {filteredAttendance.length === 0 ? (
-                                        <motion.tr
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                        >
+                                        <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                                             <td colSpan={4} className="p-24 text-center">
                                                 <div className="flex flex-col items-center gap-6">
                                                     <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center">
@@ -198,10 +148,8 @@ const DailyAttendance: React.FC = () => {
                                         filteredAttendance.map((staff) => {
                                             const isFN = staff.forenoon;
                                             const isAN = staff.afternoon;
-
                                             let statusLabel = "Absent";
                                             let statusColor = "text-red-600 bg-red-50 border-red-100 shadow-red-500/10";
-
                                             if (isFN && isAN) {
                                                 statusLabel = "Full Day Present";
                                                 statusColor = "text-emerald-600 bg-emerald-50 border-emerald-100 shadow-emerald-500/10";
@@ -209,15 +157,8 @@ const DailyAttendance: React.FC = () => {
                                                 statusLabel = "Half Day Marked";
                                                 statusColor = "text-amber-600 bg-amber-50 border-amber-100 shadow-amber-500/10";
                                             }
-
                                             return (
-                                                <motion.tr
-                                                    layout
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    key={staff.userid}
-                                                    className="hover:bg-indigo-50/20 transition-all group"
-                                                >
+                                                <motion.tr layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} key={staff.userid} className="hover:bg-indigo-50/20 transition-all group">
                                                     <td className="p-8 pl-10">
                                                         <div className="flex items-center gap-5">
                                                             <div className="w-14 h-14 rounded-2xl overflow-hidden ring-4 ring-slate-50 bg-slate-100 group-hover:ring-indigo-100 transition-all shadow-inner flex-shrink-0">
@@ -234,32 +175,19 @@ const DailyAttendance: React.FC = () => {
                                                         </div>
                                                     </td>
                                                     <td className="p-8">
-                                                        <motion.button
-                                                            whileHover={{ scale: 1.1 }}
-                                                            whileTap={{ scale: 0.9 }}
-                                                            onClick={() => toggleAttendance(staff.userid, 'forenoon')}
-                                                            className={`mx-auto flex items-center justify-center w-14 h-14 rounded-2xl border-2 transition-all ${isFN ? 'bg-emerald-500 border-emerald-400 text-white shadow-xl shadow-emerald-500/30' : 'bg-slate-50 border-slate-100 text-slate-300 hover:border-emerald-200 hover:text-emerald-400 hover:bg-white'
-                                                                }`}
-                                                        >
+                                                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => toggleAttendance(staff.userid, 'forenoon')}
+                                                            className={`mx-auto flex items-center justify-center w-14 h-14 rounded-2xl border-2 transition-all ${isFN ? 'bg-emerald-500 border-emerald-400 text-white shadow-xl shadow-emerald-500/30' : 'bg-slate-50 border-slate-100 text-slate-300 hover:border-emerald-200 hover:text-emerald-400 hover:bg-white'}`}>
                                                             {isFN ? <Check size={28} strokeWidth={3} /> : <div className="w-2 h-2 rounded-full bg-slate-200" />}
                                                         </motion.button>
                                                     </td>
                                                     <td className="p-8">
-                                                        <motion.button
-                                                            whileHover={{ scale: 1.1 }}
-                                                            whileTap={{ scale: 0.9 }}
-                                                            onClick={() => toggleAttendance(staff.userid, 'afternoon')}
-                                                            className={`mx-auto flex items-center justify-center w-14 h-14 rounded-2xl border-2 transition-all ${isAN ? 'bg-emerald-500 border-emerald-400 text-white shadow-xl shadow-emerald-500/30' : 'bg-slate-50 border-slate-100 text-slate-300 hover:border-emerald-200 hover:text-emerald-400 hover:bg-white'
-                                                                }`}
-                                                        >
+                                                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => toggleAttendance(staff.userid, 'afternoon')}
+                                                            className={`mx-auto flex items-center justify-center w-14 h-14 rounded-2xl border-2 transition-all ${isAN ? 'bg-emerald-500 border-emerald-400 text-white shadow-xl shadow-emerald-500/30' : 'bg-slate-50 border-slate-100 text-slate-300 hover:border-emerald-200 hover:text-emerald-400 hover:bg-white'}`}>
                                                             {isAN ? <Check size={28} strokeWidth={3} /> : <div className="w-2 h-2 rounded-full bg-slate-200" />}
                                                         </motion.button>
                                                     </td>
                                                     <td className="p-8 text-center min-w-[200px]">
-                                                        <motion.div
-                                                            layout
-                                                            className={`inline-block px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] border shadow-sm transition-all ${statusColor}`}
-                                                        >
+                                                        <motion.div layout className={`inline-block px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] border shadow-sm transition-all ${statusColor}`}>
                                                             {statusLabel}
                                                         </motion.div>
                                                     </td>
@@ -281,13 +209,8 @@ const DailyAttendance: React.FC = () => {
                     { icon: <Clock4 size={24} />, title: "Real-time Sync", text: "All changes made here are reflected live in the Personnel Management and Payroll modules.", color: "emerald" },
                     { icon: <UserCheck size={24} />, title: "Profile Security", text: "Identity verification is performed for each member marked present to ensure zero fraud.", color: "slate" }
                 ].map((item, i) => (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.1 }}
-                        key={i}
-                        className="p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/10 group hover:border-indigo-100 transition-colors"
-                    >
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }} key={i}
+                        className="p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/10 group hover:border-indigo-100 transition-colors">
                         <div className={`w-12 h-12 rounded-2xl bg-${item.color}-50 flex items-center justify-center text-${item.color}-600 mb-6 group-hover:scale-110 transition-transform`}>
                             {item.icon}
                         </div>

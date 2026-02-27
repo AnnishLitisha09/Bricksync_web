@@ -24,15 +24,8 @@ import toast from "react-hot-toast";
 
 import { useNavigate } from "react-router-dom";
 import AddProductModal from "./AddProductModal";
-import {
-  getStock,
-  getAllOffices,
-  getEmployees,
-  logProduction,
-  deleteStock,
-  getTodayProductionStats
-} from "../../../api/inventory";
 import { FILE_BASE_URL } from "../../../api/base";
+import { useStockStore } from "../../../store/useStockStore";
 
 
 // Interfaces
@@ -52,53 +45,19 @@ interface ProductStock {
   };
 }
 
-interface Office {
-  office_id: number;
-  office_name: string;
-}
-
-interface Employee {
-  employee_id: number;
-  employee_name: string;
-}
-
-
-interface ProductionLog {
-  production_id: number;
-  production_date: string;
-  unit_produced: string;
-  cement_used: string;
-  product: {
-    product_name: string;
-    category: string;
-  };
-  office: {
-    office_name: string;
-  };
-  employees?: {
-    employee: {
-      name: string;
-    };
-  }[];
-}
-
 
 export default function StockPage() {
   const navigate = useNavigate();
 
-  // States
+  // Zustand store
+  const { stock: products, offices, employees: staffList, todayLogs, loading, fetchStockData, logProduction, deleteStock } = useStockStore();
+
   const [search, setSearch] = useState("");
   const [selectedShop, setSelectedShop] = useState("all");
-  const [products, setProducts] = useState<ProductStock[]>([]);
-  const [offices, setOffices] = useState<Office[]>([]);
-  const [staffList, setStaffList] = useState<Employee[]>([]);
-  const [todayLogs, setTodayLogs] = useState<ProductionLog[]>([]);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
 
   // Modal & Selection States
   const [productionModal, setProductionModal] = useState(false);
@@ -111,36 +70,15 @@ export default function StockPage() {
     qty: "",
     cementProductId: "",
     cementBags: "",
-    date: new Date().toISOString().split('T')[0], // Default to today
+    date: new Date().toISOString().split('T')[0],
     selectedStaffIds: [] as number[]
   });
   const [deleteModal, setDeleteModal] = useState(false);
   const [idToDelete, setIdToDelete] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchInitialData();
+    fetchStockData();
   }, []);
-
-  const fetchInitialData = async () => {
-    try {
-      setLoading(true);
-      const [stockData, officeData, employeeData, todayData] = await Promise.all([
-        getStock(),
-        getAllOffices(),
-        getEmployees(),
-        getTodayProductionStats()
-      ]);
-      setProducts(stockData);
-      setOffices(officeData.success ? officeData.data : (Array.isArray(officeData) ? officeData : []));
-      setStaffList(employeeData.data ? employeeData.data : (Array.isArray(employeeData) ? employeeData : []));
-      setTodayLogs(Array.isArray(todayData) ? todayData : []);
-
-    } catch (err) {
-      console.error("Error fetching data:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const productionProducts = useMemo(() => {
     return products.filter(p => p.office_id === Number(productionForm.shopId));
@@ -202,14 +140,20 @@ export default function StockPage() {
     const qtyNum = parseFloat(productionForm.qty);
     const cementBagsNum = parseFloat(productionForm.cementBags);
 
-    if (qtyNum <= 0) {
-      toast.error("Units produced must be a positive number.");
-      return;
-    }
+    if (qtyNum <= 0) { toast.error("Units produced must be a positive number."); return; }
+    if (cementBagsNum <= 0) { toast.error("Cement bags used must be a positive number."); return; }
 
-    if (cementBagsNum <= 0) {
-      toast.error("Cement bags used must be a positive number.");
-      return;
+    // Frontend validation: Check Cement Stock
+    if (productionForm.cementProductId && productionForm.cementBags) {
+      const cementInStock = products.find(p =>
+        p.product_id === Number(productionForm.cementProductId) &&
+        p.office_id === Number(productionForm.shopId)
+      );
+      const available = cementInStock ? parseFloat(cementInStock.quantity) : 0;
+      if (cementBagsNum > available) {
+        toast.error(`Insufficient cement stock! Available: ${available} Bags`);
+        return;
+      }
     }
 
     const payload = {
@@ -222,43 +166,14 @@ export default function StockPage() {
       employee_ids: productionForm.selectedStaffIds
     };
 
-    console.log("Submitting production with payload:", payload);
-
-    // 🔹 Frontend Validation: Check Cement Stock
-    if (productionForm.cementProductId && productionForm.cementBags) {
-      const cementInStock = products.find(p =>
-        p.product_id === Number(productionForm.cementProductId) &&
-        p.office_id === Number(productionForm.shopId)
-      );
-
-      const available = cementInStock ? parseFloat(cementInStock.quantity) : 0;
-      const required = cementBagsNum;
-
-      if (required > available) {
-        toast.error(`Insufficient cement stock! Available: ${available} Bags`);
-        return;
-      }
-    }
-
     try {
       setSubmitting(true);
-      await logProduction(payload);
-
+      await logProduction(payload); // store handles invalidation + refetch
       toast.success("Production record saved and inventory updated!");
       setProductionModal(false);
-      setProductionForm({
-        shopId: "",
-        productId: "",
-        qty: "",
-        cementProductId: "",
-        cementBags: "",
-        date: new Date().toISOString().split('T')[0],
-        selectedStaffIds: []
-      });
-      fetchInitialData(); // Refresh data
+      setProductionForm({ shopId: "", productId: "", qty: "", cementProductId: "", cementBags: "", date: new Date().toISOString().split('T')[0], selectedStaffIds: [] });
     } catch (err) {
       toast.error("Failed to log production. Please check your inputs.");
-      console.error(err);
     } finally {
       setSubmitting(false);
     }
@@ -268,14 +183,12 @@ export default function StockPage() {
     if (idToDelete) {
       try {
         setDeleting(true);
-        await deleteStock(idToDelete);
+        await deleteStock(idToDelete); // store handles invalidation + refetch
         toast.success("Stock record removed");
         setDeleteModal(false);
         setIdToDelete(null);
-        fetchInitialData();
       } catch (err) {
         toast.error("Failed to delete stock");
-        console.error(err);
       } finally {
         setDeleting(false);
       }
@@ -848,7 +761,7 @@ export default function StockPage() {
       <AddProductModal
         isOpen={productModal}
         onClose={() => { setProductModal(false); setSelectedStock(null); }}
-        onSuccess={fetchInitialData}
+        onSuccess={() => fetchStockData(true)}
         editData={selectedStock}
       />
     </motion.div>
