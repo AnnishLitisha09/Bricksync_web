@@ -3,6 +3,7 @@ const qrcode = require('qrcode-terminal');
 const fs = require('fs');
 const path = require('path');
 
+const sendEmail = require('./sendEmail');
 let client;
 let isReady = false;
 
@@ -83,13 +84,17 @@ const initWhatsApp = (forceReset = false) => {
         console.log('⏳ [WhatsApp] Loading:', percent, '%', message);
     });
 
-    client.on('authenticated', () => {
-        console.log('🔓 [WhatsApp] Authenticated successfully');
-    });
-
     client.on('auth_failure', (msg) => {
         console.error('❌ [WhatsApp] Authentication failure:', msg);
         isReady = false;
+
+        // Immediate Email Notification
+        sendEmail("bricksync001@gmail.com", "⚠️ WhatsApp Authentication Failure - Bricksync",
+            `<p>WhatsApp client failed to authenticate at <b>${new Date().toLocaleString()}</b>.</p>
+             <p>Message: <i>${msg}</i></p>
+             <p>Action: The system will attempt to retry with a fresh QR code configuration in 10s.</p>`)
+            .catch(err => console.error("Failed to send WhatsApp failure email:", err.message));
+
         // If auth fails, we likely need to clear session and retry to get a new QR code
         console.log('🔄 [WhatsApp] Retrying initialization with force reset due to auth failure...');
         setTimeout(() => initWhatsApp(true), 10000);
@@ -98,6 +103,14 @@ const initWhatsApp = (forceReset = false) => {
     client.on('disconnected', async (reason) => {
         console.log('🔌 [WhatsApp] Client was logged out or disconnected:', reason);
         isReady = false;
+
+        // Immediate Email Notification
+        sendEmail("bricksync001@gmail.com", "🔌 WhatsApp Disconnected - Bricksync",
+            `<p>WhatsApp client was logged out or disconnected at <b>${new Date().toLocaleString()}</b>.</p>
+             <p>Reason: <i>${reason}</i></p>
+             <p>Action: The system is re-initializing to generate a new QR code.</p>`)
+            .catch(err => console.error("Failed to send WhatsApp disconnect email:", err.message));
+
         try {
             await client.destroy();
         } catch (e) {

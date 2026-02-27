@@ -1,3 +1,6 @@
-2026/02/27-16:18:24.625 4990e Reusing MANIFEST /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Local Storage/leveldb/MANIFEST-000001
-2026/02/27-16:18:24.627 4990e Recovering log #8
-2026/02/27-16:18:24.628 4990e Reusing old log /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Local Storage/leveldb/000008.log 
+2026/02/27-22:27:10.260 39d7 Reusing MANIFEST /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Local Storage/leveldb/MANIFEST-000001
+2026/02/27-22:27:10.262 39d7 Recovering log #8
+2026/02/27-22:27:10.262 39d7 Reusing old log /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Local Storage/leveldb/000008.log 
+2026/02/27-22:28:10.266 39da Level-0 table #11: started
+2026/02/27-22:28:10.272 39da Level-0 table #11: 21521 bytes OK
+2026/02/27-22:28:10.275 39da Delete type=0 #8

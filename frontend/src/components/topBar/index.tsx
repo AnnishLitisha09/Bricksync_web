@@ -1,9 +1,9 @@
 import { Search, Bell, Clock, Menu } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCommonStore } from "../../store";
 import { useUserStore } from "../../store/useUserStore";
 import { FILE_BASE_URL } from "../../api/base";
-import { fetchTodayCalls } from "../../api/callLog";
 import { fetchUnreadCount } from "../../api/notification";
 
 /* 🔹 Role config */
@@ -14,11 +14,11 @@ const roleConfig: Record<number, { label: string; className: string }> = {
 };
 
 export default function Topbar() {
+  const navigate = useNavigate();
   const isOpen = useCommonStore((state) => state.isOpen);
   const toggle = useCommonStore((state) => state.toggle);
   const user = useUserStore((state) => state.user);
   const [dateTime, setDateTime] = useState("");
-  const [callCount, setCallCount] = useState(0);
   const [notifCount, setNotifCount] = useState(0);
 
   useEffect(() => {
@@ -38,24 +38,6 @@ export default function Topbar() {
   }, []);
 
   useEffect(() => {
-    const getCallReminders = async () => {
-      try {
-        const res = await fetchTodayCalls();
-        if (res.data) {
-          setCallCount(res.data.length);
-        }
-      } catch (error) {
-        console.error("Error fetching call reminders in Topbar:", error);
-      }
-    };
-
-    getCallReminders();
-    // Refresh every 5 minutes to keep it updated
-    const interval = setInterval(getCallReminders, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
     const getNotificationCount = async () => {
       try {
         const res = await fetchUnreadCount();
@@ -71,8 +53,6 @@ export default function Topbar() {
     const interval = setInterval(getNotificationCount, 2 * 60 * 1000); // Every 2 mins
     return () => clearInterval(interval);
   }, []);
-
-  const totalBadges = callCount + notifCount;
 
   const role = user?.userRole ? roleConfig[user.userRole] : null;
 
@@ -106,16 +86,18 @@ export default function Topbar() {
         </div>
 
         {/* Notification */}
-        <div
-          className="relative p-1 text-gray-400"
+        <button
+          onClick={() => navigate("/notifications")}
+          className="relative p-1 text-gray-400 hover:text-orange-500 transition-colors cursor-pointer"
+          aria-label="Notifications"
         >
           <Bell size={20} />
-          {totalBadges > 0 && (
+          {notifCount > 0 && (
             <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white px-1 shadow-sm">
-              {totalBadges}
+              {notifCount > 99 ? "99+" : notifCount}
             </span>
           )}
-        </div>
+        </button>
 
         {/* Profile */}
         <div className="flex items-center gap-2 md:gap-3 border-l pl-3 border-gray-100">
@@ -133,7 +115,8 @@ export default function Topbar() {
           <img
             src={user?.imageUrl ? `${FILE_BASE_URL}${user.imageUrl}` : "https://imgs.search.brave.com/7wfVFlYLCmAQArDGf-kEdSyMw_dlZbUJw0u_bKOuwrY/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/cGl4YWJheS5jb20v/cGhvdG8vMjAxOS8w/OC8xMS8xOC81OS9p/Y29uLTQzOTk3MDFf/MTI4MC5wbmc"}
             alt="profile"
-            className="w-8 h-8 md:w-9 md:h-9 rounded-full border border-gray-200 object-cover"
+            onClick={() => navigate("/profile")}
+            className="w-8 h-8 md:w-9 md:h-9 rounded-full border border-gray-200 object-cover cursor-pointer hover:ring-2 hover:ring-orange-400 hover:ring-offset-1 transition-all"
           />
         </div>
       </div>

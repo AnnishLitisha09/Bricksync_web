@@ -23,6 +23,10 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.BOOLEAN,
                 defaultValue: false,
             },
+            data: {
+                type: DataTypes.JSON,
+                allowNull: true,
+            },
         },
         {
             tableName: "Notifications",
