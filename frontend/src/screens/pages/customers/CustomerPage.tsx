@@ -47,20 +47,9 @@ const CustomerHub: React.FC = () => {
     if (!loading && hasMore) {
       const nextPage = page + 1;
       setPage(nextPage);
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL || ""}/api/customers?search=${encodeURIComponent(search)}&page=${nextPage}&limit=6`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
-      const data = await res.json();
-      if (data.data) {
-        useCustomerStore.setState((state) => ({
-          customers: [...state.customers, ...data.data],
-          totalCustomers: data.pagination?.total || state.totalCustomers,
-        }));
-        setHasMore(nextPage < (data.pagination?.totalPages || 1));
-      }
+      await fetchCustomers(search, nextPage, false, true);
     }
-  }, [loading, hasMore, search, page]);
+  }, [loading, hasMore, search, page, fetchCustomers]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(

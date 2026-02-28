@@ -24,7 +24,7 @@ const { Op } = require("sequelize");
 // Get all Customers with search and pagination
 exports.getAllCustomers = async (req, res) => {
     try {
-        const { search, page = 1, limit = 10 } = req.query;
+        const { search, page = 1, limit = 12 } = req.query;
         const offset = (page - 1) * limit;
 
         const where = { is_deleted: false };

@@ -22,8 +22,8 @@ interface CustomerStore {
     lastSearch: string;
     lastPage: number;
 
-    /** Fetches customers, respects TTL cache. Pass force=true to skip cache. */
-    fetchCustomers: (search?: string, page?: number, force?: boolean) => Promise<void>;
+    /** Fetches customers, respects TTL cache. Pass force=true to skip cache. Pass append=true to add results to current list. */
+    fetchCustomers: (search?: string, page?: number, force?: boolean, append?: boolean) => Promise<void>;
     createCustomer: (data: Omit<CustomerData, "id">) => Promise<void>;
     updateCustomer: (id: number, data: Partial<CustomerData>) => Promise<void>;
     deleteCustomer: (id: number) => Promise<void>;
@@ -41,21 +41,22 @@ export const useCustomerStore = create<CustomerStore>((set, get) => ({
     lastSearch: "",
     lastPage: 1,
 
-    fetchCustomers: async (search = "", page = 1, force = false) => {
-        const { lastFetched, lastSearch, lastPage } = get();
+    fetchCustomers: async (search = "", page = 1, force = false, append = false) => {
+        const { lastFetched, lastSearch, lastPage, customers: currentCustomers } = get();
         const sameQuery = search === lastSearch && page === lastPage;
         if (!force && sameQuery && !isStale(lastFetched, TTL)) return;
 
         set({ loading: true, error: null });
         try {
             const res = await fetch(
-                `${BASE_URL}/customers?search=${encodeURIComponent(search)}&page=${page}&limit=6`,
+                `${BASE_URL}/customers?search=${encodeURIComponent(search)}&page=${page}&limit=12`,
                 { headers: { ...getAuthHeader() } }
             );
             if (!res.ok) throw new Error("Failed to fetch customers");
             const data = await res.json();
+
             set({
-                customers: data.data || [],
+                customers: append ? [...currentCustomers, ...(data.data || [])] : (data.data || []),
                 totalCustomers: data.pagination?.total || 0,
                 loading: false,
                 lastFetched: Date.now(),
