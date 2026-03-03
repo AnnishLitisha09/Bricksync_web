@@ -15,7 +15,7 @@ import {
   LayoutGrid,
   List
 } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { BASE_URL, FILE_BASE_URL, getAuthHeader } from "../../../api/base";
@@ -42,10 +42,10 @@ const Staff: React.FC = () => {
   const drivers = useDriverStore((state) => state.drivers) as InternalDriver[];
   const setDrivers = useDriverStore((state) => state.setDrivers);
 
-  const fetchDrivers = async (page: number): Promise<void> => {
+  const fetchDrivers = async (page: number, searchQuery: string = ""): Promise<void> => {
     setLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/user/drivers?page=${page}&limit=${itemsPerPage}`, { headers: getAuthHeader() });
+      const res = await fetch(`${BASE_URL}/user/drivers?page=${page}&limit=${itemsPerPage}&search=${searchQuery}`, { headers: getAuthHeader() });
       const data = await res.json();
       setDrivers(data.drivers as DriverType[]);
       setTotalPages(data.totalPages);
@@ -76,8 +76,8 @@ const Staff: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchDrivers(currentPage);
-  }, [currentPage]);
+    fetchDrivers(currentPage, search);
+  }, [currentPage, search]);
 
   useEffect(() => {
     const closeMenu = () => setActiveMenu(null);
@@ -85,18 +85,7 @@ const Staff: React.FC = () => {
     return () => window.removeEventListener("click", closeMenu);
   }, []);
 
-  const filteredDrivers = useMemo(() => {
-    if (!search) return drivers;
-    return drivers.filter((d) => {
-      const query = search.toLowerCase();
-      return (
-        d.name.toLowerCase().includes(query) ||
-        (d.phoneNumber && d.phoneNumber.includes(query)) ||
-        (d.email && d.email.toLowerCase().includes(query)) ||
-        (d.staffRole && d.staffRole.toLowerCase().includes(query))
-      );
-    });
-  }, [drivers, search]);
+
 
   useEffect(() => {
     setCurrentPage(1);
@@ -198,7 +187,7 @@ const Staff: React.FC = () => {
           {(viewMode === "grid" || window.innerWidth < 1024) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
               <AnimatePresence mode="popLayout">
-                {filteredDrivers.map((driver) => (
+                {drivers.map((driver) => (
                   <motion.div
                     layout
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -298,7 +287,7 @@ const Staff: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   <AnimatePresence mode="popLayout">
-                    {filteredDrivers.map((driver) => (
+                    {drivers.map((driver) => (
                       <motion.tr
                         layout
                         initial={{ opacity: 0 }}
@@ -388,7 +377,7 @@ const Staff: React.FC = () => {
           )}
 
           {/* Empty State */}
-          {filteredDrivers.length === 0 && (
+          {drivers.length === 0 && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}

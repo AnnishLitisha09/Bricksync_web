@@ -17,12 +17,12 @@ import { FILE_BASE_URL } from "../../../api/base";
 
 const DailyAttendance: React.FC = () => {
     const navigate = useNavigate();
-    const { attendance, loading, saving, fetchAttendance, toggleAttendance, saveAllAttendance } = useAttendanceStore();
+    const { attendance, loading, saving, fetchAttendance, toggleAttendance, saveAllAttendance, selectedDate, setSelectedDate } = useAttendanceStore();
     const [search, setSearch] = useState("");
 
     useEffect(() => {
-        fetchAttendance();
-    }, []);
+        fetchAttendance(true);
+    }, [selectedDate]);
 
     const handleSaveAll = async () => {
         try {
@@ -62,7 +62,12 @@ const DailyAttendance: React.FC = () => {
                         </h1>
                         <div className="flex items-center gap-3 mt-4 text-slate-500 font-bold bg-white w-fit px-5 py-2.5 rounded-2xl border border-slate-100 shadow-sm shadow-slate-100/50">
                             <Calendar size={18} className="text-indigo-500" />
-                            <span className="text-xs uppercase tracking-wider">{new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                className="bg-transparent border-none outline-none text-xs uppercase tracking-wider font-black cursor-pointer text-slate-700"
+                            />
                         </div>
                     </div>
                 </div>

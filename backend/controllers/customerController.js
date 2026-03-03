@@ -24,7 +24,7 @@ const { Op } = require("sequelize");
 // Get all Customers with search and pagination
 exports.getAllCustomers = async (req, res) => {
     try {
-        const { search, page = 1, limit = 12 } = req.query;
+        const { search, page = 1, limit = 12, sortBy = "name", sortOrder = "ASC" } = req.query;
         const offset = (page - 1) * limit;
 
         const where = { is_deleted: false };
@@ -35,9 +35,18 @@ exports.getAllCustomers = async (req, res) => {
             ];
         }
 
+        // Map frontend sort names to database columns
+        const columnMap = {
+            name: "name",
+            amount: "balance",
+            created_at: "created_at"
+        };
+        const orderColumn = columnMap[sortBy] || "name";
+        const orderDir = sortOrder.toUpperCase() === "DESC" ? "DESC" : "ASC";
+
         const { count, rows } = await Customer.findAndCountAll({
             where,
-            order: [["created_at", "DESC"]],
+            order: [[orderColumn, orderDir]],
             limit: parseInt(limit),
             offset: parseInt(offset)
         });
@@ -186,3 +195,24 @@ exports.deleteCustomer = async (req, res) => {
     }
 };
 
+// Bulk create customers
+exports.bulkCreateCustomers = async (req, res) => {
+    try {
+        const { customers } = req.body;
+        if (!customers || !Array.isArray(customers)) {
+            return res.status(400).json({ message: "Invalid customers data" });
+        }
+
+        const createdCustomers = await Customer.bulkCreate(customers, {
+            ignoreDuplicates: true
+        });
+
+        return res.status(201).json({
+            message: `${createdCustomers.length} customers imported successfully`,
+            data: createdCustomers
+        });
+    } catch (error) {
+        console.error("Error bulk creating customers:", error);
+        return res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};

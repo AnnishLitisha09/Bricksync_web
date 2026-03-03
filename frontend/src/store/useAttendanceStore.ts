@@ -17,7 +17,9 @@ interface AttendanceStore {
     saving: boolean;
     error: string | null;
     lastFetched: number | null;
+    selectedDate: string;
 
+    setSelectedDate: (date: string) => void;
     fetchAttendance: (force?: boolean) => Promise<void>;
     toggleAttendance: (userid: number, field: "forenoon" | "afternoon") => void;
     saveAllAttendance: () => Promise<void>;
@@ -32,12 +34,18 @@ export const useAttendanceStore = create<AttendanceStore>((set, get) => ({
     saving: false,
     error: null,
     lastFetched: null,
+    selectedDate: new Date().toISOString().slice(0, 10),
+
+    setSelectedDate: (date: string) => {
+        set({ selectedDate: date, lastFetched: null });
+    },
 
     fetchAttendance: async (force = false) => {
-        if (!force && !isStale(get().lastFetched, TTL)) return;
+        const { selectedDate, lastFetched } = get();
+        if (!force && !isStale(lastFetched, TTL)) return;
         set({ loading: true, error: null });
         try {
-            const data = await fetchTodayAttendance();
+            const data = await fetchTodayAttendance(selectedDate);
             const formatted = data.map((staff: any) => ({
                 ...staff,
                 forenoon: staff.Attendances?.[0]?.forenoon || false,
@@ -60,12 +68,11 @@ export const useAttendanceStore = create<AttendanceStore>((set, get) => ({
     saveAllAttendance: async () => {
         set({ saving: true });
         try {
-            const today = new Date().toISOString().slice(0, 10);
-            const { attendance } = get();
+            const { attendance, selectedDate } = get();
             const promises = attendance.map((staff) =>
                 saveAttendance({
                     userid: staff.userid,
-                    records: [{ date: today, forenoon: staff.forenoon, afternoon: staff.afternoon }],
+                    records: [{ date: selectedDate, forenoon: staff.forenoon, afternoon: staff.afternoon }],
                 })
             );
             await Promise.all(promises);

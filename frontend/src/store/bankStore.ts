@@ -21,6 +21,8 @@ interface BankState {
 
     fetchBanks: (force?: boolean) => Promise<void>;
     addBank: (data: Omit<Bank, 'id'>) => Promise<void>;
+    updateBank: (id: number, data: Partial<Bank>) => Promise<void>;
+    deleteBank: (id: number) => Promise<void>;
     invalidate: () => void;
 }
 
@@ -58,6 +60,33 @@ export const useBankStore = create<BankState>((set, get) => ({
         if (!response.ok) {
             const result = await response.json();
             throw new Error(result.message || 'Failed to create bank account');
+        }
+        get().invalidate();
+        await get().fetchBanks(true);
+    },
+
+    updateBank: async (id, data) => {
+        const response = await fetch(`${BASE_URL}/banks/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.message || 'Failed to update bank account');
+        }
+        get().invalidate();
+        await get().fetchBanks(true);
+    },
+
+    deleteBank: async (id) => {
+        const response = await fetch(`${BASE_URL}/banks/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeader(),
+        });
+        if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.message || 'Failed to delete bank account');
         }
         get().invalidate();
         await get().fetchBanks(true);

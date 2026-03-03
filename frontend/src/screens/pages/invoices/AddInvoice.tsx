@@ -98,7 +98,7 @@ const AddInvoice: React.FC = () => {
             const [stockRes, vehRes, custRes, dryRes] = await Promise.all([
                 fetch(`${BASE_URL}/stock`, { headers: getAuthHeader() }),
                 fetch(`${BASE_URL}/vehicles`, { headers: getAuthHeader() }),
-                fetch(`${BASE_URL}/customers`, { headers: getAuthHeader() }),
+                fetch(`${BASE_URL}/customers?limit=1000`, { headers: getAuthHeader() }),
                 fetch(`${BASE_URL}/user/drivers`, { headers: getAuthHeader() })
             ]);
 

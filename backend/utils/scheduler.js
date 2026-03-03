@@ -11,7 +11,7 @@ const sendEmail = require("./sendEmail");
  */
 const initScheduledTasks = () => {
     // 10 0 * * * = 12:10 AM - POPULATE NOTIFICATIONS
-    cron.schedule("50 0 * * *", async () => {
+    cron.schedule("10 0 * * *", async () => {
         console.log("🕒 [Scheduler] Running 12:10 AM Notification Population...");
         await populateNotifications();
     });
@@ -22,7 +22,13 @@ const initScheduledTasks = () => {
         await sendConsolidatedDailyEmail();
     });
 
-    // Keeping invoice deactivation as it's a maintenance task, not a "schedule" like the removed ones.
+    // 0 22 * * 0 = Sunday 10 PM - SQL BACKUP
+    cron.schedule("0 22 * * 0", async () => {
+        console.log("🕒 [Scheduler] Running Sunday 10 PM SQL Backup...");
+        await backupDatabase();
+    });
+
+    // Keeping invoice deactivation as it's a maintenance task
     cron.schedule("*/30 * * * *", async () => {
         console.log("🕒 [Scheduler] Running expiry check for invoices...");
         await deactivateExpiredInvoices();
@@ -59,7 +65,7 @@ async function deactivateExpiredInvoices() {
 
 /**
  * 🔹 TASK 1: Populate Notifications (12:10 AM)
- * Checks Call Logs for TODAY and Vehicles expiring in <= 5 days.
+ * Checks Call Logs for TODAY and Vehicles expiring in <= 5 days (including already expired).
  */
 async function populateNotifications() {
     try {
@@ -87,7 +93,7 @@ async function populateNotifications() {
             });
         }
 
-        // 2. Check Vehicle Expirations in <= 5 days
+        // 2. Check Vehicle Expirations (<= 5 days OR already expired)
         const targetDate = new Date();
         targetDate.setDate(targetDate.getDate() + 5);
         targetDate.setHours(23, 59, 59, 999);
@@ -106,19 +112,44 @@ async function populateNotifications() {
         for (const v of expiringVehicles) {
             const types = [];
             const now = new Date();
-            if (new Date(v.insurance) <= targetDate && new Date(v.insurance) >= now) types.push("Insurance");
-            if (new Date(v.pollution) <= targetDate && new Date(v.pollution) >= now) types.push("Pollution");
-            if (new Date(v.rcDate) <= targetDate && new Date(v.rcDate) >= now) types.push("RC");
+            now.setHours(0, 0, 0, 0);
+
+            const formatStatus = (expiryDate) => {
+                if (!expiryDate) return null;
+                const exp = new Date(expiryDate);
+                exp.setHours(0, 0, 0, 0);
+                const diffTime = exp.getTime() - now.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays < 0) return `Expired ${Math.abs(diffDays)} days ago`;
+                if (diffDays === 0) return `Expires today`;
+                return `Expires in ${diffDays} days`;
+            };
+
+            const docStatuses = [];
+            if (v.insurance && new Date(v.insurance) <= targetDate) {
+                types.push("Insurance");
+                docStatuses.push(`Insurance: ${formatStatus(v.insurance)}`);
+            }
+            if (v.pollution && new Date(v.pollution) <= targetDate) {
+                types.push("Pollution");
+                docStatuses.push(`Pollution: ${formatStatus(v.pollution)}`);
+            }
+            if (v.rcDate && new Date(v.rcDate) <= targetDate) {
+                types.push("RC");
+                docStatuses.push(`RC: ${formatStatus(v.rcDate)}`);
+            }
 
             if (types.length > 0) {
                 await Notification.create({
-                    title: "⚠️ Vehicle Expiry Soon",
-                    message: `${v.vehicleNumber}: ${types.join(", ")} expiring within 5 days.`,
+                    title: "⚠️ Vehicle Document Alert",
+                    message: `${v.vehicleNumber}: ${docStatuses.join(", ")}`,
                     type: 'VEHICLE',
                     data: {
                         vehicleNumber: v.vehicleNumber,
                         vehicleName: v.vehicleName,
                         expiringTypes: types,
+                        docStatuses: docStatuses,
                         insurance: v.insurance,
                         pollution: v.pollution,
                         rcDate: v.rcDate
@@ -135,7 +166,6 @@ async function populateNotifications() {
 
 /**
  * 🔹 TASK 2: Consolidated 6:30 AM Email
- * Sends what are the notifications.
  */
 async function sendConsolidatedDailyEmail() {
     try {
@@ -189,14 +219,22 @@ async function sendConsolidatedDailyEmail() {
             emailContent += `<h2 style="color: #dc2626; border-left: 4px solid #dc2626; padding-left: 10px; margin-top: 30px; font-size: 18px; text-transform: uppercase;">⚠️ Vehicle Expirations</h2>
                 <table cellpadding="12" style="border-collapse: collapse; width: 100%; border: 1px solid #e2e8f0; margin-top: 10px;">
                     <tr style="background-color: #fff1f2; text-align: left;">
-                        <th style="border: 1px solid #e2e8f0;">Vehicle Number</th>
-                        <th style="border: 1px solid #e2e8f0;">Expiring Documents</th>
+                        <th style="border: 1px solid #e2e8f0;">Vehicle</th>
+                        <th style="border: 1px solid #e2e8f0;">Status Details</th>
                     </tr>`;
             vehicleNotifications.forEach(n => {
                 const data = n.data || {};
+                const statuses = data.docStatuses || [data.expiringTypes?.join(", ")];
                 emailContent += `<tr>
-                    <td style="border: 1px solid #e2e8f0;"><b>${data.vehicleNumber || "N/A"}</b></td>
-                    <td style="border: 1px solid #e2e8f0; color: #dc2626; font-weight: 600;">${(data.expiringTypes || []).join(", ") || "N/A"}</td>
+                    <td style="border: 1px solid #e2e8f0;">
+                        <div style="font-weight: 800; color: #1e293b;">${data.vehicleNumber || "N/A"}</div>
+                        <div style="font-size: 10px; color: #64748b; text-transform: uppercase;">${data.vehicleName || ""}</div>
+                    </td>
+                    <td style="border: 1px solid #e2e8f0;">
+                        <ul style="margin: 0; padding-left: 18px; color: #dc2626; font-weight: 600; font-size: 13px;">
+                            ${statuses.map(s => `<li>${s}</li>`).join('')}
+                        </ul>
+                    </td>
                 </tr>`;
             });
             emailContent += `</table>`;
@@ -206,15 +244,73 @@ async function sendConsolidatedDailyEmail() {
             <p>This is an automated report generated by the Bricksync Management Console.</p>
         </div></div>`;
 
-        await sendEmail("bricksync001@gmail.com", `Bricksync Daily Notifications - ${todayStr}`, emailContent);
+        await sendEmail(process.env.EMAIL_USER, `Bricksync Daily Notifications - ${todayStr}`, emailContent);
         console.log(`✅ [Schedule] Sent 6:30 AM consolidated email.`);
     } catch (err) {
         console.error("❌ [Schedule] Consolidated email failed:", err);
     }
 }
 
+/**
+ * 🔹 TASK 3: Automated SQL Backup (Sunday 10 PM)
+ */
+async function backupDatabase() {
+    try {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const backupDir = path.join(__dirname, "../backups");
+        if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir);
+
+        const fileName = `bricksync_backup_${timestamp}.sql`;
+        const filePath = path.join(backupDir, fileName);
+
+        const dbConfig = {
+            host: process.env.DB_HOST || "localhost",
+            user: process.env.DB_USER || "root",
+            pass: process.env.DB_PASS || "",
+            name: process.env.DB_NAME || "bricksync"
+        };
+
+        // Use mysqldump - standard for MySQL/MariaDB
+        // Note: On Windows or certain setups, path to mysqldump might be needed
+        const command = `mysqldump -h ${dbConfig.host} -u ${dbConfig.user} ${dbConfig.pass ? `-p${dbConfig.pass}` : ""} ${dbConfig.name} > "${filePath}"`;
+
+        exec(command, async (error, stdout, stderr) => {
+            if (error) {
+                console.error(`❌ [Backup] mysqldump error: ${error.message}`);
+                return;
+            }
+
+            console.log(`✅ [Backup] SQL dump created: ${fileName}`);
+
+            // Send via email
+            const emailContent = `
+                <div style="font-family: sans-serif; padding: 20px;">
+                    <h2>Weekly System Backup</h2>
+                    <p>Automated database backup for <b>Bricksync</b> has been completed.</p>
+                    <p><b>Timestamp:</b> ${new Date().toLocaleString()}</p>
+                    <p>The SQL dump file is attached to this email.</p>
+                </div>
+            `;
+
+            await sendEmail(
+                process.env.EMAIL_USER,
+                `Weekly Database Backup - ${new Date().toLocaleDateString()}`,
+                emailContent,
+                [{ filename: fileName, path: filePath }]
+            );
+
+            console.log(`✅ [Backup] Backup sent to ${process.env.EMAIL_USER}`);
+
+            // Optional: Cleanup old backups after 30 days
+        });
+    } catch (err) {
+        console.error("❌ [Backup] Automation failed:", err);
+    }
+}
+
 module.exports = {
     initScheduledTasks,
     populateNotifications,
-    sendConsolidatedDailyEmail
+    sendConsolidatedDailyEmail,
+    backupDatabase
 };

@@ -115,7 +115,7 @@ exports.getYearlyPresentCount = async (req, res) => {
 
 exports.getTodayAttendance = async (req, res) => {
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const date = req.query.date || new Date().toISOString().slice(0, 10);
 
     // Fetch all users who are drivers/staff (role 2 is usually driver/staff based on Topbar config)
     // Actually, let's fetch all users and then join with attendance for today
@@ -124,10 +124,10 @@ exports.getTodayAttendance = async (req, res) => {
         userRole: 2, // Driver role
         isDeleted: false
       },
-      attributes: ['userid', 'name'],
+      attributes: ['userid', 'name', 'imageUrl'], // Added imageUrl as well
       include: [{
         model: Attendance,
-        where: { date: today },
+        where: { date: date },
         required: false
       }]
     });

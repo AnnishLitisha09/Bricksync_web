@@ -1,6 +1,4 @@
-2026/02/27-22:27:10.260 39d7 Reusing MANIFEST /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Local Storage/leveldb/MANIFEST-000001
-2026/02/27-22:27:10.262 39d7 Recovering log #8
-2026/02/27-22:27:10.262 39d7 Reusing old log /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Local Storage/leveldb/000008.log 
-2026/02/27-22:28:10.266 39da Level-0 table #11: started
-2026/02/27-22:28:10.272 39da Level-0 table #11: 21521 bytes OK
-2026/02/27-22:28:10.275 39da Delete type=0 #8
+2026/03/03-11:24:42.548 b62b4 Reusing MANIFEST /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Local Storage/leveldb/MANIFEST-000001
+2026/03/03-11:24:42.550 b62b4 Recovering log #13
+2026/03/03-11:24:42.550 b62b4 (ignoring error) /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Local Storage/leveldb/000013.log: dropping 2744 bytes; Corruption: checksum mismatch
+2026/03/03-11:24:42.551 b62b4 Reusing old log /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Local Storage/leveldb/000013.log 

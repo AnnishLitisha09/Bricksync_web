@@ -1,7 +1,8 @@
 import { BASE_URL, getAuthHeader } from "./base";
 
-export const fetchTodayAttendance = async () => {
-    const res = await fetch(`${BASE_URL}/attendance/today`, {
+export const fetchTodayAttendance = async (date?: string) => {
+    const url = date ? `${BASE_URL}/attendance/today?date=${date}` : `${BASE_URL}/attendance/today`;
+    const res = await fetch(url, {
         headers: getAuthHeader(),
     });
     return await res.json();

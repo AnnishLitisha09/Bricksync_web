@@ -21,9 +21,11 @@ interface CustomerStore {
     lastFetched: number | null;
     lastSearch: string;
     lastPage: number;
+    lastSortBy: string;
+    lastSortOrder: string;
 
     /** Fetches customers, respects TTL cache. Pass force=true to skip cache. Pass append=true to add results to current list. */
-    fetchCustomers: (search?: string, page?: number, force?: boolean, append?: boolean) => Promise<void>;
+    fetchCustomers: (search?: string, page?: number, force?: boolean, append?: boolean, sortBy?: string, sortOrder?: string) => Promise<void>;
     createCustomer: (data: Omit<CustomerData, "id">) => Promise<void>;
     updateCustomer: (id: number, data: Partial<CustomerData>) => Promise<void>;
     deleteCustomer: (id: number) => Promise<void>;
@@ -40,16 +42,18 @@ export const useCustomerStore = create<CustomerStore>((set, get) => ({
     lastFetched: null,
     lastSearch: "",
     lastPage: 1,
+    lastSortBy: "name",
+    lastSortOrder: "ASC",
 
-    fetchCustomers: async (search = "", page = 1, force = false, append = false) => {
-        const { lastFetched, lastSearch, lastPage, customers: currentCustomers } = get();
-        const sameQuery = search === lastSearch && page === lastPage;
+    fetchCustomers: async (search = "", page = 1, force = false, append = false, sortBy = "name", sortOrder = "ASC") => {
+        const { lastFetched, lastSearch, lastPage, lastSortBy, lastSortOrder, customers: currentCustomers } = get();
+        const sameQuery = search === lastSearch && page === lastPage && sortBy === lastSortBy && sortOrder === lastSortOrder;
         if (!force && sameQuery && !isStale(lastFetched, TTL)) return;
 
         set({ loading: true, error: null });
         try {
             const res = await fetch(
-                `${BASE_URL}/customers?search=${encodeURIComponent(search)}&page=${page}&limit=12`,
+                `${BASE_URL}/customers?search=${encodeURIComponent(search)}&page=${page}&limit=12&sortBy=${sortBy}&sortOrder=${sortOrder}`,
                 { headers: { ...getAuthHeader() } }
             );
             if (!res.ok) throw new Error("Failed to fetch customers");
@@ -62,6 +66,8 @@ export const useCustomerStore = create<CustomerStore>((set, get) => ({
                 lastFetched: Date.now(),
                 lastSearch: search,
                 lastPage: page,
+                lastSortBy: sortBy,
+                lastSortOrder: sortOrder,
             });
         } catch (err: any) {
             set({ error: err.message, loading: false });

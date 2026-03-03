@@ -69,3 +69,16 @@ export const deleteCustomerStatement = async (id: number) => {
     if (!res.ok) throw new Error("Failed to delete statement");
     return await res.json();
 };
+
+export const bulkCreateCustomers = async (customers: CustomerData[]) => {
+    const res = await fetch(`${BASE_URL}/customers/bulk-create`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeader(),
+        },
+        body: JSON.stringify({ customers }),
+    });
+    if (!res.ok) throw new Error("Bulk creation failed");
+    return await res.json();
+};

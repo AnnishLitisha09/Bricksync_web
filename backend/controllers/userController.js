@@ -247,13 +247,26 @@ exports.getDriversOnly = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || "";
     const offset = (page - 1) * limit;
 
+    const whereCondition = {
+      isDeleted: false,
+      userRole: 2,
+    };
+
+    if (search) {
+      const { Op } = require("sequelize");
+      whereCondition[Op.or] = [
+        { name: { [Op.substring]: search } },
+        { email: { [Op.substring]: search } },
+        { phoneNumber: { [Op.substring]: search } },
+        { staffRole: { [Op.substring]: search } },
+      ];
+    }
+
     const { count, rows } = await User.findAndCountAll({
-      where: {
-        isDeleted: false,
-        userRole: 2,
-      },
+      where: whereCondition,
       attributes: { exclude: ["password"] },
       limit: limit,
       offset: offset,

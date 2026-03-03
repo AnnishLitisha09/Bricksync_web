@@ -12,4 +12,6 @@ router.delete("/:id", customerController.deleteCustomer);
 router.put("/statements/:id", customerStatementController.updateStatement);
 router.delete("/statements/:id", customerStatementController.deleteStatement);
 
+router.post("/bulk-create", customerController.bulkCreateCustomers);
+
 module.exports = router;

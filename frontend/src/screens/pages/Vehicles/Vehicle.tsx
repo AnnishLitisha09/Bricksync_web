@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { AlertCircle, ArrowRight, Calendar, Car, Check, ChevronLeft, ChevronRight, Gauge, Plus, Search, Sliders } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +7,27 @@ import { encryptId } from "../../../utils/functions";
 import { useVehicleStore, type Vehicle } from "../../../store/vechicle/useVehicleStore";
 
 // --- Logic Helpers ---
+const getDetailedStatus = (v: Vehicle) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date();
+  target.setDate(target.getDate() + 5);
+  target.setHours(23, 59, 59, 999);
+
+  const docs = [
+    { label: "Insurance", date: v.insurance },
+    { label: "Pollution", date: v.pollution },
+    { label: "RC", date: v.rcDate },
+  ];
+
+  const expired = docs.filter(d => d.date && new Date(d.date) < today);
+  const expiringSoon = docs.filter(d => d.date && new Date(d.date) >= today && new Date(d.date) <= target);
+
+  if (expired.length > 0) return { label: "EXPIRED", color: "bg-rose-500", text: "text-rose-700", bg: "bg-rose-50", items: expired.map(e => e.label) };
+  if (expiringSoon.length > 0) return { label: "EXPIRING SOON", color: "bg-amber-500", text: "text-amber-700", bg: "bg-amber-50", items: expiringSoon.map(e => e.label) };
+  return { label: "ALL CLEAR", color: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50", items: [] };
+};
+
 const getStatus = (vehicle: Vehicle) => {
   if (!vehicle.insurance || !vehicle.pollution || !vehicle.rcDate) return "Inactive";
   const today = new Date();
@@ -25,11 +47,14 @@ const statusStyles = {
 
 // --- Skeleton Loading Component ---
 const VehicleSkeleton = () => (
-  <div className="flex flex-col lg:flex-row bg-white rounded-[2rem] overflow-hidden border border-gray-100 animate-pulse mb-4">
-    <div className="w-full lg:w-80 h-48 lg:h-64 bg-gray-200" />
-    <div className="flex-1 p-6 space-y-4">
-      <div className="h-6 w-1/2 bg-gray-200 rounded-lg" />
-      <div className="h-10 w-full bg-gray-100 rounded-xl" />
+  <div className="flex flex-col lg:flex-row bg-white rounded-[2.5rem] overflow-hidden border border-gray-100 animate-pulse mb-6">
+    <div className="w-full lg:w-96 h-64 bg-gray-200" />
+    <div className="flex-1 p-8 space-y-6">
+      <div className="h-8 w-1/3 bg-gray-200 rounded-xl" />
+      <div className="grid grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map(i => <div key={i} className="h-12 bg-gray-100 rounded-lg" />)}
+      </div>
+      <div className="h-12 w-32 bg-gray-100 rounded-2xl ml-auto" />
     </div>
   </div>
 );
@@ -61,7 +86,8 @@ export default function VehicleList() {
   const filteredVehicles = useMemo(() => {
     return vehicles.filter((v) => {
       const status = getStatus(v);
-      const matchesSearch = (v.vehicleNumber ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = (v.vehicleNumber ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (v.vehicleName ?? "").toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(status);
       return matchesSearch && matchesStatus;
     });
@@ -80,60 +106,69 @@ export default function VehicleList() {
 
   if (error) return (
     <div className="max-w-7xl mx-auto p-4">
-      <div className="p-8 bg-white rounded-[2rem] border-2 border-rose-100 flex flex-col items-center text-center gap-4">
-        <AlertCircle className="w-10 h-10 text-rose-500" />
-        <h3 className="text-xl font-black text-gray-900">Sync Error</h3>
-        <button onClick={() => fetchVehicles()} className="px-6 py-3 bg-gray-900 text-white rounded-xl font-bold">Retry</button>
+      <div className="p-12 bg-white rounded-[3rem] border-2 border-rose-100 flex flex-col items-center text-center gap-6 shadow-2xl shadow-rose-50">
+        <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500">
+          <AlertCircle size={40} />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-2xl font-black text-gray-900 uppercase">Synchronization Error</h3>
+          <p className="text-gray-400 font-bold text-xs uppercase tracking-widest px-8">We couldn't connect to the fleet registry. Check your connection.</p>
+        </div>
+        <button onClick={() => fetchVehicles()} className="px-10 py-4 bg-gray-900 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs hover:bg-orange-500 transition-all shadow-xl shadow-gray-200">Retry Sync</button>
       </div>
     </div>
   );
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 animate-in fade-in duration-500">
+    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-10 animate-in fade-in duration-700">
 
       {/* HEADER */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-6">
         <div>
-          <h1 className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight uppercase">
-            My <span className="text-orange-500">Fleet</span>
+          <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tighter uppercase leading-none">
+            Registry <span className="text-orange-500">Fleet</span>
           </h1>
-          <p className="text-gray-400 text-[10px] md:text-sm font-bold uppercase tracking-widest">{vehicles.length} Total Assets</p>
+          <p className="text-gray-400 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] mt-2 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            {vehicles.length} Assets Registered
+          </p>
         </div>
 
         <button
           onClick={() => navigate("/add-vehicle")}
-          className="flex items-center justify-center bg-orange-500 text-white w-12 h-12 md:w-auto md:px-6 md:py-4 rounded-xl md:rounded-2xl transition-all shadow-lg shadow-orange-100 active:scale-95"
+          className="group flex items-center justify-center bg-orange-600 text-white w-14 h-14 md:w-auto md:px-8 md:py-5 rounded-2xl md:rounded-[2rem] transition-all shadow-2xl shadow-orange-100 hover:bg-gray-900 active:scale-95"
         >
-          <Plus className="w-6 h-6 md:w-5 md:h-5" />
-          <span className="hidden md:block font-bold ml-2">Add Vehicle</span>
+          <Plus className="w-6 h-6 md:w-5 md:h-5 group-hover:rotate-90 transition-transform" />
+          <span className="hidden md:block font-black uppercase tracking-widest text-xs ml-3">Register Vehicle</span>
         </button>
       </div>
 
-      {/* SEARCH & FILTERS - Optimized for single line on mobile */}
-      <div className="flex items-center gap-2">
+      {/* SEARCH & FILTERS */}
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
         <div className="relative flex-1 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-orange-500 transition-colors" />
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 w-5 h-5 group-focus-within:text-orange-500 transition-all" />
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search by ID or Name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3.5 md:py-4 rounded-xl md:rounded-2xl focus:ring-2 focus:ring-orange-500/10 outline-none font-medium text-sm md:text-base shadow-sm transition-all"
+            className="w-full pl-14 pr-6 py-5 bg-white border border-gray-100 rounded-[2rem] focus:ring-4 focus:ring-orange-500/5 outline-none font-bold text-sm md:text-base shadow-sm group-hover:border-orange-200 transition-all placeholder:text-gray-300"
           />
         </div>
 
-        <div className="relative" ref={filterRef}>
+        <div className="relative flex gap-3" ref={filterRef}>
           <button
             onClick={() => setShowFilter((prev) => !prev)}
-            className={`flex items-center justify-center w-12 h-12 md:w-auto md:px-6 md:py-4 rounded-xl md:rounded-2xl border transition-all font-bold ${showFilter ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-100 shadow-sm"
+            className={`flex items-center justify-center flex-1 md:w-auto md:px-10 py-5 rounded-[2rem] border transition-all font-black uppercase tracking-widest text-[10px] ${showFilter ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-100 shadow-sm"
               }`}
           >
-            <Sliders className="w-5 h-5 md:w-4 md:h-4" />
-            <span className="hidden md:block ml-2">Filter</span>
+            <Sliders size={18} className="mr-3" />
+            Filter
           </button>
 
           {showFilter && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl z-20 p-2 animate-in slide-in-from-top-2">
+            <div className="absolute right-0 top-full mt-4 w-56 bg-white border border-gray-50 rounded-[2.5rem] shadow-2xl z-20 p-4 animate-in slide-in-from-top-4">
+              <p className="text-[10px] font-black uppercase text-gray-400 mb-3 px-2 tracking-widest">Status Logic</p>
               {["Active", "Inactive"].map((status) => (
                 <button
                   key={status}
@@ -141,10 +176,10 @@ export default function VehicleList() {
                     const s = status as "Active" | "Inactive";
                     setSelectedStatuses(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
                   }}
-                  className="flex items-center justify-between w-full px-4 py-3 hover:bg-orange-50 rounded-xl transition-colors"
+                  className={`flex items-center justify-between w-full px-4 py-4 rounded-2xl transition-all mb-1 ${selectedStatuses.includes(status as any) ? 'bg-orange-50' : 'hover:bg-gray-50'}`}
                 >
-                  <span className="font-bold text-sm text-gray-700">{status}</span>
-                  {selectedStatuses.includes(status as any) && <Check className="w-4 h-4 text-orange-500" />}
+                  <span className={`font-black text-[11px] uppercase tracking-widest ${selectedStatuses.includes(status as any) ? 'text-orange-600' : 'text-gray-600'}`}>{status}</span>
+                  {selectedStatuses.includes(status as any) && <Check size={14} className="text-orange-500" />}
                 </button>
               ))}
             </div>
@@ -153,108 +188,131 @@ export default function VehicleList() {
       </div>
 
       {/* VEHICLE LIST */}
-      <div className="grid grid-cols-1 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 gap-8">
         {loading ? (
           [1, 2, 3].map((i) => <VehicleSkeleton key={i} />)
         ) : paginatedVehicles.length > 0 ? (
-          paginatedVehicles.map((v) => {
+          paginatedVehicles.map((v, index) => {
             const status = getStatus(v);
+            const detailed = getDetailedStatus(v);
             return (
-              <div
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
                 key={v.id}
-                className="group flex flex-col md:flex-row bg-white rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm hover:border-orange-200 transition-all duration-300"
+                className="group flex flex-col md:flex-row bg-white rounded-[3rem] overflow-hidden border border-gray-50 shadow-2xl shadow-gray-100/50 hover:border-orange-200 hover:shadow-orange-100 transition-all duration-500"
               >
                 {/* Image Section */}
-                <div className="relative w-full md:w-72 lg:w-96 h-44 md:h-auto overflow-hidden">
+                <div className="relative w-full md:w-80 lg:w-[28rem] h-56 md:h-auto overflow-hidden bg-gray-50">
                   <img
                     src={v.vehicleImage ? `${FILE_BASE_URL}${v.vehicleImage}` : "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80&w=600"}
                     alt={v.vehicleName}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-90"
                   />
-                  <div className="absolute top-4 left-4">
-                    <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black border backdrop-blur-md shadow-sm ${statusStyles[status]}`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${status === 'Active' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                  <div className="absolute top-6 left-6 flex flex-col gap-2">
+                    <span className={`px-4 py-2 rounded-xl text-[10px] font-black border backdrop-blur-xl shadow-xl flex items-center gap-2 ${statusStyles[status]}`}>
+                      <div className={`w-2 h-2 rounded-full ${status === 'Active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}`} />
                       {status.toUpperCase()}
                     </span>
+
+                    {detailed.items.length > 0 && (
+                      <span className={`px-4 py-2 rounded-xl text-[10px] font-black border backdrop-blur-xl shadow-xl ${detailed.text} ${detailed.bg} border-${detailed.text.split('-')[1]}-200/50`}>
+                        {detailed.label} ({detailed.items.join(", ")})
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 {/* Content Section */}
-                <div className="flex-1 p-5 md:p-8 flex flex-col justify-between">
-                  <div>
-                    <div className="flex justify-between items-start mb-2 md:mb-4">
-                      <div className="space-y-0.5">
-                        <h2 className="text-xl md:text-2xl font-black text-gray-900 group-hover:text-orange-500 transition-colors uppercase">
+                <div className="flex-1 p-6 md:p-10 flex flex-col justify-between bg-white relative">
+                  <div className="absolute top-0 right-0 p-8 opacity-5">
+                    <Car size={160} className="text-gray-900 group-hover:text-orange-500 transition-colors" />
+                  </div>
+
+                  <div className="relative z-10">
+                    <div className="flex justify-between items-start mb-8">
+                      <div className="space-y-1">
+                        <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tighter uppercase leading-none group-hover:text-orange-600 transition-colors">
                           {v.vehicleName}
                         </h2>
-                        <p className="text-[10px] md:text-xs font-mono font-bold text-gray-400 tracking-widest">{v.vehicleNumber}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase">{v.vehicleNumber}</p>
+                          <div className="w-1 h-1 rounded-full bg-gray-300" />
+                          <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest">{v.kilometer || 0} KM TRACKED</p>
+                        </div>
                       </div>
                     </div>
 
-                    {/* HIDDEN ON MOBILE */}
-                    <div className="hidden md:grid grid-cols-4 gap-4 mt-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-4 mt-8">
                       <InfoIcon label="Insurance" value={v.insurance} icon={<Calendar className="w-4 h-4" />} />
                       <InfoIcon label="Pollution" value={v.pollution} icon={<AlertCircle className="w-4 h-4" />} />
-                      <InfoIcon label="RC Date" value={v.rcDate} icon={<Calendar className="w-4 h-4" />} />
-                      <InfoIcon label="Mileage" value={v.kilometer ? `${v.kilometer} km` : "N/A"} icon={<Gauge className="w-4 h-4" />} />
+                      <InfoIcon label="RC Expiry" value={v.rcDate} icon={<Calendar className="w-4 h-4" />} />
+                      <InfoIcon label="Configuration" value="Heavy Duty" icon={<Gauge className="w-4 h-4" />} />
                     </div>
                   </div>
 
-                  <div className="mt-4 md:mt-8 flex items-center justify-end">
+                  <div className="mt-10 md:mt-0 flex items-center justify-end relative z-10">
                     <button
                       onClick={() => navigate(`/view-vehicle/${encryptId(v.id)}`)}
-                      className="w-full md:w-auto flex items-center justify-center gap-2 bg-gray-50 md:bg-gray-900 text-gray-900 md:text-white px-6 py-4 md:py-3 rounded-xl md:rounded-2xl font-bold hover:bg-orange-500 hover:text-white transition-all group/btn active:scale-95"
+                      className="w-full md:w-auto flex items-center justify-center gap-3 bg-gray-900 text-white px-10 py-5 rounded-[2rem] font-black tracking-widest text-[10px] hover:bg-orange-600 hover:shadow-2xl hover:shadow-orange-200 transition-all group/btn active:scale-95 uppercase"
                     >
-                      <span className="text-xs md:text-sm">VIEW DETAILS</span>
-                      <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                      Protocol Details
+                      <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-2 transition-transform" />
                     </button>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })
         ) : (
-          <div className="text-center py-16 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200">
-            <Car className="w-10 h-10 mx-auto text-gray-200 mb-4" />
-            <p className="text-gray-400 text-sm font-bold uppercase">No vehicles found</p>
+          <div className="text-center py-24 bg-gray-50 rounded-[4rem] border-4 border-dashed border-gray-100">
+            <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-gray-200 mx-auto mb-6 shadow-sm">
+              <Car size={40} />
+            </div>
+            <p className="text-gray-400 text-xs font-black uppercase tracking-[0.3em]">No Assets Found In Current Filter</p>
           </div>
         )}
       </div>
 
-      {/* --- Pagination Controls --- */}
+      {/* PAGINATION */}
       {!loading && totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-8 border-t border-gray-100 mt-10">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center sm:text-left">
-            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredVehicles.length)} of {filteredVehicles.length} assets
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-12 border-t border-gray-50 mt-12">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em] text-center sm:text-left">
+            Displaying Index {((currentPage - 1) * itemsPerPage) + 1}—{Math.min(currentPage * itemsPerPage, filteredVehicles.length)} of {filteredVehicles.length}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="p-3 bg-white rounded-2xl border border-gray-100 text-gray-400 disabled:opacity-30 hover:text-orange-500 transition-all shadow-sm"
+              className="w-14 h-14 bg-white rounded-2xl border border-gray-100 text-gray-400 disabled:opacity-20 hover:text-orange-500 hover:border-orange-200 transition-all flex items-center justify-center shadow-sm"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={24} />
             </button>
 
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`w-12 h-12 rounded-2xl text-[11px] font-black transition-all ${currentPage === page
-                  ? "bg-orange-500 text-white shadow-xl shadow-orange-100"
-                  : "bg-white text-gray-400 border border-gray-100 hover:border-orange-500 hover:text-orange-500 shadow-sm"
-                  }`}
-              >
-                {page}
-              </button>
-            ))}
+            <div className="flex gap-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-14 h-14 rounded-2xl text-[10px] font-black transition-all ${currentPage === page
+                    ? "bg-orange-600 text-white shadow-2xl shadow-orange-100 border-orange-500"
+                    : "bg-white text-gray-400 border border-gray-100 hover:border-orange-500 hover:text-orange-500 shadow-sm"
+                    }`}
+                >
+                  {String(page).padStart(2, '0')}
+                </button>
+              ))}
+            </div>
 
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="p-3 bg-white rounded-2xl border border-gray-100 text-gray-400 disabled:opacity-30 hover:text-orange-500 transition-all shadow-sm"
+              className="w-14 h-14 bg-white rounded-2xl border border-gray-100 text-gray-400 disabled:opacity-20 hover:text-orange-500 hover:border-orange-200 transition-all flex items-center justify-center shadow-sm"
             >
-              <ChevronRight size={20} />
+              <ChevronRight size={24} />
             </button>
           </div>
         </div>
@@ -264,13 +322,13 @@ export default function VehicleList() {
 }
 
 const InfoIcon = ({ label, value, icon }: { label: string; value: string | null; icon: React.ReactNode }) => (
-  <div className="space-y-1">
-    <div className="flex items-center gap-1.5 text-gray-400">
-      {icon}
+  <div className="space-y-2 group/icon">
+    <div className="flex items-center gap-2 text-gray-300 group-hover/icon:text-orange-400 transition-colors">
+      <div className="p-1.5 bg-gray-50 rounded-lg">{icon}</div>
       <p className="text-[9px] font-black uppercase tracking-widest">{label}</p>
     </div>
-    <p className="text-sm font-bold text-gray-700">
-      {value ? (value.length > 10 ? value.slice(0, 10) : value) : "N/A"}
+    <p className={`text-[13px] font-black uppercase tracking-tighter ${!value ? 'text-gray-300' : 'text-gray-700'}`}>
+      {value ? (value.length > 15 ? value.slice(0, 15) + "..." : value) : "Not Defined"}
     </p>
   </div>
 );

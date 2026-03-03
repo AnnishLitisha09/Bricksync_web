@@ -148,7 +148,6 @@ app.use("/api/materials", require("./routes/materialRoutes"));
 app.use("/api/backup", require("./routes/backupRoutes"));
 
 app.use("/api/wallet", require("./routes/walletRoutes"));
-app.use("/api/otp", require("./routes/otpRoutes"));
 app.use("/api/customers", require("./routes/customerRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
 app.use("/api/customer-statements", require("./routes/customerStatementRoutes"));
