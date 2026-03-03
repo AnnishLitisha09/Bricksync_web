@@ -46,13 +46,31 @@ exports.getAllCustomers = async (req, res) => {
 
         const { count, rows } = await Customer.findAndCountAll({
             where,
+            include: [
+                {
+                    model: CallLog,
+                    as: "callLogs",
+                    where: { is_deleted: false, is_called: true },
+                    required: false,
+                    limit: 1,
+                    order: [["date", "DESC"]]
+                }
+            ],
             order: [[orderColumn, orderDir]],
             limit: parseInt(limit),
-            offset: parseInt(offset)
+            offset: parseInt(offset),
+            distinct: true
+        });
+
+        const dataWithLastCall = rows.map(customer => {
+            const raw = customer.toJSON();
+            raw.last_called_date = raw.callLogs && raw.callLogs.length > 0 ? raw.callLogs[0].date : null;
+            delete raw.callLogs;
+            return raw;
         });
 
         return res.status(200).json({
-            data: rows,
+            data: dataWithLastCall,
             pagination: {
                 total: count,
                 page: parseInt(page),

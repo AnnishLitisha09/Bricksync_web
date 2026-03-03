@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { FILE_BASE_URL } from "../../../api/base";
 import { encryptId } from "../../../utils/functions";
 import { useVehicleStore, type Vehicle } from "../../../store/vechicle/useVehicleStore";
+import { formatDate } from "../../../utils/formatDate";
 
 // --- Logic Helpers ---
 const getDetailedStatus = (v: Vehicle) => {
@@ -328,7 +329,7 @@ const InfoIcon = ({ label, value, icon }: { label: string; value: string | null;
       <p className="text-[9px] font-black uppercase tracking-widest">{label}</p>
     </div>
     <p className={`text-[13px] font-black uppercase tracking-tighter ${!value ? 'text-gray-300' : 'text-gray-700'}`}>
-      {value ? (value.length > 15 ? value.slice(0, 15) + "..." : value) : "Not Defined"}
+      {value ? formatDate(value) : "Not Defined"}
     </p>
   </div>
 );

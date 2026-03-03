@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Search, ShieldCheck, Users,
   Phone, ExternalLink, Loader2, Plus, X, Pencil, Trash2,
-  AlertTriangle, Upload, CheckCircle2, ListFilter
+  AlertTriangle, Upload, CheckCircle2, ListFilter, Download
 } from "lucide-react";
 import type { CustomerData } from "../../../store/customers/useCustomerStore";
 import { useCustomerStore } from "../../../store/customers/useCustomerStore";
@@ -11,6 +11,7 @@ import { bulkCreateCustomers } from "../../../api/customer";
 import { parseCustomerPdf, type ParsedCustomer } from "../../../utils/parseCustomerPdf";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import ExportCustomerModal from "./ExportCustomerModal";
 
 const CustomerHub: React.FC = () => {
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ const CustomerHub: React.FC = () => {
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [parsedCustomers, setParsedCustomers] = useState<ParsedCustomer[]>([]);
   const [isParsing, setIsParsing] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initial & search-triggered load
@@ -171,7 +173,7 @@ const CustomerHub: React.FC = () => {
           </h1>
         </div>
 
-        <div className="bg-white p-2 rounded-3xl border border-slate-200 flex flex-row items-center gap-3 sm:gap-6 pr-4 sm:pr-8 shadow-sm w-full lg:w-auto">
+        <div className="bg-white p-2 rounded-3xl border border-slate-200 flex flex-row items-center gap-3 sm:gap-6 pr-4 shadow-sm w-full lg:w-auto">
           <div className="bg-slate-900 p-3 sm:p-5 rounded-2xl text-white shrink-0">
             <Users size={20} className="sm:hidden" />
             <Users size={28} className="hidden sm:block" />
@@ -182,17 +184,28 @@ const CustomerHub: React.FC = () => {
               {loading && customers.length === 0 ? "..." : totalCustomers}
             </p>
           </div>
-          <button
-            onClick={() => {
-              setFormData({ name: "", email: "", phone_no: "", address: "", balance: 0, category: "other" });
-              setIsModalOpen(true);
-            }}
-            className="bg-indigo-600 text-white px-5 py-3 sm:px-8 sm:py-5 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 text-sm sm:text-base shrink-0 ml-auto"
-          >
-            <Plus size={18} />
-            <span className="hidden sm:inline">Create Client</span>
-            <span className="sm:hidden">New</span>
-          </button>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              onClick={() => setIsExportModalOpen(true)}
+              className="bg-slate-100 text-slate-600 px-4 py-3 sm:px-6 sm:py-5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-900 hover:text-white transition shadow-sm text-sm sm:text-base shrink-0"
+              title="Export All Customers"
+            >
+              <Download size={18} />
+              <span className="hidden sm:inline">Export</span>
+            </button>
+            <button
+              onClick={() => {
+                setFormData({ name: "", email: "", phone_no: "", address: "", balance: 0, category: "other" });
+                setIsModalOpen(true);
+              }}
+              className="bg-indigo-600 text-white px-5 py-3 sm:px-8 sm:py-5 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 text-sm sm:text-base shrink-0"
+            >
+              <Plus size={18} />
+              <span className="hidden sm:inline">Create Client</span>
+              <span className="sm:hidden">New</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -574,6 +587,11 @@ const CustomerHub: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+
+      <ExportCustomerModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+      />
     </div>
   );
 };

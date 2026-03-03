@@ -7,6 +7,7 @@ import { FILE_BASE_URL } from "../../../api/base";
 import Input from "../../../components/InputBox";
 import { useVehicleStore, type Vehicle } from "../../../store/vechicle/useVehicleStore";
 import { decryptId } from "../../../utils/functions";
+import { formatDate } from "../../../utils/formatDate";
 
 type DocKey = "vehicleImage" | "rcImage" | "insuranceImage" | "pollutionImage" | "speedImage";
 
@@ -252,12 +253,15 @@ export default function ViewVehicle() {
                                 </div>
                                 <div className="space-y-2">
                                     <Input label="Insurance Expiry" name="insurance" type="date" disabled={!isEdit} value={vehicle.insurance?.slice(0, 10) ?? ""} onChange={handleChange} />
+                                    {!isEdit && <p className="text-[10px] font-bold text-gray-500 mt-1 px-1">{formatDate(vehicle.insurance)}</p>}
                                 </div>
                                 <div className="space-y-2">
                                     <Input label="PUC Expiry" name="pollution" type="date" disabled={!isEdit} value={vehicle.pollution?.slice(0, 10) ?? ""} onChange={handleChange} />
+                                    {!isEdit && <p className="text-[10px] font-bold text-gray-500 mt-1 px-1">{formatDate(vehicle.pollution)}</p>}
                                 </div>
                                 <div className="sm:col-span-2 pt-4">
                                     <Input label="RC Registration Date" name="rcDate" type="date" disabled={!isEdit} value={vehicle.rcDate?.slice(0, 10) ?? ""} onChange={handleChange} />
+                                    {!isEdit && <p className="text-[10px] font-bold text-gray-500 mt-1 px-1">{formatDate(vehicle.rcDate)}</p>}
                                 </div>
                             </div>
                         </div>
