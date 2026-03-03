@@ -152,9 +152,14 @@ export async function parseLedgerPdf(file: File): Promise<ParsedLedger> {
             const orderNumber = match[2];
             const product = match[3].trim();
             const qty = cleanNumber(match[4]);
-            const rate = cleanNumber(match[5]);
+            let rate = cleanNumber(match[5]);
             const amountInLine = cleanNumber(match[6]);
             const amount = amountInLine > 0 ? amountInLine : qty * rate;
+
+            // Correction logic: if qty * rate != amount, trust amount and recalculate rate
+            if (qty > 0 && Math.abs(qty * rate - amount) > 0.01) {
+                rate = amount / qty;
+            }
 
             const key = `${date}-${orderNumber}`;
             if (!orderMap[key]) {
