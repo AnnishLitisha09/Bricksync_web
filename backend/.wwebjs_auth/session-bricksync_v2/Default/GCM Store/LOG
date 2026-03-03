@@ -1,3 +1,2 @@
-2026/02/27-22:27:13.914 398b Reusing MANIFEST /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/GCM Store/MANIFEST-000001
-2026/02/27-22:27:13.914 398b Recovering log #3
-2026/02/27-22:27:13.916 398b Reusing old log /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/GCM Store/000003.log 
+2026/03/03-10:02:07.546 3984 Creating DB C:\Users\janni\Desktop\New folder\Bricksync_web\backend\.wwebjs_auth\session-bricksync_v2\Default\GCM Store since it was missing.
+2026/03/03-10:02:07.598 3984 Reusing MANIFEST C:\Users\janni\Desktop\New folder\Bricksync_web\backend\.wwebjs_auth\session-bricksync_v2\Default\GCM Store/MANIFEST-000001

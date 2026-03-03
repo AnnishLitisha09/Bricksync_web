@@ -1,3 +1,2 @@
-2026/02/27-22:27:10.232 3994 Reusing MANIFEST /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Site Characteristics Database/MANIFEST-000001
-2026/02/27-22:27:10.232 3994 Recovering log #3
-2026/02/27-22:27:10.233 3994 Reusing old log /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Site Characteristics Database/000003.log 
+2026/03/03-10:00:57.940 5f7c Creating DB C:\Users\janni\Desktop\New folder\Bricksync_web\backend\.wwebjs_auth\session-bricksync_v2\Default\Site Characteristics Database since it was missing.
+2026/03/03-10:00:57.950 5f7c Reusing MANIFEST C:\Users\janni\Desktop\New folder\Bricksync_web\backend\.wwebjs_auth\session-bricksync_v2\Default\Site Characteristics Database/MANIFEST-000001

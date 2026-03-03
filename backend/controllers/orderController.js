@@ -29,7 +29,7 @@ exports.createOrder = async (req, res) => {
 
             const newItem = await OrderItem.create({
                 order_id: newOrder.order_id,
-                product: item.product || item.particulars,
+                product: (item.product || item.particulars || "Unknown").substring(0, 255),
                 material_id: validMaterialId,
                 office_id: validOfficeId,
                 quantity: item.quantity || item.qty,
@@ -200,7 +200,7 @@ exports.updateOrder = async (req, res) => {
 
             const newItem = await OrderItem.create({
                 order_id: id,
-                product: item.product || item.particulars,
+                product: (item.product || item.particulars || "Unknown").substring(0, 255),
                 material_id: validMaterialId,
                 office_id: validOfficeId,
                 quantity: item.quantity || item.qty,
@@ -373,7 +373,7 @@ exports.bulkImportOrders = async (req, res) => {
 
                 await OrderItem.create({
                     order_id: newOrder.order_id,
-                    product: item.product,
+                    product: (item.product || "Unknown Item").substring(0, 255),
                     material_id: null,
                     office_id: null,
                     quantity: qty,

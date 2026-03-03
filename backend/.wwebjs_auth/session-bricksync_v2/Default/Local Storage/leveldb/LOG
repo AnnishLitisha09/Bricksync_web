@@ -1,6 +1,5 @@
-2026/02/27-22:27:10.260 39d7 Reusing MANIFEST /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Local Storage/leveldb/MANIFEST-000001
-2026/02/27-22:27:10.262 39d7 Recovering log #8
-2026/02/27-22:27:10.262 39d7 Reusing old log /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Local Storage/leveldb/000008.log 
-2026/02/27-22:28:10.266 39da Level-0 table #11: started
-2026/02/27-22:28:10.272 39da Level-0 table #11: 21521 bytes OK
-2026/02/27-22:28:10.275 39da Delete type=0 #8
+2026/03/03-10:00:57.906 4a08 Creating DB C:\Users\janni\Desktop\New folder\Bricksync_web\backend\.wwebjs_auth\session-bricksync_v2\Default\Local Storage\leveldb since it was missing.
+2026/03/03-10:00:57.936 4a08 Reusing MANIFEST C:\Users\janni\Desktop\New folder\Bricksync_web\backend\.wwebjs_auth\session-bricksync_v2\Default\Local Storage\leveldb/MANIFEST-000001
+2026/03/03-13:41:04.588 4a08 Level-0 table #5: started
+2026/03/03-13:41:04.626 4a08 Level-0 table #5: 21809 bytes OK
+2026/03/03-13:41:04.637 4a08 Delete type=0 #3

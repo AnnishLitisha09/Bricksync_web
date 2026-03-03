@@ -1,3 +1,2 @@
-2026/02/27-22:27:10.231 3995 Reusing MANIFEST /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Service Worker/Database/MANIFEST-000001
-2026/02/27-22:27:10.231 3995 Recovering log #3
-2026/02/27-22:27:10.231 3995 Reusing old log /Users/aswathmac/Downloads/Bricksync_web/backend/.wwebjs_auth/session-bricksync_v2/Default/Service Worker/Database/000003.log 
+2026/03/03-10:01:43.786 8674 Creating DB C:\Users\janni\Desktop\New folder\Bricksync_web\backend\.wwebjs_auth\session-bricksync_v2\Default\Service Worker\Database since it was missing.
+2026/03/03-10:01:43.795 8674 Reusing MANIFEST C:\Users\janni\Desktop\New folder\Bricksync_web\backend\.wwebjs_auth\session-bricksync_v2\Default\Service Worker\Database/MANIFEST-000001
