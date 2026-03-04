@@ -1,4 +1,4 @@
-const ollama = require("ollama");
+const { ollama } = require("ollama");
 const fs = require("fs");
 
 exports.extractData = async (req, res) => {
@@ -10,7 +10,7 @@ exports.extractData = async (req, res) => {
 
     try {
         const response = await ollama.chat({
-            model: "llama3.2-vision",
+            model: "llava",
             messages: [
                 {
                     role: "user",
@@ -30,12 +30,13 @@ Return ONLY a JSON object with these keys. If any information is missing or uncl
         const extraction = JSON.parse(response.message.content);
 
         // Cleanup temp file
-        fs.unlinkSync(path);
+        if (fs.existsSync(path)) fs.unlinkSync(path);
 
         res.json(extraction);
     } catch (err) {
         console.error("Ollama OCR Error:", err);
         if (fs.existsSync(path)) fs.unlinkSync(path);
-        res.status(500).json({ success: false, message: "OCR processing failed. Ensure Ollama is running and llama3.2-vision is pulled." });
+        res.status(500).json({ success: false, message: "OCR processing failed. Ensure Ollama is running and llava is pulled." });
     }
 };
+
