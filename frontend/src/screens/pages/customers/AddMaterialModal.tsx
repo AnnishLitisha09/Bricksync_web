@@ -14,7 +14,9 @@ import {
   Trash2,
   Navigation,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  ShieldCheck,
+  ShieldX
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAllOffices, getAllProducts, getEmployees, getStock } from "../../../api/inventory";
@@ -27,13 +29,44 @@ interface AddMaterialModalProps {
   isOpen: boolean;
   onClose: () => void;
   customerId: string;
+  customerName?: string; // The actual name of the customer
   editData?: any;
 }
+
+/**
+ * Computes a simple similarity ratio between two strings (0-1).
+ * Normalises both strings, then counts the longest common subsequence characters.
+ */
+function nameSimilarity(a: string, b: string): number {
+  const norm = (s: string) =>
+    s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const na = norm(a);
+  const nb = norm(b);
+  if (!na || !nb) return 0;
+
+  // Quick check: if one contains the other
+  if (na.includes(nb) || nb.includes(na)) return 1;
+
+  // Count matching characters using a sliding-window approach
+  const longer = na.length >= nb.length ? na : nb;
+  const shorter = na.length < nb.length ? na : nb;
+  let matches = 0;
+  let start = 0;
+  for (const ch of shorter) {
+    const idx = longer.indexOf(ch, start);
+    if (idx !== -1) {
+      matches++;
+      start = idx + 1;
+    }
+  }
+  return matches / longer.length;
+}
+
 
 const labelClass = "text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 mb-1 block";
 const inputClass = "w-full px-4 py-4 rounded-2xl border border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/5 focus:bg-white focus:border-indigo-500 outline-none transition-all appearance-none";
 
-const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, customerId, editData }) => {
+const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, customerId, customerName, editData }) => {
   const [entryMode, setEntryMode] = useState<"today" | "bulk">("today");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -74,6 +107,11 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [parsedLedger, setParsedLedger] = useState<ParsedLedger | null>(null);
   const [isParsing, setIsParsing] = useState(false);
+  const [nameMatchResult, setNameMatchResult] = useState<{
+    pdfName: string;
+    score: number;
+    passed: boolean;
+  } | null>(null);
 
   // Merged date-sorted preview rows (orders + payments together)
   const mergedPreviewRows = useMemo(() => {
@@ -198,12 +236,26 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
     const file = e.target.files?.[0] || null;
     setBulkFile(file);
     setParsedLedger(null);
+    setNameMatchResult(null);
     if (!file) return;
     setIsParsing(true);
     try {
       const result = await parseLedgerPdf(file);
       setParsedLedger(result);
-      toast.success(`Parsed ${result.orders.length} orders and ${result.payments.length} payments`);
+
+      // Name validation
+      if (customerName && result.customerName) {
+        const score = nameSimilarity(result.customerName, customerName);
+        const passed = score >= 0.80;
+        setNameMatchResult({ pdfName: result.customerName, score, passed });
+        if (!passed) {
+          toast.error(`Name mismatch! PDF: "${result.customerName}" vs Customer: "${customerName}"`);
+        } else {
+          toast.success(`Parsed ${result.orders.length} orders and ${result.payments.length} payments`);
+        }
+      } else {
+        toast.success(`Parsed ${result.orders.length} orders and ${result.payments.length} payments`);
+      }
     } catch (err: any) {
       toast.error("Failed to parse PDF: " + (err.message || "Unknown error"));
     } finally {
@@ -213,6 +265,15 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
 
   const handleBulkSubmit = async () => {
     if (!parsedLedger) return;
+
+    // Block import if name check failed (unless user confirms)
+    if (nameMatchResult && !nameMatchResult.passed) {
+      const proceed = window.confirm(
+        `⚠️ Name Mismatch!\n\nPDF Customer: "${nameMatchResult.pdfName}"\nSystem Customer: "${customerName}"\nMatch: ${Math.round(nameMatchResult.score * 100)}%\n\nAre you sure you want to import this PDF for this customer?`
+      );
+      if (!proceed) return;
+    }
+
     setIsSubmitting(true);
     try {
       const result = await bulkImportOrders({
@@ -563,6 +624,35 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
                 {/* Preview table */}
                 {parsedLedger && (
                   <div className="space-y-3">
+
+                    {/* NAME VALIDATION BANNER */}
+                    {nameMatchResult && (
+                      <div className={`flex items-start gap-3 p-4 rounded-2xl border ${nameMatchResult.passed
+                        ? 'bg-emerald-50 border-emerald-100'
+                        : 'bg-red-50 border-red-200'}`}>
+                        {nameMatchResult.passed
+                          ? <ShieldCheck size={20} className="text-emerald-600 shrink-0 mt-0.5" />
+                          : <ShieldX size={20} className="text-red-500 shrink-0 mt-0.5" />}
+                        <div className="flex-1">
+                          <p className={`text-[10px] font-black uppercase tracking-widest ${nameMatchResult.passed ? 'text-emerald-700' : 'text-red-700'}`}>
+                            {nameMatchResult.passed ? '✓ Customer Name Verified' : '⚠ Name Mismatch Detected'}
+                          </p>
+                          <p className="text-xs font-bold text-slate-600 mt-0.5">
+                            PDF: <span className="font-black">{nameMatchResult.pdfName}</span>
+                            <span className="mx-2 text-slate-300">•</span>
+                            Match: <span className={`font-black ${nameMatchResult.passed ? 'text-emerald-600' : 'text-red-600'}`}>
+                              {Math.round(nameMatchResult.score * 100)}%
+                            </span>
+                          </p>
+                          {!nameMatchResult.passed && (
+                            <p className="text-[10px] text-red-600 mt-1 font-bold">
+                              You can still import, but you will be asked to confirm.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex gap-3">
                       <div className="flex-1 bg-indigo-50 rounded-2xl p-3 text-center">
                         <p className="text-2xl font-black text-indigo-600">{parsedLedger.orders.length}</p>
@@ -574,7 +664,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
                       </div>
                       <div className="flex-1 bg-slate-100 rounded-2xl p-3 text-center">
                         <p className="text-lg font-black text-slate-700">
-                          ₹{(parsedLedger.orders.reduce((s, o) => s + o.items.reduce((is, i) => is + i.qty * i.rate, 0), 0) + (parsedLedger.openingBalance || 0)).toLocaleString('en-IN')}
+                          ₹{(parsedLedger.orders.reduce((s, o) => s + o.items.reduce((is, i) => is + i.amount, 0), 0) + (parsedLedger.openingBalance || 0)).toLocaleString('en-IN')}
                         </p>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Billed</p>
                       </div>

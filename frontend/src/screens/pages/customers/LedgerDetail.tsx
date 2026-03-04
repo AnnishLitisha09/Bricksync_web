@@ -521,6 +521,7 @@ const CustomerDetails: React.FC = () => {
           loadData();
         }}
         customerId={id || ""}
+        customerName={customer?.name || ""}
         editData={editOrderData}
       />
 

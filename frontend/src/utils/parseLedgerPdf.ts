@@ -49,6 +49,7 @@ export interface ParsedLedger {
     orders: ParsedOrder[];
     payments: ParsedPayment[];
     openingBalance: number;
+    customerName: string; // Extracted from PDF header e.g. "AATHI & CO"
 }
 
 // Tolerance in PDF user-space units to consider two items on the same line
@@ -121,6 +122,19 @@ export async function parseLedgerPdf(file: File): Promise<ParsedLedger> {
     const payments: (ParsedPayment & { originalIndex: number })[] = [];
     let openingBalance = 0;
     let rowIndex = 0;
+    let customerName = "";
+
+    // Extract customer name from the first page header
+    // The header row typically looks like: "CUSTOMER NAME - Ledger  Period : ..."
+    // We look for the pattern "...- Ledger" in the first few rows.
+    const LEDGER_HEADER_RE = /^(.+?)\s*-\s*Ledger\b/i;
+    for (const row of allRows.slice(0, 15)) {
+        const hm = row.match(LEDGER_HEADER_RE);
+        if (hm) {
+            customerName = hm[1].trim();
+            break;
+        }
+    }
 
     for (const line of allRows) {
         if (!line) continue;
@@ -156,12 +170,24 @@ export async function parseLedgerPdf(file: File): Promise<ParsedLedger> {
             const amountInLine = cleanNumber(match[6]);
             const amount = amountInLine > 0 ? amountInLine : qty * rate;
 
-            // Correction logic: if qty * rate != amount, trust amount and recalculate rate
-            if (qty > 0 && Math.abs(qty * rate - amount) > 0.01) {
-                rate = amount / qty;
-            }
-
             const key = `${date}-${orderNumber}`;
+
+            // Correction logic: if qty * rate != amount, trust amount and recalculate rate
+            if (qty > 0) {
+                if (Math.abs(qty * rate - amount) > 0.01) {
+                    rate = amount / qty;
+                }
+            } else if (amount > 0) {
+                // Handle lump sum entries (like adjustments or service charges)
+                // If qty is 0 but there's an amount, set qty to 1 and rate to amount
+                // to maintain system compatibility.
+                const adjustedQty = 1;
+                const adjustedRate = amount;
+                orderMap[key] = orderMap[key] || { date, orderNumber, items: [], total: 0, originalIndex: rowIndex };
+                orderMap[key].items.push({ product, qty: adjustedQty, rate: adjustedRate, amount });
+                orderMap[key].total += amount;
+                continue; // Skip the default push below
+            }
             if (!orderMap[key]) {
                 orderMap[key] = { date, orderNumber, items: [], total: 0, originalIndex: rowIndex };
             }
@@ -186,6 +212,6 @@ export async function parseLedgerPdf(file: File): Promise<ParsedLedger> {
         return dateDiff !== 0 ? dateDiff : a.originalIndex - b.originalIndex;
     });
 
-    return { orders, payments, openingBalance };
+    return { orders, payments, openingBalance, customerName };
 }
 

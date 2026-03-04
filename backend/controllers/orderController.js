@@ -342,6 +342,7 @@ exports.bulkImportOrders = async (req, res) => {
                 product: "OPENING BALANCE",
                 quantity: 1,
                 price: Number(openingBalance),
+                amount: Number(openingBalance) // Added to trust truth
             }, { transaction });
 
             await customer.increment("balance", { by: Number(openingBalance), transaction });
@@ -369,7 +370,8 @@ exports.bulkImportOrders = async (req, res) => {
             for (const item of orderData.items) {
                 const qty = Number(item.qty) || 0;
                 const rate = Number(item.rate) || 0;
-                totalValue += qty * rate;
+                const amt = Number(item.amount) || (qty * rate);
+                totalValue += amt;
 
                 await OrderItem.create({
                     order_id: newOrder.order_id,
