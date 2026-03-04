@@ -16,5 +16,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 router.post("/extract", upload.single("image"), ocrController.extractData);
+router.post("/extract-trips", upload.single("image"), ocrController.extractDriverTrips);
 
 module.exports = router;

@@ -53,8 +53,9 @@ exports.extractData = async (req, res) => {
  2. **unit**: Look for the Tamil label "அளவு" or labels like "Unit", "Qty", or "Amount". If the ticket shows "7" in this context, the value must be Exactly "7".
  3. **material_name**: Look for the material type. If it says "1/4 ஜல்லி", return "1/4 Jalli". If it says "M-Sand" or "M. SAND", return "M. SAND".
  4. **driver_name**: Look for the driver's name (often near "ஓட்டுநர்"). If the name is in Tamil (e.g., "குமார்"), you MUST translate it to the English equivalent (e.g., "Kumar").
+ 5. **date**: Look for the date of the receipt (e.g., "03/03/2026"). Format as YYYY-MM-DD if possible, otherwise return as seen.
  
- Return ONLY a perfectly valid JSON object with these keys: "vehicle_number", "unit", "driver_name", "material_name". 
+ Return ONLY a perfectly valid JSON object with these keys: "vehicle_number", "unit", "driver_name", "material_name", "date". 
  Ensure ALL values are in English text. If a value is missing, use null.`,
                         },
                         {
@@ -170,6 +171,84 @@ exports.extractData = async (req, res) => {
         res.status(500).json({ success: false, message: `OCR processing failed. ${err.message}` });
     }
 };
+
+exports.extractDriverTrips = async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: "No image uploaded" });
+    }
+
+    const { path } = req.file;
+
+    try {
+        const imageBuffer = fs.readFileSync(path);
+        const base64Image = imageBuffer.toString("base64");
+
+        const groqResponse = await groq.chat.completions.create({
+            model: "meta-llama/llama-4-scout-17b-16e-instruct",
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "text",
+                            text: `Analyze this handwritten driver trip log/notebook image and extract the trip details into JSON format.
+ 
+ ### Log Structure:
+ - **Date**: Usually at the top right (e.g., "03/03/2026").
+ - **Header**: Often contains Vehicle Number and Driver Name (e.g., "TN 37 CR 1288 (Mohan)").
+ - **Entries**: Numbered list (1, 2, 3...) containing:
+    - **Route**: From... To... (e.g., "Pandiyan Nagar To Settipurpalayam").
+    - **Customer/Party**: Often in parentheses or after the route (e.g., "Aathi & Co").
+    - **Material & Qty**: Look for material types like "Msand", "Psand", "Jalli" and quantities like "1U", "1/2 unit", "50 bags".
+    - **DC Number**: Preceded by "DC:" (e.g., "DC: 679").
+ 
+ ### Translation:
+ - Translate all Tamil names, locations, and labels to English.
+ 
+ Return a JSON object with:
+ {
+   "date": "Extracted Date",
+   "vehicle_number": "Main Vehicle Number",
+   "driver_name": "Main Driver Name",
+   "trips": [
+     {
+       "from": "Origin Location",
+       "to": "Destination Location",
+       "customer_name": "Customer or Party Name",
+       "material_name": "Extracted Material",
+       "qty": "Number/Unit of Quantity",
+       "dc_number": "DC Number String"
+     }
+   ]
+ }
+ 
+ Ensure the output is ONLY a valid JSON object. If a field is missing, use null.`,
+                        },
+                        {
+                            type: "image_url",
+                            image_url: {
+                                url: `data:${req.file.mimetype};base64,${base64Image}`,
+                            },
+                        },
+                    ],
+                },
+            ],
+            response_format: { type: "json_object" },
+        });
+
+        const tripData = JSON.parse(groqResponse.choices[0].message.content);
+
+        // Cleanup temp file
+        if (fs.existsSync(path)) fs.unlinkSync(path);
+
+        res.json(tripData);
+    } catch (err) {
+        console.error("Trip Extraction Error:", err);
+        if (fs.existsSync(path)) fs.unlinkSync(path);
+        res.status(500).json({ success: false, message: `Trip processing failed. ${err.message}` });
+    }
+};
+
 
 
 
