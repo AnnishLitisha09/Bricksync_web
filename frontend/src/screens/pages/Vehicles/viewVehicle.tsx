@@ -8,6 +8,7 @@ import Input from "../../../components/InputBox";
 import { useVehicleStore, type Vehicle } from "../../../store/vechicle/useVehicleStore";
 import { decryptId } from "../../../utils/functions";
 import { formatDate } from "../../../utils/formatDate";
+import LottieLoader from "../../../components/common/LottieLoader";
 
 type DocKey = "vehicleImage" | "rcImage" | "insuranceImage" | "pollutionImage" | "speedImage";
 
@@ -101,11 +102,12 @@ export default function ViewVehicle() {
     }, [vehicle, originalVehicle, docFiles]);
 
     if (loading) return (
-        <div className="flex h-[80vh] items-center justify-center">
-            <div className="relative">
-                <div className="w-16 h-16 border-4 border-orange-100 rounded-full"></div>
-                <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
-            </div>
+        <div className="flex min-h-screen items-center justify-center bg-[#FDFDFD]">
+            <LottieLoader
+                type="truck"
+                message="Acquiring Vehicle Telemetry"
+                size={300}
+            />
         </div>
     );
 

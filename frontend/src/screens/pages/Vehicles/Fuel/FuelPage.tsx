@@ -14,20 +14,21 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useVehicleStore } from "../../../../store/vechicle/useVehicleStore";
 import { useFuelStore } from "../../../../store/fuel/useFuelStore";
+import LottieLoader from "../../../../components/common/LottieLoader";
 
 export default function FuelPage() {
   const navigate = useNavigate();
-  const { 
-    fuels, 
-    getFuels, 
+  const {
+    fuels,
+    getFuels,
     searchFuels,
-    loading, 
-    totalPages, 
-    currentPage, 
+    loading,
+    totalPages,
+    currentPage,
     toggleFuelStatus,
-    deleteFuel 
+    deleteFuel
   } = useFuelStore();
-  
+
   const { fetchVehicles } = useVehicleStore();
   const [search, setSearch] = useState("");
   const [confirmModal, setConfirmModal] = useState({ show: false, fuelId: null as number | null });
@@ -66,7 +67,7 @@ export default function FuelPage() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gray-50/50 p-3 md:p-8 space-y-4 md:space-y-6 relative"
@@ -75,10 +76,10 @@ export default function FuelPage() {
       <AnimatePresence>
         {(confirmModal.show || deleteModal.show) && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }} 
-              animate={{ scale: 1, opacity: 1, y: 0 }} 
-              exit={{ scale: 0.9, opacity: 0, y: 20 }} 
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-sm shadow-2xl text-center"
             >
               {confirmModal.show ? (
@@ -115,8 +116,8 @@ export default function FuelPage() {
           </h1>
           <p className="text-slate-500 text-xs md:text-sm font-medium">Monitoring fleet consumption & bills</p>
         </div>
-        <button 
-          onClick={() => navigate("/vehicles/fuel/add")} 
+        <button
+          onClick={() => navigate("/vehicles/fuel/add")}
           className="flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-xl md:rounded-2xl font-bold hover:bg-orange-600 transition-all shadow-lg active:scale-95 text-sm md:text-base"
         >
           <Plus size={18} /> Add Record
@@ -125,15 +126,15 @@ export default function FuelPage() {
 
       {/* QUICK STATS - GRID 2 COLS ON MOBILE */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        <StatCard 
-          title="Total Volume" 
-          value={`${fuels.reduce((acc, curr) => acc + (curr.volume || 0), 0).toLocaleString()}L`} 
-          icon={<Droplets className="text-blue-500 w-5 h-5 md:w-6 md:h-6" />} 
+        <StatCard
+          title="Total Volume"
+          value={`${fuels.reduce((acc, curr) => acc + (curr.volume || 0), 0).toLocaleString()}L`}
+          icon={<Droplets className="text-blue-500 w-5 h-5 md:w-6 md:h-6" />}
         />
-        <StatCard 
-          title="Total Expense" 
-          value={`₹${fuels.reduce((acc, curr) => acc + (curr.amount || 0), 0).toLocaleString()}`} 
-          icon={<CreditCard className="text-emerald-500 w-5 h-5 md:w-6 md:h-6" />} 
+        <StatCard
+          title="Total Expense"
+          value={`₹${fuels.reduce((acc, curr) => acc + (curr.amount || 0), 0).toLocaleString()}`}
+          icon={<CreditCard className="text-emerald-500 w-5 h-5 md:w-6 md:h-6" />}
         />
       </div>
 
@@ -154,10 +155,11 @@ export default function FuelPage() {
       {/* DATA VIEW */}
       <div className="bg-white rounded-2xl md:rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
-          <div className="py-20 flex flex-col items-center gap-3">
-            <Loader2 className="animate-spin text-orange-500" size={40} />
-            <p className="text-slate-400 font-medium">Updating results...</p>
-          </div>
+          <LottieLoader
+            type="truck"
+            message="Logging Fuel Consumption"
+            size={250}
+          />
         ) : (
           <div className="overflow-x-auto scrollbar-hide">
             <table className="w-full min-w-[700px]">
@@ -188,16 +190,16 @@ export default function FuelPage() {
                       {new Date(fuel.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                     </td>
                     <td className="px-4 py-4 text-center">
-                      <button 
-                        disabled={fuel.isVerified} 
-                        onClick={() => setConfirmModal({ show: true, fuelId: fuel.fuelId })} 
+                      <button
+                        disabled={fuel.isVerified}
+                        onClick={() => setConfirmModal({ show: true, fuelId: fuel.fuelId })}
                         className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border transition-all whitespace-nowrap ${statusStyles[fuel.isVerified ? 'verified' : 'pending']}`}
                       >
                         {fuel.isVerified ? "Verified" : "Verify Now"}
                       </button>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button 
+                      <button
                         onClick={() => setDeleteModal({ show: true, fuelId: fuel.fuelId })}
                         className="p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-90"
                       >
@@ -215,19 +217,19 @@ export default function FuelPage() {
       {/* PAGINATION */}
       {!loading && !search && totalPages > 1 && (
         <div className="flex flex-col md:flex-row items-center justify-between bg-white p-3 md:p-4 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 gap-4">
-          <button 
-            disabled={currentPage === 1} 
-            onClick={() => { getFuels(currentPage - 1); window.scrollTo(0,0); }} 
+          <button
+            disabled={currentPage === 1}
+            onClick={() => { getFuels(currentPage - 1); window.scrollTo(0, 0); }}
             className="hidden md:flex items-center gap-1 text-sm font-bold text-slate-500 disabled:opacity-30 p-2 hover:bg-gray-50 rounded-xl"
           >
             <ChevronLeft size={20} /> Previous
           </button>
-          
+
           <div className="flex gap-1.5 overflow-x-auto max-w-full py-1">
             {[...Array(totalPages)].map((_, i) => (
-              <button 
-                key={i} 
-                onClick={() => { getFuels(i + 1); window.scrollTo(0,0); }} 
+              <button
+                key={i}
+                onClick={() => { getFuels(i + 1); window.scrollTo(0, 0); }}
                 className={`min-w-[40px] h-10 rounded-xl text-sm font-black transition-all ${currentPage === i + 1 ? "bg-orange-600 text-white shadow-md" : "bg-gray-50 text-slate-400"}`}
               >
                 {i + 1}
@@ -235,9 +237,9 @@ export default function FuelPage() {
             ))}
           </div>
 
-          <button 
-            disabled={currentPage === totalPages} 
-            onClick={() => { getFuels(currentPage + 1); window.scrollTo(0,0); }} 
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => { getFuels(currentPage + 1); window.scrollTo(0, 0); }}
             className="hidden md:flex items-center gap-1 text-sm font-bold text-slate-500 disabled:opacity-30 p-2 hover:bg-gray-50 rounded-xl"
           >
             Next <ChevronRight size={20} />
