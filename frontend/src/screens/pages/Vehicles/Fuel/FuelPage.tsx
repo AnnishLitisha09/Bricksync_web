@@ -5,7 +5,6 @@ import {
   ChevronRight,
   CreditCard,
   Droplets,
-  Loader2,
   Plus,
   Search,
   Trash2
