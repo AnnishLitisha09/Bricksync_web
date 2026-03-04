@@ -6,6 +6,7 @@ import {
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useVehicleServiceStore } from "../../../../store/services/useVehicleServiceStore";
+import LottieLoader from "../../../../components/common/LottieLoader";
 
 export default function ServicePage() {
   const navigate = useNavigate();
@@ -114,10 +115,11 @@ export default function ServicePage() {
       {/* CONTENT AREA */}
       <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
-          <div className="py-20 flex flex-col items-center gap-3">
-            <Loader2 className="animate-spin text-orange-500" size={40} />
-            <p className="text-slate-400 font-medium">Fetching records...</p>
-          </div>
+          <LottieLoader
+            type="truck"
+            message="Accessing Maintenance Records"
+            size={250}
+          />
         ) : services.length === 0 ? (
           <div className="py-20 text-center text-slate-400">No records found.</div>
         ) : (

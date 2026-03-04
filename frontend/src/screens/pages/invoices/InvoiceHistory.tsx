@@ -6,6 +6,7 @@ import {
 import { BASE_URL, getAuthHeader } from '../../../api/base';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import LottieLoader from '../../../components/common/LottieLoader';
 
 const InvoiceHistory: React.FC = () => {
     const [invoices, setInvoices] = useState<any[]>([]);
@@ -109,139 +110,146 @@ const InvoiceHistory: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Table Section */}
-                <div className="bg-white rounded-[32px] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-slate-50/50">
-                                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">ID & Date</th>
-                                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Billed To</th>
-                                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Logistics</th>
-                                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Amount</th>
-                                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                                    <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                <AnimatePresence>
-                                    {invoices.length > 0 ? (
-                                        invoices.map((inv) => (
-                                            <motion.tr
-                                                layout
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                exit={{ opacity: 0 }}
-                                                key={inv.id}
-                                                className="group hover:bg-slate-50/80 transition-all font-medium"
-                                            >
-                                                <td className="px-6 py-5">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center group-hover:bg-black group-hover:text-white transition-all">
-                                                            <Hash size={18} />
+                {isLoading && invoices.length === 0 ? (
+                    <LottieLoader
+                        type="general"
+                        message="Retrieving Transaction History"
+                        size={250}
+                    />
+                ) : (
+                    <div className="bg-white rounded-[32px] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-slate-50/50">
+                                        <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">ID & Date</th>
+                                        <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Billed To</th>
+                                        <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Logistics</th>
+                                        <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Amount</th>
+                                        <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                                        <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    <AnimatePresence mode="popLayout">
+                                        {invoices.length > 0 ? (
+                                            invoices.map((inv) => (
+                                                <motion.tr
+                                                    layout
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    exit={{ opacity: 0 }}
+                                                    key={inv.id}
+                                                    className="group hover:bg-slate-50/80 transition-all font-medium"
+                                                >
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center group-hover:bg-black group-hover:text-white transition-all">
+                                                                <Hash size={18} />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-black text-slate-800 uppercase leading-none mb-1">{inv.invoiceId}</p>
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                                                    {new Date(inv.date).toLocaleDateString('en-GB')}
+                                                                </p>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <p className="text-sm font-black text-slate-800 uppercase leading-none mb-1">{inv.invoiceId}</p>
-                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-                                                                {new Date(inv.date).toLocaleDateString('en-GB')}
-                                                            </p>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="space-y-1">
+                                                            <div className="flex items-center gap-2 text-slate-800 font-black text-sm uppercase">
+                                                                <User size={14} className="text-slate-300" />
+                                                                {inv.billingName || inv.customerNumber || 'CASH CUSTOMER'}
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-slate-400 text-[10px] font-bold uppercase truncate max-w-[180px]">
+                                                                <MapPin size={10} />
+                                                                {inv.deliveryPlace || 'Local'}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-5">
-                                                    <div className="space-y-1">
-                                                        <div className="flex items-center gap-2 text-slate-800 font-black text-sm uppercase">
-                                                            <User size={14} className="text-slate-300" />
-                                                            {inv.billingName || inv.customerNumber || 'CASH CUSTOMER'}
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white border border-slate-200 rounded-lg text-[10px] font-black text-slate-600 w-fit">
+                                                                <Truck size={10} className="text-slate-400" />
+                                                                {inv.vehicleNumber}
+                                                            </span>
+                                                            <span className="text-[10px] font-bold text-slate-400 uppercase px-1">{inv.materialName}</span>
                                                         </div>
-                                                        <div className="flex items-center gap-2 text-slate-400 text-[10px] font-bold uppercase truncate max-w-[180px]">
-                                                            <MapPin size={10} />
-                                                            {inv.deliveryPlace || 'Local'}
+                                                    </td>
+                                                    <td className="px-6 py-5 text-center">
+                                                        <p className="text-sm font-black text-slate-800">₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</p>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex justify-center">
+                                                            <button
+                                                                onClick={() => toggleStatus(inv.id, inv.isActive)}
+                                                                className={`flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${inv.isActive
+                                                                    ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                                                    : "bg-rose-50 text-rose-600 border border-rose-100"
+                                                                    }`}
+                                                            >
+                                                                {inv.isActive ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
+                                                                {inv.isActive ? 'Active' : 'Inactive'}
+                                                            </button>
                                                         </div>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <button
+                                                                onClick={() => copyUrl(inv)}
+                                                                className="p-2 text-slate-300 hover:text-black hover:bg-slate-100 rounded-xl transition-all"
+                                                                title="Copy Shareable Link"
+                                                            >
+                                                                <Copy size={18} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => openPdf(inv)}
+                                                                className="p-2 text-slate-300 hover:text-black hover:bg-slate-100 rounded-xl transition-all"
+                                                                title="View Document"
+                                                            >
+                                                                <Eye size={18} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </motion.tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={6} className="py-20 text-center">
+                                                    <div className="flex flex-col items-center justify-center opacity-40">
+                                                        <FileText size={48} className="mb-4 text-slate-300" />
+                                                        <p className="text-sm font-black text-slate-400 uppercase">No invoices records found</p>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-5">
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white border border-slate-200 rounded-lg text-[10px] font-black text-slate-600 w-fit">
-                                                            <Truck size={10} className="text-slate-400" />
-                                                            {inv.vehicleNumber}
-                                                        </span>
-                                                        <span className="text-[10px] font-bold text-slate-400 uppercase px-1">{inv.materialName}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-5 text-center">
-                                                    <p className="text-sm font-black text-slate-800">₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</p>
-                                                </td>
-                                                <td className="px-6 py-5">
-                                                    <div className="flex justify-center">
-                                                        <button
-                                                            onClick={() => toggleStatus(inv.id, inv.isActive)}
-                                                            className={`flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${inv.isActive
-                                                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                                                : "bg-rose-50 text-rose-600 border border-rose-100"
-                                                                }`}
-                                                        >
-                                                            {inv.isActive ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
-                                                            {inv.isActive ? 'Active' : 'Inactive'}
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-5">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <button
-                                                            onClick={() => copyUrl(inv)}
-                                                            className="p-2 text-slate-300 hover:text-black hover:bg-slate-100 rounded-xl transition-all"
-                                                            title="Copy Shareable Link"
-                                                        >
-                                                            <Copy size={18} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => openPdf(inv)}
-                                                            className="p-2 text-slate-300 hover:text-black hover:bg-slate-100 rounded-xl transition-all"
-                                                            title="View Document"
-                                                        >
-                                                            <Eye size={18} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </motion.tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={6} className="py-20 text-center">
-                                                <div className="flex flex-col items-center justify-center opacity-40">
-                                                    <FileText size={48} className="mb-4 text-slate-300" />
-                                                    <p className="text-sm font-black text-slate-400 uppercase">No invoices records found</p>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </AnimatePresence>
-                            </tbody>
-                        </table>
-                    </div>
+                                            </tr>
+                                        )}
+                                    </AnimatePresence>
+                                </tbody>
+                            </table>
+                        </div>
 
-                    {/* Pagination */}
-                    <div className="px-6 py-5 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Page {page} of {totalPages}</span>
-                        <div className="flex gap-2">
-                            <button
-                                disabled={page === 1}
-                                onClick={() => setPage(p => p - 1)}
-                                className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-all shadow-sm"
-                            >
-                                Prev
-                            </button>
-                            <button
-                                disabled={page >= totalPages}
-                                onClick={() => setPage(p => p + 1)}
-                                className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-all shadow-sm"
-                            >
-                                Next
-                            </button>
+                        {/* Pagination */}
+                        <div className="px-6 py-5 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Page {page} of {totalPages}</span>
+                            <div className="flex gap-2">
+                                <button
+                                    disabled={page === 1}
+                                    onClick={() => setPage(p => p - 1)}
+                                    className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-all shadow-sm"
+                                >
+                                    Prev
+                                </button>
+                                <button
+                                    disabled={page >= totalPages}
+                                    onClick={() => setPage(p => p + 1)}
+                                    className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-all shadow-sm"
+                                >
+                                    Next
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );

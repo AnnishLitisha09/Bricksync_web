@@ -13,6 +13,7 @@ import { parseCustomerPdf, type ParsedCustomer } from "../../../utils/parseCusto
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import ExportCustomerModal from "./ExportCustomerModal";
+import LottieLoader from "../../../components/common/LottieLoader";
 
 
 // Grey-anchored palette — only Avatar keeps colour
@@ -235,10 +236,11 @@ const CustomerHub: React.FC = () => {
 
       {/* ─── CONTENT ─── */}
       {loading && customers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-28">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-600 rounded-full animate-spin mb-4" />
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading clients...</p>
-        </div>
+        <LottieLoader
+          type="general"
+          message="Acquiring Client Records"
+          size={300}
+        />
       ) : (
         <>
           {/* ── GRID ── */}
