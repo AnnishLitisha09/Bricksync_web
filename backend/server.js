@@ -8,13 +8,9 @@ const fs = require("fs");
 const app = express();
 const db = require("./models");
 const { initScheduledTasks } = require("./utils/scheduler");
-const { initWhatsApp } = require("./utils/whatsappService");
 
 // Initialize Automated Tasks (Midnight Backups & Expiration Alerts)
 initScheduledTasks();
-
-// Initialize WhatsApp Service
-initWhatsApp(); // Reset to normal initialization
 
 // ================= Middleware =================
 app.use(cors({
@@ -146,6 +142,7 @@ app.use("/api/employees", require("./routes/employeeRoutes"));
 app.use("/api/attendance", require("./routes/attendanceRoutes"));
 app.use("/api/materials", require("./routes/materialRoutes"));
 app.use("/api/backup", require("./routes/backupRoutes"));
+app.use("/api/ocr", require("./routes/ocrRoutes"));
 
 app.use("/api/wallet", require("./routes/walletRoutes"));
 app.use("/api/customers", require("./routes/customerRoutes"));

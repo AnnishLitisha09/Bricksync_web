@@ -7,6 +7,5 @@ router.get("/", invoiceController.getAllInvoices);
 router.patch("/status/:id", invoiceController.toggleInvoiceStatus);
 router.patch("/pdf/:id", invoiceController.updatePdfPath);
 router.get("/public/status", invoiceController.getInvoiceStatus);
-router.post("/notify-driver/:id", invoiceController.sendWhatsAppNotification);
 
 module.exports = router;
