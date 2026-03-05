@@ -143,6 +143,7 @@ app.use("/api/attendance", require("./routes/attendanceRoutes"));
 app.use("/api/materials", require("./routes/materialRoutes"));
 app.use("/api/backup", require("./routes/backupRoutes"));
 app.use("/api/ocr", require("./routes/ocrRoutes"));
+app.use("/api/gprs", require("./routes/gprsRoutes"));
 
 app.use("/api/wallet", require("./routes/walletRoutes"));
 app.use("/api/customers", require("./routes/customerRoutes"));
@@ -176,6 +177,13 @@ function getLocalIP() {
 }
 
 const PORT = process.env.PORT || 5000;
+const http = require("http");
+const { initSocket } = require("./utils/socket");
+const { startTelemetryStream } = require("./utils/telemetryStreamer");
+
+const server = http.createServer(app);
+initSocket(server);
+startTelemetryStream();
 
 db.sequelize.authenticate()
   .then(() => {
@@ -183,7 +191,7 @@ db.sequelize.authenticate()
 
     const ip = getLocalIP();
 
-    app.listen(PORT, "0.0.0.0", () => {
+    server.listen(PORT, "0.0.0.0", () => {
       console.log(`👉 Local: http://localhost:${PORT}`);
       console.log(`👉 Network: http://${ip}:${PORT}`);
     });
