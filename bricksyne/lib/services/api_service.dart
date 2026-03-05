@@ -216,11 +216,11 @@ class ApiService {
   /// Connects to Socket.io and listens for updates.
   /// The 'onUpdate' callback will receive speed updates.
   static void connectSocket({
+    String? vehicleNumber,
     required Function(double speed) onSpeedUpdate,
     required Function(String status) onStatusUpdate,
   }) async {
     final token = await getToken();
-    final userId = await getUserId();
     if (token == null) return;
 
     // Dev tunnel or LAN IP (strip /api)
@@ -237,13 +237,18 @@ class ApiService {
     _socket!.onConnect((_) {
       print('Socket Connected');
       onStatusUpdate('Connected');
-      // Join a room for this user or specific vehicle if needed
-      _socket!.emit('join', {'userId': userId});
+
+      if (vehicleNumber != null && vehicleNumber != '—') {
+        print('Joining Vehicle Room: $vehicleNumber');
+        _socket!.emit('join-vehicle', vehicleNumber);
+      } else {
+        // Fallback for general dashboard updates if needed
+        _socket!.emit('join-dashboard');
+      }
     });
 
-    // Listen for speed updates
-    // Assuming backend emits 'vehicleUpdate' or similar
-    _socket!.on('speedUpdate', (data) {
+    // Listen for telemetry updates (sync with backend)
+    _socket!.on('telemetry-update', (data) {
       if (data != null && data['speed'] != null) {
         final speed = (data['speed'] as num).toDouble();
         onSpeedUpdate(speed);

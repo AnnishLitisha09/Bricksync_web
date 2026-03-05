@@ -18,8 +18,7 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
   int _daysPresent = 0;
   bool _loadingData = true;
   bool _speedLoading = false;
-
-  // Auto-refresh timer removed in favor of Socket.io
+  Timer? _refreshTimer;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -29,10 +28,19 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
     _loadAllData();
     // Initialize real-time speed tracking via Socket
     _initSocket();
+    _startAutoRefresh();
+  }
+
+  void _startAutoRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      _loadAllData();
+    });
   }
 
   void _initSocket() {
     ApiService.connectSocket(
+      vehicleNumber: _vehicleNumber,
       onSpeedUpdate: (speed) {
         if (mounted) {
           setState(() {
@@ -51,6 +59,7 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     ApiService.disposeSocket();
     super.dispose();
   }
@@ -61,27 +70,29 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
     setState(() => _loadingData = true);
     try {
       final now = DateTime.now();
+      // 1. Fetch Profile First (to get correct name/id)
+      final profile = await ApiService.getUserProfile();
+      if (!mounted) return;
 
-      // Parallel fetch: profile + vehicle record + attendance
+      final name = profile != null
+          ? (profile['name'] ?? 'Driver').toString()
+          : await ApiService.getUserName();
+
+      // 2. Fetch Vehicle & Attendance (can be parallel)
       final results = await Future.wait([
-        ApiService.getUserProfile(),
         ApiService.getMyVehicleRecord(),
         ApiService.getMonthlyPresentCount(year: now.year, month: now.month),
       ]);
 
       if (!mounted) return;
 
-      final profile = results[0] as Map<String, dynamic>?;
-      final name = profile != null
-          ? (profile['name'] ?? 'Driver').toString()
-          : await ApiService.getUserName();
-      final vehicle = results[1] as Map<String, dynamic>?;
-      final present = results[2] as int;
+      final vehicle = results[0] as Map<String, dynamic>?;
+      final present = results[1] as int;
 
       setState(() {
         _driverName = name;
-        _vehicleSpeed = (vehicle?['speed'] as num?)?.toDouble() ?? 0;
         _vehicleNumber = (vehicle?['vehicleNumber'] as String?) ?? '—';
+        _vehicleSpeed = (vehicle?['speed'] as num?)?.toDouble() ?? 0;
         _daysPresent = present;
         _loadingData = false;
       });
@@ -92,8 +103,12 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
       print('Speed: $_vehicleSpeed');
       print('Attendance: $_daysPresent days');
       print('-----------------------------');
+
+      // 3. (Re)connect socket with correct userId/token
+      _initSocket();
     } catch (e) {
       if (mounted) setState(() => _loadingData = false);
+      print('Dashboard Load Error: $e');
     }
   }
 
