@@ -66,6 +66,8 @@ const GprsPage = () => {
 
         socketRef.current.on("connect", () => {
             console.log("🟢 GPRS List Connected to Real-time Stream");
+            // Join the global fleet-dashboard room to receive all vehicle updates
+            socketRef.current?.emit("join-dashboard");
         });
 
         socketRef.current.on("telemetry-update", (newData: any) => {

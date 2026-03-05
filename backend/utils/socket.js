@@ -15,6 +15,11 @@ const initSocket = (server) => {
     io.on("connection", (socket) => {
         console.log(`📡 New device connected: ${socket.id}`);
 
+        socket.on("join-dashboard", () => {
+            socket.join("fleet-dashboard");
+            console.log(`📊 Socket ${socket.id} joined fleet-dashboard`);
+        });
+
         socket.on("join-vehicle", (vehicleNumber) => {
             console.log(`🚛 Socket ${socket.id} joining room: ${vehicleNumber}`);
             socket.join(vehicleNumber);
@@ -42,8 +47,10 @@ const getIO = () => {
 
 const emitTelemetry = (vehicleNumber, data) => {
     if (io) {
-        // console.log(`🚀 Emitting telemetry to room ${vehicleNumber}`);
+        // Emit to per-vehicle room (for VehicleTrackingPage)
         io.to(vehicleNumber).emit("telemetry-update", data);
+        // Also broadcast to fleet-dashboard room (for GprsPage)
+        io.to("fleet-dashboard").emit("telemetry-update", data);
     }
 };
 
