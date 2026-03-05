@@ -27,7 +27,6 @@ import ServiceShopPage from "../screens/pages/shops/services/ServiceShopPage";
 import ViewStaffDetail from "../screens/pages/staff/ViewStaffDetail";
 import AddServicePage from "../screens/pages/Vehicles/service/AddServicePage";
 import ServicePage from "../screens/pages/Vehicles/service/ServicePage";
-
 // --- MATERIAL SHOP IMPORTS ---
 import MaterialManagement from "../screens/pages/shops/material/MaterialManagement";
 import MaterialHistoryPage from "../screens/pages/shops/material/MaterialHistoryPage";
@@ -44,6 +43,7 @@ import InvoiceHistory from "../screens/pages/invoices/InvoiceHistory";
 import SettingsPage from "../screens/pages/settings/SettingsPage";
 import NotificationPage from "../screens/pages/notifications/NotificationPage";
 import DailyAttendance from "../screens/pages/staff/DailyAttendance";
+import GprsPage from "../screens/pages/Vehicles/Gprs/GprsPage";
 
 // --- CUSTOMER & LEDGER IMPORTS ---
 
@@ -200,6 +200,10 @@ const privateRoutes = [
   {
     path: "/stock",
     element: <StockInventory />,
+  },
+    {
+    path: "/vehicles/gprs",
+    element: <GprsPage />,
   },
   {
     path: "/settings",

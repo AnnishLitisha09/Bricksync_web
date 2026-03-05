@@ -49,6 +49,7 @@ const menu: MenuItem[] = [
       { name: "View Vehicles", path: "/vehicles" },
       { name: "Fuel Records", path: "/vehicles/fuel" },
       { name: "Service Logs", path: "/vehicles/services" },
+      { name: "GPRS Tracking", path: "/vehicles/gprs" },
     ],
   },
   {
