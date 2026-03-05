@@ -6,7 +6,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 // ─── BASE URL ────────────────────────────────────────────────────────────────
 // Android emulator → 10.0.2.2, physical device → your LAN IP
-const String _baseUrl = 'https://2s01cq2n-8945.inc1.devtunnels.ms/api';
+const String _baseUrl = 'https://3ncmhqdf-3000.inc1.devtunnels.ms/api';
 // ^^^  port must be 3000  ^^^
 
 class ApiService {
