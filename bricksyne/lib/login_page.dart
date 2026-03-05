@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'services/api_service.dart';
 import 'dashboard.dart';
 
 class LoginPage extends StatefulWidget {
@@ -11,54 +12,60 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-
-  // Controllers to capture user input
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   bool _acceptTerms = false;
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
-  // Validation Logic
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) return 'Please enter your email';
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    final emailRegex = RegExp(r'^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$');
     if (!emailRegex.hasMatch(value)) return 'Enter a valid email';
     return null;
   }
 
-  // Handle the Login Logic
-  void _handleLogin() {
-    // 1. Check if the form is valid (email format, etc.)
-    if (_formKey.currentState!.validate()) {
-      // 2. Check if terms are accepted
-      if (!_acceptTerms) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please accept the terms to proceed")),
-        );
-        return;
-      }
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
 
-      // 3. Verify Hardcoded Credentials
-      const String validEmail = "driver1@gmail.com";
-      const String validPass = "123456";
+    if (!_acceptTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please accept the terms to proceed"),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
-      if (_emailController.text.trim() == validEmail &&
-          _passwordController.text == validPass) {
-        // SUCCESS: Navigate to Dashboard
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const Dashboard()),
-        );
-      } else {
-        // FAILURE: Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Colors.redAccent,
-            content: Text("Invalid email or password. Please try again."),
+    setState(() => _isLoading = true);
+
+    try {
+      await ApiService.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const Dashboard()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.redAccent,
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-        );
-      }
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -195,7 +202,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   const SizedBox(height: 25),
                   _buildInputField(
                     label: "Corporate Email",
-                    hint: "driver1@gmail.com",
+                    hint: "your.email@company.com",
                     icon: Icons.alternate_email_rounded,
                     controller: _emailController,
                     validator: _validateEmail,
@@ -326,16 +333,25 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             borderRadius: BorderRadius.circular(18),
           ),
         ),
-        onPressed: _handleLogin, // Updated to use our new login logic function
-        child: const Text(
-          "LOGIN",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            letterSpacing: 1.2,
-          ),
-        ),
+        onPressed: _isLoading ? null : _handleLogin,
+        child: _isLoading
+            ? const SizedBox(
+                height: 22,
+                width: 22,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
+              )
+            : const Text(
+                "LOGIN",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  letterSpacing: 1.2,
+                ),
+              ),
       ),
     );
   }
@@ -391,13 +407,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           decoration: BoxDecoration(
             color: const Color(0xFF0D47A1).withOpacity(opacity),
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(5, 5),
-              ),
-            ],
           ),
         ),
       ),

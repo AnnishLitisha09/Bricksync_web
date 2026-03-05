@@ -82,6 +82,11 @@ exports.syncGprsData = async (req, res) => {
 exports.getGprsSummary = async (req, res) => {
     try {
         const summary = await Gprs.findAll({
+            include: [{
+                model: User,
+                as: 'user',
+                attributes: ['userid', 'name']
+            }],
             order: [["vehicleNumber", "ASC"]],
         });
         res.json(summary);
@@ -95,19 +100,27 @@ exports.assignDriver = async (req, res) => {
         if (!req.body) {
             return res.status(400).json({ message: "Request body is missing" });
         }
-        const { vehicleNumber, driverName } = req.body;
+        const { vehicleNumber, driverName, userid } = req.body;
         if (!vehicleNumber) {
             return res.status(400).json({ message: "Missing vehicleNumber" });
         }
 
         const [updated] = await Gprs.update(
-            { driverName: driverName || null },
+            {
+                driverName: driverName || null,
+                userid: userid || null
+            },
             { where: { vehicleNumber } }
         );
 
         if (!updated) {
             // Create if doesn't exist? Usually should exist from sync
-            await Gprs.create({ vehicleNumber, driverName: driverName || null, speed: 0 });
+            await Gprs.create({
+                vehicleNumber,
+                driverName: driverName || null,
+                userid: userid || null,
+                speed: 0
+            });
         }
 
         res.json({ message: "Driver assigned successfully" });
@@ -143,10 +156,14 @@ exports.getVehicleLiveData = async (req, res) => {
                         const vehicle = result.data.find(v => v.vehicle === vehicleNumber);
                         if (vehicle) {
                             // Fetch local assignment
-                            const localGprs = await Gprs.findOne({ where: { vehicleNumber } });
+                            const localGprs = await Gprs.findOne({
+                                where: { vehicleNumber },
+                                include: [{ model: User, as: 'user', attributes: ['userid', 'name'] }]
+                            });
                             const mergedVehicle = {
                                 ...vehicle,
-                                assignedDriver: localGprs ? localGprs.driverName : "No assigned driver"
+                                assignedDriver: localGprs ? (localGprs.user ? localGprs.user.name : localGprs.driverName) : "No assigned driver",
+                                userid: localGprs ? localGprs.userid : null
                             };
                             // Emit via Socket.io
                             emitTelemetry(vehicleNumber, mergedVehicle);

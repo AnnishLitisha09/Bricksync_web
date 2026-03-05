@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'services/api_service.dart';
+import 'login_page.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -8,85 +11,211 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
+  // ── State ──────────────────────────────────────────────────────────────────
+  String _driverName = 'Driver';
+  double _vehicleSpeed = 0;
+  String _vehicleNumber = '—';
+  int _daysPresent = 0;
+  bool _loadingData = true;
+  bool _speedLoading = false;
+
+  // Auto-refresh timer removed in favor of Socket.io
+
+  // ── Lifecycle ──────────────────────────────────────────────────────────────
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAllData();
+    // Initialize real-time speed tracking via Socket
+    _initSocket();
+  }
+
+  void _initSocket() {
+    ApiService.connectSocket(
+      onSpeedUpdate: (speed) {
+        if (mounted) {
+          setState(() {
+            _vehicleSpeed = speed;
+            _speedLoading = false;
+          });
+        }
+      },
+      onStatusUpdate: (status) {
+        if (mounted) {
+          print('Socket Status: $status');
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    ApiService.disposeSocket();
+    super.dispose();
+  }
+
+  // ── Data loading ───────────────────────────────────────────────────────────
+
+  Future<void> _loadAllData() async {
+    setState(() => _loadingData = true);
+    try {
+      final now = DateTime.now();
+
+      // Parallel fetch: profile + vehicle record + attendance
+      final results = await Future.wait([
+        ApiService.getUserProfile(),
+        ApiService.getMyVehicleRecord(),
+        ApiService.getMonthlyPresentCount(year: now.year, month: now.month),
+      ]);
+
+      if (!mounted) return;
+
+      final profile = results[0] as Map<String, dynamic>?;
+      final name = profile != null
+          ? (profile['name'] ?? 'Driver').toString()
+          : await ApiService.getUserName();
+      final vehicle = results[1] as Map<String, dynamic>?;
+      final present = results[2] as int;
+
+      setState(() {
+        _driverName = name;
+        _vehicleSpeed = (vehicle?['speed'] as num?)?.toDouble() ?? 0;
+        _vehicleNumber = (vehicle?['vehicleNumber'] as String?) ?? '—';
+        _daysPresent = present;
+        _loadingData = false;
+      });
+
+      print('--- DASHBOARD DATA LOADED ---');
+      print('Driver: $_driverName');
+      print('Vehicle: $_vehicleNumber');
+      print('Speed: $_vehicleSpeed');
+      print('Attendance: $_daysPresent days');
+      print('-----------------------------');
+    } catch (e) {
+      if (mounted) setState(() => _loadingData = false);
+    }
+  }
+
+  /// Lightweight speed-only refresh (called by timer).
+  Future<void> _refreshSpeed() async {
+    if (_vehicleNumber == '—') return; // no vehicle assigned yet
+    try {
+      setState(() => _speedLoading = true);
+      final vehicle = await ApiService.getMyVehicleRecord();
+      if (!mounted) return;
+      setState(() {
+        _vehicleSpeed = (vehicle?['speed'] as num?)?.toDouble() ?? 0;
+        if (vehicle != null) {
+          _vehicleNumber =
+              vehicle['vehicleNumber'] as String? ?? _vehicleNumber;
+        }
+        _speedLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _speedLoading = false);
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    await ApiService.logout();
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+    );
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    DateTime now = DateTime.now();
-    String monthYear = "${_getMonthName(now.month)} ${now.year}";
-    int daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
-    int daysPresent = 22;
-    String greeting = _getGreeting();
+    final now = DateTime.now();
+    final monthYear = '${_getMonthName(now.month)} ${now.year}';
+    final daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
+    final greeting = _getGreeting();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), // Ultra-clean background
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // --- PREMIUM HEADER SECTION ---
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                _buildModernHeader(),
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    child: Column(
-                      children: [
-                        _buildTopBar(),
-                        const SizedBox(height: 10),
-                        _buildProfileCard(
-                          greeting,
-                          monthYear,
-                          daysPresent,
-                          daysInMonth,
-                        ),
-                      ],
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: RefreshIndicator(
+        onRefresh: _loadAllData,
+        color: Colors.blueAccent,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              // ── HEADER ──────────────────────────────────────────────────────
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  _buildModernHeader(),
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      child: Column(
+                        children: [
+                          _buildTopBar(),
+                          const SizedBox(height: 10),
+                          _buildProfileCard(greeting, monthYear, daysInMonth),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // --- REFINED QUICK STATS BAR ---
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildQuickStatsRow(),
-            ),
-
-            const SizedBox(height: 28),
-
-            // --- FLEET MANAGEMENT GRID ---
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader("Fleet Management"),
-                  const SizedBox(height: 16),
-                  _buildAnimatedGrid(),
                 ],
               ),
-            ),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 12),
 
-            // --- PREMIUM PERFORMANCE CARD ---
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _buildPerformanceCard(),
-            ),
-            const SizedBox(height: 40),
-          ],
+              // ── VEHICLE SPEED CARD ──────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _buildVehicleSpeedCard(),
+              ),
+
+              const SizedBox(height: 20),
+
+              // ── QUICK STATS ─────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _buildQuickStatsRow(),
+              ),
+
+              const SizedBox(height: 28),
+
+              // ── FLEET MANAGEMENT GRID ───────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionHeader('Fleet Management'),
+                    const SizedBox(height: 16),
+                    _buildAnimatedGrid(),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // ── PERFORMANCE CARD ────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: _buildPerformanceCard(),
+              ),
+
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // 1. Modern Curved Header Background
+  // ── Widget builders ────────────────────────────────────────────────────────
+
   Widget _buildModernHeader() {
     return Container(
       height: 200,
@@ -113,7 +242,7 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "BrickSync",
+              'BrickSync',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 26,
@@ -122,7 +251,7 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
               ),
             ),
             Text(
-              "Logistics Dashboard",
+              'Driver Operations',
               style: TextStyle(
                 color: Colors.white54,
                 fontSize: 10,
@@ -131,28 +260,49 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
             ),
           ],
         ),
-        Container(
-          height: 45,
-          width: 45,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: const Icon(
-            Icons.notifications_active_outlined,
-            color: Colors.white,
-            size: 22,
-          ),
+        Row(
+          children: [
+            Container(
+              height: 45,
+              width: 45,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: const Icon(
+                Icons.notifications_active_outlined,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _handleLogout,
+              child: Container(
+                height: 45,
+                width: 45,
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Icon(
+                  Icons.logout_rounded,
+                  color: Colors.redAccent,
+                  size: 20,
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
+  /// Profile card showing greeting + driver name + attendance bar.
   Widget _buildProfileCard(
-    String greeting,
+    String greetingPrefix,
     String monthYear,
-    int present,
-    int total,
+    int daysInMonth,
   ) {
     return Container(
       margin: const EdgeInsets.only(top: 15),
@@ -170,30 +320,36 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
       ),
       child: Row(
         children: [
-          _buildDriverImage(),
+          _buildDriverAvatar(),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // e.g. "GOOD AFTERNOON, ASWATH 👋"
                 Text(
-                  greeting,
+                  _loadingData
+                      ? greetingPrefix
+                      : '$greetingPrefix, ${_driverName.split(' ').first.toUpperCase()} 👋',
                   style: TextStyle(
                     color: Colors.blueAccent.shade700,
                     fontWeight: FontWeight.w800,
                     fontSize: 11,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                const Text(
-                  "Driver One",
-                  style: TextStyle(
+                Text(
+                  _loadingData ? '...' : _driverName,
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                     color: Color(0xFF1E293B),
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 10),
-                _buildAnimatedAttendance(present, total, monthYear),
+                _buildAnimatedAttendance(_daysPresent, daysInMonth, monthYear),
               ],
             ),
           ),
@@ -202,7 +358,8 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildDriverImage() {
+  Widget _buildDriverAvatar() {
+    final initial = _driverName.isNotEmpty ? _driverName[0].toUpperCase() : 'D';
     return Stack(
       alignment: Alignment.bottomRight,
       children: [
@@ -215,13 +372,16 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
               width: 2,
             ),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(50),
-            child: Image.network(
-              'https://api.dicebear.com/7.x/avataaars/png?seed=Driver1',
-              width: 65,
-              height: 65,
-              fit: BoxFit.cover,
+          child: CircleAvatar(
+            radius: 32,
+            backgroundColor: const Color(0xFF0D47A1),
+            child: Text(
+              initial,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
@@ -235,7 +395,7 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
   }
 
   Widget _buildAnimatedAttendance(int present, int total, String date) {
-    double progress = present / total;
+    final progress = total > 0 ? (present / total).clamp(0.0, 1.0) : 0.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -251,7 +411,9 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
               ),
             ),
             Text(
-              "${(progress * 100).toInt()}% Coverage",
+              _loadingData
+                  ? '...'
+                  : '$present / $total days  •  ${(progress * 100).toInt()}%',
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
@@ -261,15 +423,15 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
           ],
         ),
         const SizedBox(height: 8),
-        TweenAnimationBuilder(
+        TweenAnimationBuilder<double>(
           tween: Tween<double>(begin: 0, end: progress),
           duration: const Duration(seconds: 1),
-          builder: (context, double value, child) {
+          builder: (context, value, child) {
             return ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: LinearProgressIndicator(
                 value: value,
-                backgroundColor: Colors.blueGrey.withOpacity(0.05),
+                backgroundColor: Colors.blueGrey.withOpacity(0.08),
                 color: Colors.blueAccent,
                 minHeight: 8,
               ),
@@ -277,6 +439,172 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
           },
         ),
       ],
+    );
+  }
+
+  /// Live-speed card with animated colour based on speed range.
+  Widget _buildVehicleSpeedCard() {
+    final speedColor = _vehicleSpeed > 75
+        ? Colors.red
+        : _vehicleSpeed > 40
+        ? Colors.orange
+        : _vehicleSpeed > 0
+        ? Colors.green
+        : Colors.blueGrey;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [const Color(0xFF0F172A), speedColor.withOpacity(0.6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: speedColor.withOpacity(0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Circular speed indicator
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: speedColor.withOpacity(0.4), width: 3),
+              color: Colors.white.withOpacity(0.05),
+            ),
+            child: (_loadingData || _speedLoading)
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _vehicleSpeed.toInt().toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          height: 1,
+                        ),
+                      ),
+                      Text(
+                        'km/h',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: _vehicleSpeed > 0
+                            ? Colors.greenAccent
+                            : Colors.grey,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _vehicleSpeed > 0 ? 'VEHICLE ACTIVE' : 'VEHICLE IDLE',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.6),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _vehicleNumber,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _loadingData
+                      ? 'Loading...'
+                      : (_vehicleNumber == '—'
+                            ? 'No vehicle assigned'
+                            : 'Assigned to $_driverName'),
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.5),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // Last refreshed hint
+                Row(
+                  children: [
+                    Icon(
+                      Icons.refresh_rounded,
+                      color: Colors.white30,
+                      size: 10,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Live updates via WebSocket',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.3),
+                        fontSize: 9,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Manual refresh button
+          GestureDetector(
+            onTap: () async {
+              await _refreshSpeed();
+            },
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.refresh_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -300,20 +628,22 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
         children: [
           _buildMiniStat(
             Icons.bolt_rounded,
-            "Top Speed",
-            "88 km/h",
+            'Live Speed',
+            (_loadingData || _speedLoading)
+                ? '...'
+                : '${_vehicleSpeed.toInt()} km/h',
             Colors.orange,
           ),
           _buildMiniStat(
-            Icons.local_shipping_outlined,
-            "Active",
-            "12 Trips",
+            Icons.calendar_today_outlined,
+            'Days Present',
+            _loadingData ? '...' : '$_daysPresent days',
             Colors.blue,
           ),
           _buildMiniStat(
             Icons.verified_user_outlined,
-            "Health",
-            "Excellent",
+            'Health',
+            'Excellent',
             Colors.green,
           ),
         ],
@@ -368,28 +698,28 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
       childAspectRatio: 1.1,
       children: [
         _buildActionCard(
-          "Trips",
+          'Trips',
           Icons.route_rounded,
           Colors.blue,
-          "Next: 2:00 PM",
+          'Next: 2:00 PM',
         ),
         _buildActionCard(
-          "Fuel Log",
+          'Fuel Log',
           Icons.local_gas_station_rounded,
           Colors.deepOrange,
-          "Last: 45L",
+          'Last: 45 L',
         ),
         _buildActionCard(
-          "Service",
+          'Service',
           Icons.build_circle_rounded,
           Colors.teal,
-          "In 3 Days",
+          'In 3 Days',
         ),
         _buildActionCard(
-          "E-Docs",
+          'E-Docs',
           Icons.fact_check_rounded,
           Colors.indigo,
-          "Verified",
+          'Verified',
         ),
       ],
     );
@@ -401,10 +731,10 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
     Color color,
     String desc,
   ) {
-    return TweenAnimationBuilder(
+    return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0.9, end: 1.0),
       duration: const Duration(milliseconds: 400),
-      builder: (context, double val, child) {
+      builder: (context, val, child) {
         return Transform.scale(
           scale: val,
           child: Container(
@@ -499,7 +829,7 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
                 backgroundColor: Colors.white10,
               ),
               const Text(
-                "98",
+                '98',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -514,7 +844,7 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Safety Excellence",
+                  'Safety Excellence',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
@@ -522,7 +852,7 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
                   ),
                 ),
                 Text(
-                  "Awarded Top Driver of March",
+                  'Awarded Top Driver of March',
                   style: TextStyle(
                     color: Colors.white60,
                     fontSize: 12,
@@ -562,7 +892,7 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
             borderRadius: BorderRadius.circular(12),
           ),
           child: const Text(
-            "View All",
+            'View All',
             style: TextStyle(
               color: Colors.blueAccent,
               fontSize: 11,
@@ -574,27 +904,29 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
     );
   }
 
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
   String _getGreeting() {
-    int hour = DateTime.now().hour;
-    if (hour < 12) return "GOOD MORNING";
-    if (hour < 17) return "GOOD AFTERNOON";
-    return "GOOD EVENING";
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'GOOD MORNING';
+    if (hour < 17) return 'GOOD AFTERNOON';
+    return 'GOOD EVENING';
   }
 
   String _getMonthName(int month) {
     return [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ][month - 1];
   }
 }

@@ -24,12 +24,23 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.DATE,
                 defaultValue: DataTypes.NOW,
             },
+            userid: {
+                type: DataTypes.INTEGER,
+                allowNull: true,
+            },
         },
         {
             tableName: "gprs",
             timestamps: true,
         }
     );
+
+    Gprs.associate = (models) => {
+        Gprs.belongsTo(models.User, {
+            foreignKey: "userid",
+            as: "user",
+        });
+    };
 
     return Gprs;
 };
