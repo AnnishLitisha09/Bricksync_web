@@ -44,6 +44,7 @@ import SettingsPage from "../screens/pages/settings/SettingsPage";
 import NotificationPage from "../screens/pages/notifications/NotificationPage";
 import DailyAttendance from "../screens/pages/staff/DailyAttendance";
 import GprsPage from "../screens/pages/Vehicles/Gprs/GprsPage";
+import VehicleTrackingPage from "../screens/pages/Vehicles/Gprs/VehicleTrackingPage";
 
 // --- CUSTOMER & LEDGER IMPORTS ---
 
@@ -201,9 +202,13 @@ const privateRoutes = [
     path: "/stock",
     element: <StockInventory />,
   },
-    {
+  {
     path: "/vehicles/gprs",
     element: <GprsPage />,
+  },
+  {
+    path: "/vehicles/gprs/track/:vehicleNumber",
+    element: <VehicleTrackingPage />,
   },
   {
     path: "/settings",

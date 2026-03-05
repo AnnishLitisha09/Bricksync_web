@@ -18,6 +18,13 @@ export const getGprsSummary = async () => {
     return response.json();
 };
 
+export const getVehicleLiveData = async (vehicleNumber: string) => {
+    const response = await fetch(`${BASE_URL}/gprs/live/${vehicleNumber}`, {
+        headers: getAuthHeader(),
+    });
+    return response.json();
+};
+
 export const assignDriver = async (vehicleNumber: string, driverName: string) => {
     const response = await fetch(`${BASE_URL}/gprs/assign`, {
         method: "POST",

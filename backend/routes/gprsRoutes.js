@@ -5,5 +5,6 @@ const gprsController = require("../controllers/gprsController");
 router.post("/sync", gprsController.syncGprsData);
 router.get("/summary", gprsController.getGprsSummary);
 router.post("/assign", gprsController.assignDriver);
+router.get("/live/:vehicleNumber", gprsController.getVehicleLiveData);
 
 module.exports = router;
