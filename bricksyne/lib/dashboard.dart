@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'services/api_service.dart';
 import 'login_page.dart';
+import 'profile_page.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -16,9 +17,11 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
   double _vehicleSpeed = 0;
   String _vehicleNumber = '—';
   int _daysPresent = 0;
-  bool _loadingData = true;
   bool _speedLoading = false;
+  bool _loadingData = true;
   Timer? _refreshTimer;
+  bool? _isPresentToday;
+  Timer? _absentTimer;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -34,7 +37,18 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
   void _startAutoRefresh() {
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      _loadAllData();
+      if (_isPresentToday == true) {
+        _loadAllData();
+      }
+    });
+  }
+
+  void _startAbsentTimer() {
+    _absentTimer?.cancel();
+    _absentTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (_isPresentToday == false) {
+        _loadAllData();
+      }
     });
   }
 
@@ -60,6 +74,7 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _absentTimer?.cancel();
     ApiService.disposeSocket();
     super.dispose();
   }
@@ -67,10 +82,28 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
   // ── Data loading ───────────────────────────────────────────────────────────
 
   Future<void> _loadAllData() async {
-    setState(() => _loadingData = true);
+    // Show main loader only on first load
+    if (_isPresentToday == null) {
+      setState(() => _loadingData = true);
+    }
     try {
       final now = DateTime.now();
-      // 1. Fetch Profile First (to get correct name/id)
+
+      // 0. Check Attendance First
+      final isPresent = await ApiService.checkTodayAttendance();
+      if (!mounted) return;
+
+      if (!isPresent) {
+        setState(() {
+          _isPresentToday = false;
+          _loadingData = false;
+        });
+        _startAbsentTimer();
+        return;
+      }
+
+      setState(() => _isPresentToday = true);
+      _absentTimer?.cancel();
       final profile = await ApiService.getUserProfile();
       if (!mounted) return;
 
@@ -149,6 +182,18 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
     final monthYear = '${_getMonthName(now.month)} ${now.year}';
     final daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
     final greeting = _getGreeting();
+
+    if (_isPresentToday == null || _loadingData) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF0F172A)),
+        ),
+      );
+    }
+
+    if (_isPresentToday == false) {
+      return _buildAbsentView();
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -373,39 +418,161 @@ class _DashboardState extends State<Dashboard> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildAbsentView() {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.event_busy_rounded,
+                  size: 80,
+                  color: Colors.red.shade400,
+                ),
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'Access Restricted',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0F172A),
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'You are marked as ABSENT for today. Please contact the Admin to verify and mark your attendance to unlock the dashboard.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.blueGrey.shade600,
+                  height: 1.5,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 48),
+              _buildModernButton(
+                onTap: _loadAllData,
+                icon: Icons.refresh_rounded,
+                label: 'CHECK STATUS NOW',
+                color: const Color(0xFF0F172A),
+              ),
+              const SizedBox(height: 16),
+              _buildModernButton(
+                onTap: _handleLogout,
+                icon: Icons.logout_rounded,
+                label: 'LOGOUT',
+                color: Colors.redAccent,
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.blueGrey,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Auto-checking every 10s...',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blueGrey.shade400,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernButton({
+    required VoidCallback onTap,
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 18),
+        label: Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+        ),
+      ),
+    );
+  }
+
   Widget _buildDriverAvatar() {
     final initial = _driverName.isNotEmpty ? _driverName[0].toUpperCase() : 'D';
-    return Stack(
-      alignment: Alignment.bottomRight,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.blueAccent.withOpacity(0.2),
-              width: 2,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ProfilePage()),
+        );
+      },
+      child: Stack(
+        alignment: Alignment.bottomRight,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.blueAccent.withOpacity(0.2),
+                width: 2,
+              ),
             ),
-          ),
-          child: CircleAvatar(
-            radius: 32,
-            backgroundColor: const Color(0xFF0D47A1),
-            child: Text(
-              initial,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+            child: CircleAvatar(
+              radius: 32,
+              backgroundColor: const Color(0xFF0D47A1),
+              child: Text(
+                initial,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
-        ),
-        const CircleAvatar(
-          radius: 8,
-          backgroundColor: Colors.green,
-          child: Icon(Icons.check, size: 10, color: Colors.white),
-        ),
-      ],
+          const CircleAvatar(
+            radius: 8,
+            backgroundColor: Colors.green,
+            child: Icon(Icons.check, size: 10, color: Colors.white),
+          ),
+        ],
+      ),
     );
   }
 

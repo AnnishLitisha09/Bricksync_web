@@ -307,4 +307,43 @@ class ApiService {
     } catch (_) {}
     return 0;
   }
+
+  /// Checks if the current driver is marked as present for today.
+  static Future<bool> checkTodayAttendance() async {
+    final token = await getToken();
+    final userId = await getUserId();
+    if (token == null || userId == 0) return false;
+
+    try {
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      final uri = Uri.parse(
+        '$_baseUrl/attendance/today',
+      ).replace(queryParameters: {'date': today});
+
+      final response = await http
+          .get(uri, headers: {'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> users = jsonDecode(response.body) as List<dynamic>;
+        // Find the current user in the list
+        final user = users.firstWhere(
+          (u) => u['userid'].toString() == userId.toString(),
+          orElse: () => null,
+        );
+
+        if (user != null && user['Attendances'] != null) {
+          final attendances = user['Attendances'] as List<dynamic>;
+          if (attendances.isNotEmpty) {
+            final first = attendances.first;
+            // Mark as present if either forenoon or afternoon is true
+            return (first['forenoon'] == true || first['afternoon'] == true);
+          }
+        }
+      }
+    } catch (e) {
+      print('Check Today Attendance Error: $e');
+    }
+    return false;
+  }
 }
