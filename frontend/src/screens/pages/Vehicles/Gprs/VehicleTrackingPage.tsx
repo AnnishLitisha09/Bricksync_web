@@ -1,14 +1,21 @@
-import { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-    ArrowLeft, MapPin, Clock, User as UserIcon,
-    Navigation, Activity, Zap, Maximize, Target,
-    ShieldCheck, ChevronUp, ChevronDown
+    Activity,
+    ArrowLeft,
+    Clock,
+    MapPin,
+    Maximize,
+    Navigation,
+    ShieldCheck,
+    Target,
+    User as UserIcon,
+    Zap
 } from "lucide-react";
-import { getVehicleLiveData } from "../../../../api/gprs";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { io, type Socket } from "socket.io-client";
 import { FILE_BASE_URL } from "../../../../api/base";
+import { getVehicleLiveData } from "../../../../api/gprs";
 
 const SOCKET_URL = FILE_BASE_URL;
 
