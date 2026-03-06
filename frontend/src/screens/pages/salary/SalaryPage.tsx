@@ -29,6 +29,7 @@ interface StaffSalary {
     id: number;
     name: string;
     phone: string;
+    staffRole: string;
     totalSalary: string;
     loader: {
         total: string;
@@ -363,13 +364,17 @@ const SalaryPage: React.FC = () => {
                                                         <tr key={i} className="hover:bg-slate-50/50 transition-colors">
                                                             <td className="px-6 py-4 text-xs font-bold text-slate-600">{new Date(item.date).toLocaleDateString()}</td>
                                                             <td className="px-6 py-4">
-                                                                <div className="flex gap-1">
-                                                                    {item.forenoon && <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black rounded uppercase">FN</span>}
-                                                                    {item.afternoon && <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[8px] font-black rounded uppercase">AN</span>}
+                                                                <div className="flex flex-col gap-1">
+                                                                    <span className="text-[10px] font-black text-slate-700 uppercase">{item.type}</span>
+                                                                    {item.session && <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black rounded w-fit">{item.session}</span>}
                                                                 </div>
                                                             </td>
-                                                            <td className="px-6 py-4 text-right text-xs font-bold text-slate-400">₹{selectedStaff.driver.rate}</td>
-                                                            <td className="px-6 py-4 text-right text-sm font-black text-blue-600">₹{selectedStaff.driver.rate}</td>
+                                                            <td className="px-6 py-4 text-right text-xs font-bold text-slate-400">
+                                                                {item.type === "Attendance" ? `₹${selectedStaff.driver.rate}` : "-"}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right text-sm font-black text-blue-600">
+                                                                ₹{item.amount}
+                                                            </td>
                                                         </tr>
                                                     ))}
                                                 </tbody>

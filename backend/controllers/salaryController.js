@@ -60,15 +60,14 @@ exports.getWeeklySalaryOverview = async (req, res) => {
         const rateSetting = await GlobalSetting.findOne({ where: { key: "driver_daily_rate" } });
         const driverRate = parseFloat(rateSetting ? rateSetting.value : 750);
 
-        // Fetch all Staff (userRole: 2)
+        // Fetch all Staff (userRole: 2) with staffRole
         const staff = await User.findAll({
             where: { userRole: 2, isDeleted: false },
-            attributes: ["userid", "name", "phoneNumber"]
+            attributes: ["userid", "name", "phoneNumber", "staffRole"]
         });
 
-        // 1. Fetch Orders (as Loader)
-        const allOrders = await OrderEmployee.findAll({
-            where: { role: "loader" },
+        // 1. Fetch Orders (Loader & Driver info)
+        const allOrderStaff = await OrderEmployee.findAll({
             include: [{
                 model: OrderItem,
                 as: "orderItem",
@@ -79,6 +78,9 @@ exports.getWeeklySalaryOverview = async (req, res) => {
                         is_deleted: false,
                         date: { [Op.between]: [startOfWeek, endOfWeek] }
                     }
+                }, {
+                    model: OrderEmployee,
+                    as: "orderEmployees"
                 }]
             }]
         });
@@ -101,44 +103,75 @@ exports.getWeeklySalaryOverview = async (req, res) => {
         });
 
         const salaryData = staff.map(member => {
-            // Components
+            // Determine which earning categories are allowed based on staffRole
+            const canEarnAsLoader = ["Driver", "Loader"].includes(member.staffRole);
+            const canEarnAsDriver = member.staffRole === "Driver";
+            const canEarnAsOperator = ["Driver", "Operator", "Stocker"].includes(member.staffRole);
+
+            // Loader Earnings (Amount Based - Shared among item loaders)
             let loaderTotal = 0;
-            const loaderOrders = allOrders
-                .filter(a => a.employee_id === member.userid && a.orderItem && a.orderItem.order)
-                .map(a => {
-                    const amt = (parseFloat(a.orderItem.quantity) || 0) * (parseFloat(a.orderItem.loader_charge_per_unit) || 0);
-                    loaderTotal += amt;
-                    return {
-                        date: a.orderItem.order.date,
-                        product: a.orderItem.product,
-                        qty: a.orderItem.quantity,
-                        rate: a.orderItem.loader_charge_per_unit,
-                        amount: amt.toFixed(2)
-                    };
+            const loaderOrders = [];
+            const drivenOrders = [];
+
+            if (canEarnAsLoader) {
+                allOrderStaff.forEach(a => {
+                    if (a.employee_id === member.userid && a.orderItem && a.orderItem.order) {
+                        if (a.role === "loader") {
+                            const numLoaders = a.orderItem.orderEmployees.filter(oe => oe.role === "loader").length || 1;
+                            const itemAmt = (parseFloat(a.orderItem.quantity) || 0) * (parseFloat(a.orderItem.loader_charge_per_unit) || 0);
+                            const share = itemAmt / numLoaders;
+                            loaderTotal += share;
+
+                            loaderOrders.push({
+                                date: a.orderItem.order.date,
+                                product: a.orderItem.product,
+                                qty: a.orderItem.quantity,
+                                rate: a.orderItem.loader_charge_per_unit,
+                                amount: share.toFixed(2)
+                            });
+                        } else if (a.role === "driver" && canEarnAsDriver) {
+                            drivenOrders.push({
+                                date: a.orderItem.order.date,
+                                product: a.orderItem.product,
+                                qty: a.orderItem.quantity,
+                                amount: "0.00 (Attendance Based)"
+                            });
+                        }
+                    }
                 });
+            }
 
-            const attendanceRecords = allAttendance.filter(a => a.userid === member.userid);
-            const driverTotal = attendanceRecords.length * driverRate;
+            // Driver Earnings (Attendance Based ONLY) - Only for Driver role
+            let attendanceRecords = [];
+            let driverTotal = 0;
+            if (canEarnAsDriver) {
+                attendanceRecords = allAttendance.filter(a => a.userid === member.userid);
+                driverTotal = attendanceRecords.length * driverRate;
+            }
 
+            // Operator Earnings (Amount Based - Shared among production staff)
             let operatorTotal = 0;
             const productionRecords = [];
-            productionLogs.forEach(log => {
-                if (log.employees.some(e => e.employee_id === member.userid)) {
-                    const share = ((parseFloat(log.number_of_stocks) || 0) * (parseFloat(log.price_per_stock) || 0)) / (log.employees.length || 1);
-                    operatorTotal += share;
-                    productionRecords.push({
-                        date: log.production_date,
-                        product: "Production",
-                        qty: log.number_of_stocks,
-                        amount: share.toFixed(2)
-                    });
-                }
-            });
+            if (canEarnAsOperator) {
+                productionLogs.forEach(log => {
+                    if (log.employees.some(e => e.employee_id === member.userid)) {
+                        const share = ((parseFloat(log.number_of_stocks) || 0) * (parseFloat(log.price_per_stock) || 0)) / (log.employees.length || 1);
+                        operatorTotal += share;
+                        productionRecords.push({
+                            date: log.production_date,
+                            product: "Production",
+                            qty: log.number_of_stocks,
+                            amount: share.toFixed(2)
+                        });
+                    }
+                });
+            }
 
             return {
                 id: member.userid,
                 name: member.name,
                 phone: member.phoneNumber,
+                staffRole: member.staffRole,
                 totalSalary: (loaderTotal + driverTotal + operatorTotal).toFixed(2),
 
                 // Breakdowns for the modal
@@ -151,7 +184,19 @@ exports.getWeeklySalaryOverview = async (req, res) => {
                     total: driverTotal.toFixed(2),
                     count: attendanceRecords.length,
                     rate: driverRate,
-                    details: attendanceRecords.map(a => ({ date: a.date, forenoon: a.forenoon, afternoon: a.afternoon }))
+                    details: [
+                        ...attendanceRecords.map(a => ({
+                            date: a.date,
+                            type: "Attendance",
+                            amount: driverRate.toFixed(2),
+                            session: (a.forenoon ? "FN" : "") + (a.forenoon && a.afternoon ? "+" : "") + (a.afternoon ? "AN" : "")
+                        })),
+                        ...drivenOrders.map(d => ({
+                            date: d.date,
+                            type: `Drive (${d.product})`,
+                            amount: "0.00"
+                        }))
+                    ]
                 },
                 operator: {
                     total: operatorTotal.toFixed(2),
