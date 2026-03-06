@@ -12,8 +12,6 @@ import {
     Calendar,
     Truck,
     Cpu,
-    CheckCircle2,
-    Info,
     Edit2,
     Save
 } from "lucide-react";
