@@ -40,6 +40,8 @@ export interface ProductionLog {
     production_date: string;
     unit_produced: string;
     cement_used: string;
+    price_per_stock: string;
+    number_of_stocks: string;
     product: { product_name: string; category: string };
     office: { office_name: string };
     employees?: { employee: { name: string } }[];

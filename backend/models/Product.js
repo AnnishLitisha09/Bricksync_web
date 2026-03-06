@@ -17,6 +17,10 @@ module.exports = (sequelize, DataTypes) => {
             },
             image_url: DataTypes.TEXT,
             description: DataTypes.TEXT,
+            price_per_stock: {
+                type: DataTypes.DECIMAL(10, 2),
+                defaultValue: 0.00,
+            },
             is_deleted: {
                 type: DataTypes.BOOLEAN,
                 defaultValue: false,

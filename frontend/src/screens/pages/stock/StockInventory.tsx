@@ -70,6 +70,8 @@ export default function StockPage() {
     qty: "",
     cementProductId: "",
     cementBags: "",
+    number_of_stocks: "",
+    price_per_stock: "",
     date: new Date().toISOString().split('T')[0],
     selectedStaffIds: [] as number[]
   });
@@ -139,9 +141,13 @@ export default function StockPage() {
 
     const qtyNum = parseFloat(productionForm.qty);
     const cementBagsNum = parseFloat(productionForm.cementBags);
+    const stocksNum = parseFloat(productionForm.number_of_stocks);
+    const priceNum = parseFloat(productionForm.price_per_stock);
 
-    if (qtyNum <= 0) { toast.error("Units produced must be a positive number."); return; }
-    if (cementBagsNum <= 0) { toast.error("Cement bags used must be a positive number."); return; }
+    if (isNaN(qtyNum) || qtyNum <= 0) { toast.error("Units produced must be a positive number."); return; }
+    if (isNaN(cementBagsNum) || cementBagsNum < 0) { toast.error("Cement bags used cannot be negative."); return; }
+    if (isNaN(stocksNum) || stocksNum < 0) { toast.error("Number of stocks cannot be negative."); return; }
+    if (isNaN(priceNum) || priceNum < 0) { toast.error("Price per stock cannot be negative."); return; }
 
     // Frontend validation: Check Cement Stock
     if (productionForm.cementProductId && productionForm.cementBags) {
@@ -163,7 +169,9 @@ export default function StockPage() {
       cement_used: cementBagsNum,
       cement_product_id: Number(productionForm.cementProductId),
       production_date: productionForm.date,
-      employee_ids: productionForm.selectedStaffIds
+      employee_ids: productionForm.selectedStaffIds,
+      number_of_stocks: stocksNum,
+      price_per_stock: priceNum
     };
 
     try {
@@ -171,7 +179,7 @@ export default function StockPage() {
       await logProduction(payload); // store handles invalidation + refetch
       toast.success("Production record saved and inventory updated!");
       setProductionModal(false);
-      setProductionForm({ shopId: "", productId: "", qty: "", cementProductId: "", cementBags: "", date: new Date().toISOString().split('T')[0], selectedStaffIds: [] });
+      setProductionForm({ shopId: "", productId: "", qty: "", cementProductId: "", cementBags: "", number_of_stocks: "", price_per_stock: "", date: new Date().toISOString().split('T')[0], selectedStaffIds: [] });
     } catch (err) {
       toast.error("Failed to log production. Please check your inputs.");
     } finally {
@@ -274,10 +282,16 @@ export default function StockPage() {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">2. Units Produced</label>
                     <input
                       required
-                      type="number"
-                      placeholder="00"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="0.00"
                       value={productionForm.qty}
-                      onChange={(e) => setProductionForm({ ...productionForm, qty: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                          setProductionForm({ ...productionForm, qty: val });
+                        }
+                      }}
                       className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
                     />
                   </div>
@@ -295,7 +309,7 @@ export default function StockPage() {
                     >
                       <option value="">{productionForm.shopId ? "Choose Item" : "Select Store"}</option>
                       {productionProducts
-                        .filter(p => p.product.category !== "cement")
+                        .filter(p => p.product.category === "bricks")
                         .map(p => (
                           <option key={p.stock_id} value={p.product_id}>{p.product.product_name}</option>
                         ))}
@@ -332,10 +346,16 @@ export default function StockPage() {
                       <HardHat className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                       <input
                         required
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         placeholder="Qty Used"
                         value={productionForm.cementBags}
-                        onChange={(e) => setProductionForm({ ...productionForm, cementBags: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                            setProductionForm({ ...productionForm, cementBags: val });
+                          }
+                        }}
                         className="w-full pl-11 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
                       />
                     </div>
@@ -379,6 +399,42 @@ export default function StockPage() {
                         </motion.span>
                       );
                     })}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">7. No. of Stocks</label>
+                    <input
+                      required
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="0"
+                      value={productionForm.number_of_stocks}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || /^\d*$/.test(val)) {
+                          setProductionForm({ ...productionForm, number_of_stocks: val });
+                        }
+                      }}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">8. Price Per Stock</label>
+                    <input
+                      required
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      value={productionForm.price_per_stock}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                          setProductionForm({ ...productionForm, price_per_stock: val });
+                        }
+                      }}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
+                    />
                   </div>
                 </div>
 

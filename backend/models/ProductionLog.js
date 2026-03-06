@@ -22,6 +22,14 @@ module.exports = (sequelize, DataTypes) => {
                 allowNull: true,
             },
             production_date: DataTypes.DATEONLY,
+            number_of_stocks: {
+                type: DataTypes.INTEGER,
+                defaultValue: 0,
+            },
+            price_per_stock: {
+                type: DataTypes.DECIMAL(10, 2),
+                defaultValue: 0.00,
+            },
             is_deleted: {
                 type: DataTypes.BOOLEAN,
                 defaultValue: false,

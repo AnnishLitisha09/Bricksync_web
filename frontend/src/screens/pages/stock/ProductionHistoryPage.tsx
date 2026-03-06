@@ -8,23 +8,29 @@ import {
   Layers,
   HardHat,
   Filter,
-  ChevronLeft,
-  ChevronRight,
   Trash2,
   AlertTriangle,
-  X
+  X,
+  Plus,
+  Save,
+  Loader2,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { getProductionHistory, deleteProductionLog } from "../../../api/inventory";
 import toast from "react-hot-toast";
+import { useStockStore } from "../../../store/useStockStore";
 
 interface ProductionLog {
   production_id: number;
   production_date: string;
   unit_produced: string;
   cement_used: string;
+  number_of_stocks: string;
+  price_per_stock: string;
   cementProduct?: {
     product_name: string;
   };
@@ -49,6 +55,25 @@ export default function ProductionHistoryPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const itemsPerPage = 10;
+
+  const { stock, offices, employees: staffList, logProduction, fetchStockData } = useStockStore();
+  const [productionModal, setProductionModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [productionForm, setProductionForm] = useState({
+    shopId: "",
+    productId: "",
+    qty: "",
+    cementProductId: "",
+    cementBags: "",
+    number_of_stocks: "",
+    price_per_stock: "",
+    date: new Date().toISOString().split('T')[0],
+    selectedStaffIds: [] as number[]
+  });
+
+  useEffect(() => {
+    fetchStockData();
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -76,6 +101,110 @@ export default function ProductionHistoryPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [search]);
+
+  const weeklyEarnings = useMemo(() => {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // Saturday
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const earnings: Record<string, number> = {};
+
+    history.forEach(log => {
+      const logDate = new Date(log.production_date);
+      if (logDate >= startOfWeek && logDate <= endOfWeek) {
+        const total = parseFloat(log.number_of_stocks || "0") * parseFloat(log.price_per_stock || "0");
+        const count = log.employees?.length || 1;
+        const perPerson = total / count;
+
+        log.employees?.forEach(e => {
+          const name = e.employee?.name || "Unknown";
+          earnings[name] = (earnings[name] || 0) + perPerson;
+        });
+      }
+    });
+
+    return Object.entries(earnings)
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [history]);
+
+  const productionProducts = useMemo(() => {
+    return stock.filter(p => p.office_id === Number(productionForm.shopId));
+  }, [productionForm.shopId, stock]);
+
+  const cementProducts = useMemo(() => {
+    return stock
+      .filter(p => p.office_id === Number(productionForm.shopId) && p.product.category === "cement")
+      .map(p => ({
+        product_id: p.product_id,
+        product_name: p.product.product_name
+      }));
+  }, [productionForm.shopId, stock]);
+
+  const handleStaffSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = Number(e.target.value);
+    if (id && !productionForm.selectedStaffIds.includes(id)) {
+      setProductionForm({
+        ...productionForm,
+        selectedStaffIds: [...productionForm.selectedStaffIds, id]
+      });
+    }
+  };
+
+  const removeStaff = (id: number) => {
+    setProductionForm({
+      ...productionForm,
+      selectedStaffIds: productionForm.selectedStaffIds.filter(s => s !== id)
+    });
+  };
+
+  const handleProductionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (productionForm.selectedStaffIds.length === 0) {
+      toast.error("Please assign at least one staff member.");
+      return;
+    }
+
+    const qtyNum = parseFloat(productionForm.qty);
+    const cementBagsNum = parseFloat(productionForm.cementBags);
+    const stocksNum = parseFloat(productionForm.number_of_stocks);
+    const priceNum = parseFloat(productionForm.price_per_stock);
+
+    if (isNaN(qtyNum) || qtyNum <= 0) { toast.error("Units produced must be a positive number."); return; }
+    if (isNaN(cementBagsNum) || cementBagsNum < 0) { toast.error("Cement bags used cannot be negative."); return; }
+    if (isNaN(stocksNum) || stocksNum < 0) { toast.error("Number of stocks cannot be negative."); return; }
+    if (isNaN(priceNum) || priceNum < 0) { toast.error("Price per stock cannot be negative."); return; }
+
+    const payload = {
+      office_id: Number(productionForm.shopId),
+      product_id: Number(productionForm.productId),
+      unit_produced: qtyNum,
+      cement_used: cementBagsNum,
+      cement_product_id: Number(productionForm.cementProductId),
+      production_date: productionForm.date,
+      employee_ids: productionForm.selectedStaffIds,
+      number_of_stocks: stocksNum,
+      price_per_stock: priceNum
+    };
+
+    try {
+      setSubmitting(true);
+      await logProduction(payload);
+      getProductionHistory().then(setHistory);
+      toast.success("Production record saved!");
+      setProductionModal(false);
+      setProductionForm({ shopId: "", productId: "", qty: "", cementProductId: "", cementBags: "", number_of_stocks: "", price_per_stock: "", date: new Date().toISOString().split('T')[0], selectedStaffIds: [] });
+    } catch (err) {
+      toast.error("Failed to log production.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -113,9 +242,48 @@ export default function ProductionHistoryPage() {
           </h1>
           <p className="text-slate-400 text-[9px] md:text-[10px] font-bold uppercase tracking-widest">Manufacturing Logs</p>
         </div>
-        <div className="p-2 md:p-3 bg-white rounded-xl md:rounded-2xl shadow-sm text-orange-600 border border-gray-100">
-          <Filter size={18} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setProductionModal(true)}
+            className="p-2 md:p-3 bg-slate-900 rounded-xl md:rounded-2xl shadow-sm text-white hover:bg-orange-600 transition-all border border-slate-800 flex items-center gap-2"
+          >
+            <Plus size={18} />
+            <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">New Entry</span>
+          </button>
+          <div className="p-2 md:p-3 bg-white rounded-xl md:rounded-2xl shadow-sm text-orange-600 border border-gray-100">
+            <Filter size={18} />
+          </div>
         </div>
+      </div>
+
+      {/* WEEKLY EARNINGS CARDS */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-6">
+        {weeklyEarnings.length > 0 ? (
+          weeklyEarnings.slice(0, 5).map((staff, idx) => (
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: idx * 0.1 }}
+              key={idx}
+              className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-orange-50 text-orange-600 rounded-xl">
+                  <Users size={14} />
+                </div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter truncate">{staff.name}</span>
+              </div>
+              <div>
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-widest block">This Week</span>
+                <span className="text-lg font-black text-slate-800 tracking-tight">₹{staff.amount.toLocaleString()}</span>
+              </div>
+            </motion.div>
+          ))
+        ) : (
+          <div className="col-span-full py-4 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No earnings data for this week</p>
+          </div>
+        )}
       </div>
 
       {/* SEARCH BAR */}
@@ -152,6 +320,7 @@ export default function ProductionHistoryPage() {
                 <th className="px-6 py-5 text-left">Material</th>
                 <th className="px-6 py-5 text-center">Qty</th>
                 <th className="px-6 py-5 text-center">Cement</th>
+                <th className="px-6 py-5 text-center">Earnings/Person</th>
                 <th className="px-6 py-5 text-center">Staff Assigned</th>
                 <th className="px-6 py-5 text-right">Actions</th>
               </tr>
@@ -196,6 +365,21 @@ export default function ProductionHistoryPage() {
                     ) : (
                       <div className="text-slate-300 text-[10px] font-bold uppercase italic">None</div>
                     )}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex flex-col items-center gap-1 w-full max-w-[200px] mx-auto">
+                      {(() => {
+                        const totalAmount = parseFloat(log.number_of_stocks || "0") * parseFloat(log.price_per_stock || "0");
+                        const empCount = log.employees?.length || 1;
+                        const perPerson = totalAmount / empCount;
+                        return log.employees?.map((emp, idx) => (
+                          <div key={idx} className="text-[10px] font-bold text-slate-600 uppercase flex justify-between w-full border-b border-gray-100 pb-1 last:border-0">
+                            <span>{emp.employee?.name.split(' ')[0]}</span>
+                            <span className="text-orange-600">₹{perPerson.toFixed(2)}</span>
+                          </div>
+                        )) || <span className="text-slate-300">N/A</span>;
+                      })()}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex flex-wrap justify-end gap-1 ml-auto">
@@ -269,6 +453,227 @@ export default function ProductionHistoryPage() {
           </div>
         )}
       </div>
+      {/* PRODUCTION ENTRY MODAL */}
+      <AnimatePresence>
+        {productionModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 50, opacity: 0 }}
+              className="bg-white rounded-[2.5rem] p-8 w-full max-w-lg shadow-2xl overflow-y-auto max-h-[90vh]"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
+                  <Calendar size={24} />
+                </div>
+                <button onClick={() => setProductionModal(false)} className="text-slate-400 hover:text-red-500 transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Production <span className="text-orange-600">Entry</span></h3>
+              <p className="text-slate-500 text-[10px] font-bold mb-4 uppercase tracking-widest">Daily Log for manufacturing units</p>
+
+              <div className="mb-6 p-4 bg-orange-50/50 border border-orange-100 rounded-2xl flex items-center justify-between">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Production Date</label>
+                  <input
+                    type="date"
+                    value={productionForm.date}
+                    onChange={(e) => setProductionForm({ ...productionForm, date: e.target.value })}
+                    className="bg-transparent text-sm font-black text-slate-700 outline-none border-b-2 border-orange-200 focus:border-orange-500 transition-all cursor-pointer"
+                  />
+                </div>
+                <div className="p-2 bg-white rounded-xl shadow-sm text-orange-600">
+                  <Calendar size={20} />
+                </div>
+              </div>
+
+              <form onSubmit={handleProductionSubmit} className="space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">1. Store</label>
+                    <select
+                      required
+                      value={productionForm.shopId}
+                      onChange={(e) => setProductionForm({ ...productionForm, shopId: e.target.value, productId: "" })}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
+                    >
+                      <option value="">Select Shop</option>
+                      {offices.map(o => (
+                        <option key={o.office_id} value={o.office_id}>{o.office_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">2. Units Produced</label>
+                    <input
+                      required
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      value={productionForm.qty}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                          setProductionForm({ ...productionForm, qty: val });
+                        }
+                      }}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">3. Material</label>
+                    <select
+                      required
+                      disabled={!productionForm.shopId}
+                      value={productionForm.productId}
+                      onChange={(e) => setProductionForm({ ...productionForm, productId: e.target.value })}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none disabled:opacity-50"
+                    >
+                      <option value="">{productionForm.shopId ? "Choose Item" : "Select Store"}</option>
+                      {productionProducts
+                        .filter(p => p.product.category === "bricks")
+                        .map(p => (
+                          <option key={p.stock_id} value={p.product_id}>{p.product.product_name}</option>
+                        ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">4. Cement Type</label>
+                    <select
+                      required
+                      disabled={!productionForm.shopId}
+                      value={productionForm.cementProductId}
+                      onChange={(e) => setProductionForm({ ...productionForm, cementProductId: e.target.value })}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none disabled:opacity-50"
+                    >
+                      <option value="">{productionForm.shopId ? "Select Cement" : "Select Store"}</option>
+                      {cementProducts.map(p => (
+                        <option key={p.product_id} value={p.product_id}>{p.product_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex justify-between items-center ml-1 mb-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">5. Cement Bags</label>
+                    </div>
+                    <div className="relative">
+                      <HardHat className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                      <input
+                        required
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="Qty Used"
+                        value={productionForm.cementBags}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                            setProductionForm({ ...productionForm, cementBags: val });
+                          }
+                        }}
+                        className="w-full pl-11 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">6. Assign Staff</label>
+                    <select
+                      onChange={handleStaffSelect}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
+                    >
+                      <option value="">Select Staff Members</option>
+                      {staffList.map(emp => (
+                        <option key={emp.employee_id} value={emp.employee_id}>{emp.employee_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* STAFF SELECTED LIST */}
+                <div>
+                  <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                    {productionForm.selectedStaffIds.length === 0 && (
+                      <span className="text-[10px] text-red-400 font-black uppercase p-2">* Select at least one staff member</span>
+                    )}
+                    {productionForm.selectedStaffIds.map(id => {
+                      const staff = staffList.find(s => s.employee_id === id);
+                      return (
+                        <motion.span
+                          layout
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                          key={id}
+                          className="flex items-center gap-1.5 bg-white border border-slate-100 text-slate-700 px-3 py-1.5 rounded-xl text-[11px] font-black shadow-sm"
+                        >
+                          <Users size={12} className="text-orange-500" />
+                          {staff?.employee_name}
+                          <button type="button" onClick={() => removeStaff(id)} className="hover:text-red-500 ml-1">
+                            <X size={14} />
+                          </button>
+                        </motion.span>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">7. No. of Stocks</label>
+                    <input
+                      required
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="0"
+                      value={productionForm.number_of_stocks}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || /^\d*$/.test(val)) {
+                          setProductionForm({ ...productionForm, number_of_stocks: val });
+                        }
+                      }}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">8. Price Per Stock</label>
+                    <input
+                      required
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      value={productionForm.price_per_stock}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                          setProductionForm({ ...productionForm, price_per_stock: val });
+                        }
+                      }}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:bg-orange-600 transition-all active:scale-95 flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
+                >
+                  {submitting ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /> Save Daily Record</>}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* DELETE CONFIRMATION MODAL */}
       <AnimatePresence>
         {deleteId && (

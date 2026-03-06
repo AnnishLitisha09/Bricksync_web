@@ -7,8 +7,8 @@ exports.createProduction = async (req, res) => {
     console.log("Creating production log with body:", req.body);
     const t = await sequelize.transaction();
     try {
-        const { office_id, product_id, unit_produced, cement_used, cement_product_id, production_date, employee_ids } = req.body;
-        console.log("Extracted fields:", { office_id, product_id, unit_produced, cement_used, cement_product_id, production_date });
+        const { office_id, product_id, unit_produced, cement_used, cement_product_id, production_date, employee_ids, number_of_stocks, price_per_stock } = req.body;
+        console.log("Extracted fields:", { office_id, product_id, unit_produced, cement_used, cement_product_id, production_date, number_of_stocks, price_per_stock });
 
         // 🔹 PRE-VALIDATION: Check Cement Stock Availability
         if (cement_product_id && cement_used) {
@@ -39,7 +39,9 @@ exports.createProduction = async (req, res) => {
                 unit_produced: parseFloat(unit_produced),
                 cement_used: parseFloat(cement_used || 0),
                 cement_product_id: cement_product_id ? Number(cement_product_id) : null,
-                production_date
+                production_date,
+                number_of_stocks: parseInt(number_of_stocks || 0),
+                price_per_stock: parseFloat(price_per_stock || 0)
             },
             { transaction: t }
         );
