@@ -56,7 +56,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
-
+      dailySalary: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 750.0,
+      },
       resetPasswordToken: DataTypes.STRING,
       resetPasswordExpires: DataTypes.DATE,
     },

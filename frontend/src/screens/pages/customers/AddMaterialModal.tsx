@@ -540,7 +540,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
                           >
                             <option value="">+ Driver</option>
                             {options.employees
-                              .filter(e => e.staff_role === "Driver" && !mat.driver_ids.includes(e.employee_id))
+                              .filter(e => !mat.driver_ids.includes(e.employee_id))
                               .map(d => <option key={d.employee_id} value={d.employee_id}>{d.employee_name}</option>)}
                           </select>
                           <select
@@ -564,7 +564,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
                           >
                             <option value="">+ Loader</option>
                             {options.employees
-                              .filter(e => e.staff_role === "Loader" && !mat.loader_ids.includes(e.employee_id))
+                              .filter(e => !mat.loader_ids.includes(e.employee_id))
                               .map(l => <option key={l.employee_id} value={l.employee_id}>{l.employee_name}</option>)}
                           </select>
                         </div>
