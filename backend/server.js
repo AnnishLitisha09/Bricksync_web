@@ -155,6 +155,7 @@ app.use("/api/notepad", require("./routes/notepadRoutes"));
 app.use("/api/invoices", require("./routes/invoiceRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/analytics", require("./routes/analyticsRoutes"));
+app.use("/api/salary", require("./routes/salaryRoutes"));
 
 
 

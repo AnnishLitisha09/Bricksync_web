@@ -100,7 +100,8 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
       rate: "",
       vehicle_id: "",
       driver_ids: [] as number[],
-      loader_ids: [] as number[]
+      loader_ids: [] as number[],
+      loader_charge_per_unit: ""
     }
   ]);
 
@@ -174,6 +175,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
             vehicle_id: item.vehicle_id?.toString() || "",
             driver_ids: item.orderEmployees?.filter((oe: any) => oe.role === 'driver').map((oe: any) => oe.employee_id) || [],
             loader_ids: item.orderEmployees?.filter((oe: any) => oe.role === 'loader').map((oe: any) => oe.employee_id) || [],
+            loader_charge_per_unit: item.loader_charge_per_unit?.toString() || "",
           })));
         } else {
           // Fallback for legacy format if any
@@ -187,6 +189,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
             vehicle_id: editData.vehicle_id?.toString() || "",
             driver_ids: editData.orderEmployees?.filter((oe: any) => oe.role === 'driver').map((oe: any) => oe.employee_id) || [],
             loader_ids: editData.orderEmployees?.filter((oe: any) => oe.role === 'loader').map((oe: any) => oe.employee_id) || [],
+            loader_charge_per_unit: editData.loader_charge_per_unit?.toString() || "",
           }]);
         }
       } else {
@@ -202,6 +205,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
           vehicle_id: "",
           driver_ids: [],
           loader_ids: [],
+          loader_charge_per_unit: "",
         }]);
       }
 
@@ -302,6 +306,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
       vehicle_id: "",
       driver_ids: [],
       loader_ids: [],
+      loader_charge_per_unit: "",
     }]);
   };
 
@@ -348,6 +353,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
           vehicle_id: Number(m.vehicle_id),
           driver_ids: m.driver_ids,
           loader_ids: m.loader_ids,
+          loader_charge_per_unit: Number(m.loader_charge_per_unit) || 0,
         }))
       };
 
@@ -483,7 +489,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
                       </select>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <div>
                         <label className={labelClass}>Quantity</label>
                         <div className="relative">
@@ -496,6 +502,13 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
                         <div className="relative">
                           <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                           <input type="number" placeholder="0.00" className={`${inputClass} pl-12`} value={mat.rate} onChange={(e) => updateMaterial(index, { rate: e.target.value })} required />
+                        </div>
+                      </div>
+                      <div>
+                        <label className={labelClass}>Amount Per Brick</label>
+                        <div className="relative">
+                          <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                          <input type="number" placeholder="0.00" className={`${inputClass} pl-12`} value={mat.loader_charge_per_unit} onChange={(e) => updateMaterial(index, { loader_charge_per_unit: e.target.value })} required />
                         </div>
                       </div>
                     </div>

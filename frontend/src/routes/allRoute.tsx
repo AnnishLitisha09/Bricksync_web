@@ -45,6 +45,7 @@ import NotificationPage from "../screens/pages/notifications/NotificationPage";
 import DailyAttendance from "../screens/pages/staff/DailyAttendance";
 import GprsPage from "../screens/pages/Vehicles/Gprs/GprsPage";
 import VehicleTrackingPage from "../screens/pages/Vehicles/Gprs/VehicleTrackingPage";
+import SalaryPage from "../screens/pages/salary/SalaryPage";
 
 // --- CUSTOMER & LEDGER IMPORTS ---
 
@@ -213,6 +214,10 @@ const privateRoutes = [
   {
     path: "/settings",
     element: <SettingsPage />,
+  },
+  {
+    path: "/salary",
+    element: <SalaryPage />,
   },
   {
     path: "*",

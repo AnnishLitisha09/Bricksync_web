@@ -70,6 +70,10 @@ module.exports = (sequelize, DataTypes) => {
     User.hasMany(models.Attendance, {
       foreignKey: "userid",
     });
+    User.hasMany(models.OrderEmployee, {
+      foreignKey: "employee_id",
+      as: "loaderAssignments",
+    });
   };
 
   return User;

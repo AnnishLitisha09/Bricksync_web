@@ -78,6 +78,7 @@ const menu: MenuItem[] = [
     children: [
       { name: "All Staff", path: "/staff" },
       { name: "Attendance", path: "/staff/attendance" },
+      { name: "Salary", path: "/salary" },
     ],
   },
   {

@@ -37,6 +37,11 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.INTEGER,
                 allowNull: true,
             },
+            loader_charge_per_unit: {
+                type: DataTypes.DECIMAL(10, 2),
+                allowNull: false,
+                defaultValue: 0.00,
+            },
         },
         {
             tableName: "order_items",
