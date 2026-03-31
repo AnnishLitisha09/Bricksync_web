@@ -11,11 +11,13 @@ import {
   ReceiptText,
   TrendingUp,
   Wallet,
+  Trash2,
   Wrench,
   X
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import { BASE_URL, getAuthHeader } from "../../../../api/base";
 import { useBankStore } from "../../../../store/bankStore";
 
@@ -58,6 +60,8 @@ export default function ServiceHistoryPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<Transaction | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [paymentForm, setPaymentForm] = useState({
     amount: "",
     bankId: "",
@@ -265,12 +269,22 @@ export default function ServiceHistoryPage() {
 
       <div className="grid grid-cols-1 gap-4">
         {activeTab === 'all' && combinedTimeline.map((item, idx) => (
-          <div key={`${item.id}-${idx}`} ref={idx === combinedTimeline.length - 1 ? lastElementRef : null}>
+          <div 
+            key={`${item.id}-${idx}`} 
+            ref={idx === combinedTimeline.length - 1 ? lastElementRef : null}
+            onClick={() => { if (item.type === 'service') { setSelectedLog(item); setIsDetailModalOpen(true); } }}
+            className="cursor-pointer"
+          >
             {item.type === 'service' ? <ServiceLogRow log={item} idx={idx} /> : <StatementRow st={item} idx={idx} />}
           </div>
         ))}
         {activeTab === 'logs' && serviceLogs.map((log, idx) => (
-          <div key={`${log.id}-${idx}`} ref={idx === serviceLogs.length - 1 ? lastElementRef : null}>
+          <div 
+            key={`${log.id}-${idx}`} 
+            ref={idx === serviceLogs.length - 1 ? lastElementRef : null}
+            onClick={() => { setSelectedLog(log); setIsDetailModalOpen(true); }}
+            className="cursor-pointer"
+          >
             <ServiceLogRow log={log} idx={idx} />
           </div>
         ))}
@@ -362,6 +376,23 @@ export default function ServiceHistoryPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* --- LOG DETAIL & EDIT MODAL --- */}
+      <AnimatePresence>
+        {isDetailModalOpen && selectedLog && (
+          <LogDetailModal 
+            log={selectedLog} 
+            onClose={() => setIsDetailModalOpen(false)} 
+            onUpdate={() => {
+              setPage(1);
+              setHasMore(true);
+              setServiceLogs([]);
+              fetchData(1);
+              setIsDetailModalOpen(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -445,6 +476,168 @@ function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
         <p className="font-black text-[10px] uppercase truncate">{st.bank?.holderName || 'Account Holder'}</p>
       </div>
     </motion.div>
+  );
+}
+
+function LogDetailModal({ log, onClose, onUpdate }: { log: Transaction; onClose: () => void; onUpdate: () => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    topic: log.topic || "",
+    description: log.description || "",
+    amount: log.amount.toString(),
+    kilometer: (log.kilometer || 0).toString(),
+    date: log.date ? log.date.split('T')[0] : new Date().toISOString().split('T')[0]
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsSaving(true);
+      const res = await fetch(`${BASE_URL}/vehicle-services/${log.id}`, {
+        method: 'PUT',
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...log,
+          ...formData,
+          amount: Number(formData.amount),
+          kilometer: Number(formData.kilometer)
+        })
+      });
+      if (!res.ok) throw new Error("Update failed");
+      toast.success("Service record updated");
+      onUpdate();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to delete this log?")) return;
+    try {
+      setIsSaving(true);
+      const res = await fetch(`${BASE_URL}/vehicle-services/${log.id}`, {
+        method: 'DELETE',
+        headers: getAuthHeader()
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      toast.success("Service record deleted");
+      onUpdate();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+      <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Service Details</h2>
+            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">Vehicle Log Entry</p>
+          </div>
+          <div className="flex items-center gap-3">
+             <button onClick={() => setIsEditing(!isEditing)} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all text-slate-600">
+               {isEditing ? "Cancel" : "Edit Log"}
+             </button>
+             <button onClick={onClose} className="p-2 hover:bg-white rounded-full transition-colors text-slate-400"><X size={20} /></button>
+          </div>
+        </div>
+
+        <form onSubmit={handleUpdate} className="p-8 space-y-8">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                 <div className="p-6 bg-slate-900 text-white rounded-[2rem] shadow-xl">
+                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Vehicle Reference</p>
+                    <p className="text-lg font-black uppercase">{log.vehicle?.vehicleName || "Unknown"}</p>
+                    <p className="text-xs font-mono text-blue-400">{log.vehicle?.vehicleNumber || "N/A"}</p>
+                 </div>
+                 
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Service Topic</label>
+                    {isEditing ? (
+                      <input required value={formData.topic} onChange={e => setFormData({...formData, topic: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3 font-black text-slate-800" />
+                    ) : (
+                      <p className="px-5 py-3 bg-white border border-slate-50 rounded-2xl font-black text-slate-800">{log.topic || "Routine Service"}</p>
+                    )}
+                 </div>
+
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Odometer Reading (KM)</label>
+                    {isEditing ? (
+                      <input type="number" required value={formData.kilometer} onChange={e => setFormData({...formData, kilometer: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3 font-black text-slate-800" />
+                    ) : (
+                      <div className="flex items-center gap-3 px-5 py-3 bg-white border border-slate-50 rounded-2xl">
+                         <Gauge size={16} className="text-blue-500" />
+                         <span className="font-black text-slate-800">{log.kilometer?.toLocaleString()} KM</span>
+                      </div>
+                    )}
+                 </div>
+              </div>
+
+              <div className="space-y-6">
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Service Date</label>
+                    {isEditing ? (
+                      <input type="date" required value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3 font-black text-slate-800" />
+                    ) : (
+                      <p className="px-5 py-3 bg-white border border-slate-50 rounded-2xl font-black text-slate-800">
+                        {new Date(log.date || "").toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
+                      </p>
+                    )}
+                 </div>
+
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Billing Amount</label>
+                    {isEditing ? (
+                      <div className="relative">
+                        <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-400">₹</span>
+                        <input type="number" required value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-10 pr-5 py-3 font-black text-slate-800" />
+                      </div>
+                    ) : (
+                      <p className="text-3xl font-black text-slate-900">₹{log.amount.toLocaleString()}</p>
+                    )}
+                 </div>
+
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Additional Notes</label>
+                    {isEditing ? (
+                      <textarea rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Maintenance details..." className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-bold text-slate-600 text-sm outline-none" />
+                    ) : (
+                      <p className="text-slate-500 font-medium text-sm leading-relaxed">{log.description || "No description provided."}</p>
+                    )}
+                 </div>
+              </div>
+           </div>
+
+           <div className="pt-8 border-t border-slate-50 flex items-center justify-between gap-4">
+              <button 
+                type="button"
+                onClick={handleDelete}
+                className="px-6 py-4 text-rose-500 hover:text-rose-600 font-black uppercase tracking-widest text-[10px] flex items-center gap-2"
+              >
+                <Trash2 size={16} /> Delete Record
+              </button>
+
+              {isEditing && (
+                <button 
+                  type="submit" 
+                  disabled={isSaving}
+                  className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center gap-2"
+                >
+                  {isSaving ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
+                  Save Changes
+                </button>
+              )}
+           </div>
+        </form>
+      </motion.div>
+    </div>
   );
 }
 

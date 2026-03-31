@@ -214,3 +214,61 @@ exports.getAllVehicleServices = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+/* =========================================================
+   UPDATE VEHICLE SERVICE
+========================================================= */
+exports.updateVehicleService = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const { amount, vehicleId, serviceId, serviceShopId, topic, description, date, kilometer } = req.body;
+
+    const service = await VehicleService.findByPk(id, { transaction });
+    if (!service) {
+      await transaction.rollback();
+      return res.status(404).json({ message: "Service not found" });
+    }
+
+    // Adjust shop amount if amount or shop changed
+    const oldAmount = service.amount;
+    const oldShopId = service.serviceShopId;
+
+    if (oldShopId === Number(serviceShopId)) {
+      // Same shop, adjust by difference
+      if (oldAmount !== Number(amount)) {
+        const shop = await ServiceShop.findByPk(oldShopId, { transaction });
+        if (shop) {
+          await shop.update({ amount: shop.amount - oldAmount + Number(amount) }, { transaction });
+        }
+      }
+    } else {
+      // Different shop, remove from old, add to new
+      const oldShop = await ServiceShop.findByPk(oldShopId, { transaction });
+      if (oldShop) {
+        await oldShop.update({ amount: oldShop.amount - oldAmount }, { transaction });
+      }
+      const newShop = await ServiceShop.findByPk(serviceShopId, { transaction });
+      if (newShop) {
+        await newShop.update({ amount: newShop.amount + Number(amount) }, { transaction });
+      }
+    }
+
+    await service.update({
+      vehicleId,
+      serviceId,
+      serviceShopId,
+      topic,
+      description,
+      date,
+      amount: Number(amount),
+      kilometer: Number(kilometer),
+    }, { transaction });
+
+    await transaction.commit();
+    res.json({ success: true, message: "Service updated successfully", data: service });
+  } catch (error) {
+    if (transaction) await transaction.rollback();
+    console.error("Update error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};

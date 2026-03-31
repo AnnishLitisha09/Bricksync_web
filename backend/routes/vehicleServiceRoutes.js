@@ -9,7 +9,8 @@ const {
   getVehicleWithServices,
   getAllVehicleServices,
   deleteVehicleService,
-  getServicesByShopId, // ⭐ added
+  getServicesByShopId,
+  updateVehicleService, // ⭐ added
 } = require("../controllers/vehicleServiceController");
 
 /* Protect all routes */
@@ -29,6 +30,9 @@ router.get("/vehicle-with-services/:id", getVehicleWithServices);
 
 /* Pagination + Search + Date Filter */
 router.get("/", getAllVehicleServices);
+
+/* Update */
+router.put("/:id", updateVehicleService);
 
 /* Delete */
 router.delete("/:id", deleteVehicleService);

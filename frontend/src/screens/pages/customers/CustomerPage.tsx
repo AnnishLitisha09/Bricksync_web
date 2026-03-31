@@ -4,7 +4,7 @@ import {
   Search, ShieldCheck, Users, Phone, ExternalLink, Loader2,
   Plus, X, Pencil, Trash2, AlertTriangle, Upload, CheckCircle2,
   ListFilter, Download, LayoutGrid, List, MoreVertical, IndianRupee,
-  TrendingUp, UserCircle2
+  TrendingUp, UserCircle2, Package
 } from "lucide-react";
 import type { CustomerData } from "../../../store/customers/useCustomerStore";
 import { useCustomerStore } from "../../../store/customers/useCustomerStore";
@@ -150,6 +150,10 @@ const CustomerHub: React.FC = () => {
             </div>
           </div>
 
+          <button onClick={() => navigate("/customer/add-material/new")}
+            className="px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-2xl font-bold text-indigo-600 hover:bg-indigo-600 hover:text-white transition shadow-sm flex items-center gap-2 text-sm">
+            <Package size={15} /><span className="hidden sm:inline">Add Material</span><span className="sm:hidden">Material</span>
+          </button>
           <button onClick={() => setIsExportModalOpen(true)}
             className="px-4 py-3 bg-white border border-slate-200 rounded-2xl font-bold text-slate-500 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition shadow-sm flex items-center gap-2 text-sm">
             <Download size={15} /><span className="hidden sm:inline">Export</span>

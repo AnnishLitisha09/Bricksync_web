@@ -102,6 +102,29 @@ if (db.Bunk && db.BunkStatement) {
   });
 }
 
+/* SPARES RELATIONS */
+if (db.Vehicle && db.SparesTitle) {
+  db.Vehicle.hasMany(db.SparesTitle, {
+    foreignKey: "vehicle_id",
+    as: "sparesTitles",
+  });
+  db.SparesTitle.belongsTo(db.Vehicle, {
+    foreignKey: "vehicle_id",
+    as: "vehicle",
+  });
+}
+
+if (db.SparesTitle && db.SparesImage) {
+  db.SparesTitle.hasMany(db.SparesImage, {
+    foreignKey: "spares_title_id",
+    as: "images",
+  });
+  db.SparesImage.belongsTo(db.SparesTitle, {
+    foreignKey: "spares_title_id",
+    as: "sparesTitle",
+  });
+}
+
 /* CONNECTION TEST */
 (async () => {
   try {
@@ -114,5 +137,6 @@ if (db.Bunk && db.BunkStatement) {
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
+db.Op = Sequelize.Op;
 
 module.exports = db;

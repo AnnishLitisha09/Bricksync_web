@@ -11,7 +11,6 @@ import {
 import { fetchCustomerById, deleteCustomerStatement } from "../../../api/customer";
 import { createCallLog } from "../../../api/callLog";
 import { deleteOrder } from "../../../api/order";
-import AddMaterialModal from "./AddMaterialModal";
 import RecordPaymentModal from "./RecordPaymentModal";
 import ExportLedgerModal from "./ExportLedgerModal";
 import { toast } from "react-hot-toast";
@@ -23,10 +22,8 @@ const CustomerDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
-  const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [editOrderData, setEditOrderData] = useState<any>(null);
   const [editPaymentData, setEditPaymentData] = useState<any>(null);
 
   const [callDetails, setCallDetails] = useState({
@@ -235,8 +232,7 @@ const CustomerDetails: React.FC = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  setEditOrderData(null);
-                  setIsMaterialModalOpen(true);
+                  navigate(`/customer/add-material/${id}`, { state: { customerName: customer?.name } });
                 }}
                 className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
               >
@@ -363,8 +359,7 @@ const CustomerDetails: React.FC = () => {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (tx.type === "Dispatch") {
-                                  setEditOrderData(tx.raw);
-                                  setIsMaterialModalOpen(true);
+                                  navigate(`/customer/add-material/${id}`, { state: { editData: tx.raw, customerName: customer?.name } });
                                 } else {
                                   setEditPaymentData(tx.raw);
                                   setIsPaymentModalOpen(true);
@@ -513,17 +508,6 @@ const CustomerDetails: React.FC = () => {
         document.body
       )}
 
-      <AddMaterialModal
-        isOpen={isMaterialModalOpen}
-        onClose={() => {
-          setIsMaterialModalOpen(false);
-          setEditOrderData(null);
-          loadData();
-        }}
-        customerId={id || ""}
-        customerName={customer?.name || ""}
-        editData={editOrderData}
-      />
 
       <RecordPaymentModal
         isOpen={isPaymentModalOpen}

@@ -35,6 +35,7 @@ import AddProductPage from "../screens/pages/stock/AddProductPage";
 import ProductionHistoryPage from "../screens/pages/stock/ProductionHistoryPage";
 import CustomerHub from "../screens/pages/customers/CustomerPage";
 import CustomerDetails from "../screens/pages/customers/LedgerDetail";
+import AddMaterialPage from "../screens/pages/customers/AddMaterialPage";
 import CallLogHistoryPage from "../screens/pages/customers/CallLogHistoryPage";
 import BusinessNotepad from "../screens/pages/notepage/BusinessNotepad";
 import NotepadHistory from "../screens/pages/notepage/NotepadHistory";
@@ -46,6 +47,9 @@ import DailyAttendance from "../screens/pages/staff/DailyAttendance";
 import GprsPage from "../screens/pages/Vehicles/Gprs/GprsPage";
 import VehicleTrackingPage from "../screens/pages/Vehicles/Gprs/VehicleTrackingPage";
 import SalaryPage from "../screens/pages/salary/SalaryPage";
+import SparesVehicleList from "../screens/pages/Vehicles/SparesVehicleList";
+import VehicleSparesDetail from "../screens/pages/Vehicles/VehicleSparesDetail";
+import AddSparesEntry from "../screens/pages/Vehicles/AddSparesEntry";
 
 // --- CUSTOMER & LEDGER IMPORTS ---
 
@@ -135,6 +139,10 @@ const privateRoutes = [
     element: <CustomerDetails />, // The individual ledger view
   },
   {
+    path: "/customer/add-material/:id?",
+    element: <AddMaterialPage />,
+  },
+  {
     path: "/call-logs",
     element: <CallLogHistoryPage />,
   },
@@ -218,6 +226,18 @@ const privateRoutes = [
   {
     path: "/salary",
     element: <SalaryPage />,
+  },
+  {
+    path: "/vehicle/spares",
+    element: <SparesVehicleList />,
+  },
+  {
+    path: "/vehicle/spares/:vehicleId",
+    element: <VehicleSparesDetail />,
+  },
+  {
+    path: "/vehicle/spares/add/:vehicleId",
+    element: <AddSparesEntry />,
   },
   {
     path: "*",
