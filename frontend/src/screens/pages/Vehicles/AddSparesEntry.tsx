@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { createSparesEntry } from "../../../api/spares";
-import { ArrowLeft, Calendar, Package, IndianRupee, Upload, X, Loader2, CheckCircle2 } from "lucide-react";
+import { fetchVehicles } from "../../../api/vehicle";
+import { ArrowLeft, Calendar, Package, IndianRupee, Upload, X, Loader2, CheckCircle2, Truck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 
@@ -49,16 +50,39 @@ const compressImage = (file: File, quality = 0.7, maxWidth = 1200): Promise<File
 };
 
 const AddSparesEntry: React.FC = () => {
-  const { vehicleId } = useParams<{ vehicleId: string }>();
+  const { vehicleId: urlVehicleId } = useParams<{ vehicleId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const vehicleNumber = location.state?.vehicleNumber || "Vehicle";
+  
+  const isGeneralAdd = !urlVehicleId || urlVehicleId === "new";
+  
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState(isGeneralAdd ? "" : urlVehicleId);
+  const [vehicleNumber] = useState(location.state?.vehicleNumber || "Vehicle");
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [images, setImages] = useState<{ file: File; preview: string; compressed: boolean }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingVehicles, setLoadingVehicles] = useState(isGeneralAdd);
+
+  useEffect(() => {
+    if (isGeneralAdd) {
+      loadVehicles();
+    }
+  }, [isGeneralAdd]);
+
+  const loadVehicles = async () => {
+    try {
+      const res = await fetchVehicles();
+      setVehicles(res);
+    } catch (error) {
+      toast.error("Failed to load vehicles");
+    } finally {
+      setLoadingVehicles(false);
+    }
+  };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -91,14 +115,14 @@ const AddSparesEntry: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !amount) {
+    if (!selectedVehicleId || !name || !amount) {
       toast.error("Please fill required fields");
       return;
     }
 
     setIsSubmitting(true);
     const formData = new FormData();
-    formData.append("vehicle_id", vehicleId!);
+    formData.append("vehicle_id", selectedVehicleId!);
     formData.append("date", date);
     formData.append("name", name);
     formData.append("bill_amount", amount);
@@ -110,7 +134,11 @@ const AddSparesEntry: React.FC = () => {
     try {
       await createSparesEntry(formData);
       toast.success("Entry saved!");
-      navigate(`/vehicle/spares/${vehicleId}`, { state: { vehicleNumber } });
+      if (isGeneralAdd) {
+        navigate("/vehicle/spares");
+      } else {
+        navigate(`/vehicle/spares/${selectedVehicleId}`, { state: { vehicleNumber } });
+      }
     } catch (error) {
       toast.error("Failed to save entry");
     } finally {
@@ -130,15 +158,37 @@ const AddSparesEntry: React.FC = () => {
             Back
           </button>
           <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight uppercase">
-            Add <span className="text-indigo-600">History</span>
+            {isGeneralAdd ? "New" : "Add"} <span className="text-indigo-600">Spares Log</span>
           </h1>
           <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] mt-2">
-            Vehicle {vehicleNumber}
+            {isGeneralAdd ? "Add Record for Any Vehicle" : `Vehicle ${vehicleNumber}`}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Vehicle Selection (Only show if isGeneralAdd) */}
+            {isGeneralAdd && (
+              <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100 col-span-full">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Select Vehicle</label>
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><Truck size={20}/></div>
+                  <select 
+                    className="text-xl font-black bg-transparent outline-none w-full appearance-none cursor-pointer"
+                    value={selectedVehicleId}
+                    onChange={(e) => setSelectedVehicleId(e.target.value)}
+                    disabled={loadingVehicles}
+                  >
+                    <option value="">Choose a Vehicle</option>
+                    {vehicles.map((v) => (
+                      <option key={v.id} value={v.id}>{v.vehicleNumber}</option>
+                    ))}
+                  </select>
+                  {loadingVehicles && <Loader2 className="animate-spin text-slate-300" size={20} />}
+                </div>
+              </div>
+            )}
+
             <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Date</label>
                <div className="flex items-center gap-3">
@@ -167,13 +217,13 @@ const AddSparesEntry: React.FC = () => {
             </div>
 
             <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100 col-span-full">
-               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Title/Group Name</label>
+               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Part / Service Description</label>
                <div className="flex items-center gap-3">
                   <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><Package size={20}/></div>
                   <input 
                     type="text"
                     className="text-xl font-black bg-transparent outline-none w-full"
-                    placeholder="e.g. General Service"
+                    placeholder="e.g. Engine Oil Change, Tire Replacement"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
@@ -182,7 +232,7 @@ const AddSparesEntry: React.FC = () => {
           </div>
 
           <div className="bg-white rounded-[3rem] p-10 shadow-2xl border border-slate-100">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 block">Upload Images</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 block">Digitized Evidence (Images)</label>
             
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
               <AnimatePresence>
@@ -218,7 +268,7 @@ const AddSparesEntry: React.FC = () => {
                className="w-full py-6 bg-slate-900 text-white rounded-3xl font-black text-sm uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-2xl flex items-center justify-center gap-4 active:scale-[0.98] disabled:opacity-50"
             >
               {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
-              {isSubmitting ? "Saving..." : "Save Entry"}
+              {isSubmitting ? "Processing..." : "Save Record"}
             </button>
           </div>
         </form>

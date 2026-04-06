@@ -257,7 +257,8 @@ const CustomerHub: React.FC = () => {
                     animate={{ opacity: 1, y: 0, transition: { delay: Math.min(i * 0.04, 0.3) } }}
                     exit={{ opacity: 0, scale: 0.96 }}
                     whileHover={{ y: -5, transition: { duration: 0.18, ease: "easeOut" } }}
-                    className="bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/80 hover:border-slate-200 transition-shadow group overflow-hidden cursor-default"
+                    onClick={() => navigate(`/customer/details/${c.id}`)}
+                    className="bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/80 hover:border-slate-200 transition-shadow group overflow-hidden cursor-pointer"
                   >
                     {/* Card top */}
                     <div className="p-5 flex items-start justify-between gap-3">
@@ -274,7 +275,7 @@ const CustomerHub: React.FC = () => {
 
                       {/* 3-dot */}
                       <div data-menu className="relative shrink-0" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => setActiveMenu(activeMenu === c.id ? null : c.id!)}
+                        <button onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === c.id ? null : c.id!); }}
                           className="p-1.5 text-slate-300 hover:text-slate-600 rounded-lg transition-colors">
                           <MoreVertical size={16} />
                         </button>
@@ -317,7 +318,7 @@ const CustomerHub: React.FC = () => {
 
                     {/* Action button */}
                     <div className="px-5 pb-5">
-                      <button onClick={() => navigate(`/customer/details/${c.id}`)}
+                       <button onClick={(e) => { e.stopPropagation(); navigate(`/customer/details/${c.id}`); }}
                         className="w-full py-2.5 bg-slate-50 hover:bg-slate-900 text-slate-500 hover:text-white border border-slate-100 hover:border-slate-900 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 group/btn">
                         Open Ledger
                         <ExternalLink size={11} className="opacity-40 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all" />
@@ -348,7 +349,8 @@ const CustomerHub: React.FC = () => {
                       {customers.map((c, i) => (
                         <motion.tr layout key={c.id}
                           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0, transition: { delay: i * 0.03 } }} exit={{ opacity: 0 }}
-                          className="border-b border-slate-50/60 hover:bg-slate-50/40 transition-colors group">
+                          onClick={() => navigate(`/customer/details/${c.id}`)}
+                          className="border-b border-slate-50/60 hover:bg-slate-50/40 transition-colors group cursor-pointer">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               {/* Gradient avatar in list view */}
@@ -378,9 +380,9 @@ const CustomerHub: React.FC = () => {
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center justify-end gap-1.5">
-                              <button onClick={() => navigate(`/customer/details/${c.id}`)} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all" title="View Ledger"><ExternalLink size={13} /></button>
-                              <button onClick={() => { setFormData(c); setIsModalOpen(true); }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-all" title="Edit"><Pencil size={13} /></button>
-                              <button onClick={() => setDeleteId(c.id!)} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all" title="Delete"><Trash2 size={13} /></button>
+                               <button onClick={(e) => { e.stopPropagation(); navigate(`/customer/details/${c.id}`); }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all" title="View Ledger"><ExternalLink size={13} /></button>
+                              <button onClick={(e) => { e.stopPropagation(); setFormData(c); setIsModalOpen(true); }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-all" title="Edit"><Pencil size={13} /></button>
+                              <button onClick={(e) => { e.stopPropagation(); setDeleteId(c.id!); }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all" title="Delete"><Trash2 size={13} /></button>
                             </div>
                           </td>
                         </motion.tr>

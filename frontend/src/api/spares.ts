@@ -1,5 +1,13 @@
 import { BASE_URL, getAuthHeader } from "./base";
 
+export const getAllSpares = async () => {
+    const res = await fetch(`${BASE_URL}/spares`, {
+        headers: { ...getAuthHeader() },
+    });
+    if (!res.ok) throw new Error("Failed to fetch all spares");
+    return await res.json();
+};
+
 export const getVehicleSpares = async (vehicleId: number) => {
     const res = await fetch(`${BASE_URL}/spares/vehicle/${vehicleId}`, {
         headers: { ...getAuthHeader() },

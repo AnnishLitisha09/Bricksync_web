@@ -16,6 +16,23 @@ exports.getVehicleSpares = async (req, res) => {
   }
 };
 
+// Get all spares titles from all vehicles
+exports.getAllSpares = async (req, res) => {
+  try {
+    const spares = await SparesTitle.findAll({
+      include: [
+        { model: SparesImage, as: "images" },
+        { model: Vehicle, as: "vehicle" }
+      ],
+      order: [["date", "DESC"]],
+    });
+    res.status(200).json({ success: true, data: spares });
+  } catch (error) {
+    console.error("Error fetching all spares:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
 exports.createSparesEntry = async (req, res) => {
   console.log("--- SPARES ENTRY DEBUG ---");
   console.log("Body:", req.body);

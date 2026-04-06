@@ -47,7 +47,7 @@ import DailyAttendance from "../screens/pages/staff/DailyAttendance";
 import GprsPage from "../screens/pages/Vehicles/Gprs/GprsPage";
 import VehicleTrackingPage from "../screens/pages/Vehicles/Gprs/VehicleTrackingPage";
 import SalaryPage from "../screens/pages/salary/SalaryPage";
-import SparesVehicleList from "../screens/pages/Vehicles/SparesVehicleList";
+import SparesLogPage from "../screens/pages/Vehicles/SparesLogPage";
 import VehicleSparesDetail from "../screens/pages/Vehicles/VehicleSparesDetail";
 import AddSparesEntry from "../screens/pages/Vehicles/AddSparesEntry";
 
@@ -229,7 +229,7 @@ const privateRoutes = [
   },
   {
     path: "/vehicle/spares",
-    element: <SparesVehicleList />,
+    element: <SparesLogPage />,
   },
   {
     path: "/vehicle/spares/:vehicleId",

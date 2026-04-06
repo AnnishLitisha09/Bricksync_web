@@ -203,7 +203,7 @@ const VehicleTrackingPage = () => {
                         {/* INFO CARD */}
                         <div className="bg-white p-5 md:p-6 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-1 overflow-y-auto">
                             <div className="space-y-4 md:space-y-6">
-                                <DetailRow icon={<UserIcon size={16} />} label="Pilot" value={data?.assignedDriver || "Mohan"} />
+                                <DetailRow icon={<UserIcon size={16} />} label="Pilot" value={data?.assignedDriver || "No driver Assiged"} />
                                 <DetailRow
                                     icon={<MapPin size={16} />}
                                     label="Sector"
