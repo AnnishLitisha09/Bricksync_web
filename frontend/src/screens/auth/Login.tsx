@@ -162,7 +162,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           </form>
 
           {/* Don't have account */}
-          <p className="mt-6 text-center text-sm text-gray-600">
+          {/* <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{" "}
             <button
               type="button"
@@ -171,7 +171,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             >
               Sign up
             </button>
-          </p>
+          </p> */}
         </div>
       </div>
 

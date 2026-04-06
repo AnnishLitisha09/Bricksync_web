@@ -190,14 +190,16 @@ startTelemetryStream();
 db.sequelize.authenticate()
   .then(() => {
     console.log("✅ DB Connected");
-
+    return db.sequelize.sync(); 
+  })
+  .then(() => {
+    console.log("✅ Tables Synced");
     const ip = getLocalIP();
-
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`👉 Local: http://localhost:${PORT}`);
       console.log(`👉 Network: http://${ip}:${PORT}`);
     });
   })
   .catch(err => {
-    console.error("❌ DB Connection Failed:", err);
+    console.error("❌ DB Error:", err);
   });
