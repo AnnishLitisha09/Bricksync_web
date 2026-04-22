@@ -1,3 +1,4 @@
+// Force Vite HMR reload
 import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -60,6 +61,7 @@ const menu: MenuItem[] = [
     path: "/customers",
     children: [
       { name: "Customer List", path: "/customers" },
+      { name: "Today's Entry", path: "/todays-entry" },
       { name: "Call Logs", path: "/call-logs" },
       { name: "Contact Support", path: "/contact" },
     ],

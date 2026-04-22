@@ -36,6 +36,7 @@ import ProductionHistoryPage from "../screens/pages/stock/ProductionHistoryPage"
 import CustomerHub from "../screens/pages/customers/CustomerPage";
 import CustomerDetails from "../screens/pages/customers/LedgerDetail";
 import AddMaterialPage from "../screens/pages/customers/AddMaterialPage";
+import TodaysEntry from "../screens/pages/customers/TodaysEntry";
 import CallLogHistoryPage from "../screens/pages/customers/CallLogHistoryPage";
 import BusinessNotepad from "../screens/pages/notepage/BusinessNotepad";
 import NotepadHistory from "../screens/pages/notepage/NotepadHistory";
@@ -145,6 +146,10 @@ const privateRoutes = [
   {
     path: "/call-logs",
     element: <CallLogHistoryPage />,
+  },
+  {
+    path: "/todays-entry",
+    element: <TodaysEntry />,
   },
   // --- STAFF & OTHERS ---
   {

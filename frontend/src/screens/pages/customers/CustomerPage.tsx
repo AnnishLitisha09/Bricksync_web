@@ -70,8 +70,11 @@ const CustomerHub: React.FC = () => {
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) loadMore(); }, { threshold: 0.1 });
-    obs.observe(el); return () => obs.disconnect();
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) loadMore();
+    }, { threshold: 0.1 });
+    obs.observe(el);
+    return () => obs.disconnect();
   }, [loadMore]);
 
   useEffect(() => {
@@ -250,9 +253,9 @@ const CustomerHub: React.FC = () => {
           {/* ── GRID ── */}
           {viewMode === "grid" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              <AnimatePresence mode="popLayout">
+              <AnimatePresence>
                 {customers.map((c, i) => (
-                  <motion.div layout key={c.id}
+                  <motion.div key={c.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0, transition: { delay: Math.min(i * 0.04, 0.3) } }}
                     exit={{ opacity: 0, scale: 0.96 }}
@@ -345,9 +348,9 @@ const CustomerHub: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    <AnimatePresence mode="popLayout">
+                    <AnimatePresence>
                       {customers.map((c, i) => (
-                        <motion.tr layout key={c.id}
+                        <motion.tr key={c.id}
                           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0, transition: { delay: i * 0.03 } }} exit={{ opacity: 0 }}
                           onClick={() => navigate(`/customer/details/${c.id}`)}
                           className="border-b border-slate-50/60 hover:bg-slate-50/40 transition-colors group cursor-pointer">
