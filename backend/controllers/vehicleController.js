@@ -140,8 +140,48 @@ exports.createVehicle = async (req, res) => {
 
 exports.getAllVehicles = async (req, res) => {
   try {
-    const vehicles = await Vehicle.findAll({ order: [["createdAt", "DESC"]] });
-    res.json(vehicles);
+    const vehicles = await Vehicle.findAll({
+      attributes: {
+        include: [
+          [
+            db.sequelize.literal(`(
+              SELECT COALESCE(SUM(amount), 0)
+              FROM vehicle_fuels AS fuel
+              WHERE fuel.vehicleId = Vehicle.id
+            )`),
+            "totalFuel"
+          ],
+          [
+            db.sequelize.literal(`(
+              SELECT COALESCE(SUM(amount), 0)
+              FROM vehicle_services AS service
+              WHERE service.vehicleId = Vehicle.id
+            )`),
+            "totalService"
+          ],
+          [
+            db.sequelize.literal(`(
+              SELECT COALESCE(SUM(bill_amount), 0)
+              FROM spares_titles AS spare
+              WHERE spare.vehicle_id = Vehicle.id
+            )`),
+            "totalSpares"
+          ]
+        ]
+      },
+      order: [["createdAt", "DESC"]]
+    });
+
+    // Add a virtual totalCost field for convenience
+    const enrichedVehicles = vehicles.map(v => {
+      const data = v.toJSON();
+      data.totalCost = (Number(data.totalFuel) || 0) + 
+                       (Number(data.totalService) || 0) + 
+                       (Number(data.totalSpares) || 0);
+      return data;
+    });
+
+    res.json(enrichedVehicles);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -149,9 +189,61 @@ exports.getAllVehicles = async (req, res) => {
 
 exports.getVehicleById = async (req, res) => {
   try {
-    const vehicle = await Vehicle.findByPk(req.params.id);
+    const vehicle = await Vehicle.findByPk(req.params.id, {
+      include: [
+        {
+          model: db.VehicleFuel,
+          as: "vehicleFuels",
+          include: [{ model: db.Bunk, as: "fuelBunk" }]
+        },
+        {
+          model: db.VehicleService,
+          as: "services",
+          include: [{ model: db.ServiceShop, as: "serviceShop" }]
+        },
+        {
+          model: db.SparesTitle,
+          as: "sparesTitles"
+        }
+      ],
+      attributes: {
+        include: [
+          [
+            db.sequelize.literal(`(
+              SELECT COALESCE(SUM(amount), 0)
+              FROM vehicle_fuels AS fuel
+              WHERE fuel.vehicleId = Vehicle.id
+            )`),
+            "totalFuel"
+          ],
+          [
+            db.sequelize.literal(`(
+              SELECT COALESCE(SUM(amount), 0)
+              FROM vehicle_services AS service
+              WHERE service.vehicleId = Vehicle.id
+            )`),
+            "totalService"
+          ],
+          [
+            db.sequelize.literal(`(
+              SELECT COALESCE(SUM(bill_amount), 0)
+              FROM spares_titles AS spare
+              WHERE spare.vehicle_id = Vehicle.id
+            )`),
+            "totalSpares"
+          ]
+        ]
+      }
+    });
+
     if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
-    res.json(vehicle);
+
+    const data = vehicle.toJSON();
+    data.totalCost = (Number(data.totalFuel) || 0) + 
+                     (Number(data.totalService) || 0) + 
+                     (Number(data.totalSpares) || 0);
+
+    res.json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
