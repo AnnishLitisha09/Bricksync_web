@@ -15,6 +15,7 @@ import {
   Loader2
 } from "lucide-react";
 import { useFuelStore } from "../../../../store/fuel/useFuelStore";
+import SearchableVehicleSelect from "../../../../components/SearchableVehicleSelect";
 
 const labelClass = "text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 mb-1 block";
 const inputClass =
@@ -139,19 +140,12 @@ export default function AddFuelPage() {
               <label className={labelClass}>
                 <Truck size={12} className="inline mr-1" /> Vehicle Number
               </label>
-              <select
-                name="vehicleId"
+              <SearchableVehicleSelect
+                vehicles={vehicles}
                 value={form.vehicleId}
-                onChange={handleChange}
-                className={inputClass}
-              >
-                <option value="">Select Vehicle</option>
-                {vehicles.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.vehicleNumber} (Last: {v.kilometer} km)
-                  </option>
-                ))}
-              </select>
+                onChange={(id) => setForm({ ...form, vehicleId: id })}
+                placeholder="Search Vehicle by Number..."
+              />
             </div>
 
             <div className="space-y-1">

@@ -5,6 +5,7 @@ import { fetchVehicles } from "../../../api/vehicle";
 import { ArrowLeft, Calendar, Package, IndianRupee, Upload, X, Loader2, CheckCircle2, Truck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
+import SearchableVehicleSelect from "../../../components/SearchableVehicleSelect";
 
 // Simple Canvas-based Image Compression Utility
 const compressImage = (file: File, quality = 0.7, maxWidth = 1200): Promise<File> => {
@@ -49,6 +50,11 @@ const compressImage = (file: File, quality = 0.7, maxWidth = 1200): Promise<File
   });
 };
 
+const labelClass = "text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 mb-1 block";
+const inputClass =
+  "w-full bg-gray-50 border-2 border-transparent rounded-2xl px-4 py-3 text-sm font-bold " +
+  "focus:bg-white focus:ring-0 focus:border-orange-500 transition-all outline-none text-slate-700";
+
 const AddSparesEntry: React.FC = () => {
   const { vehicleId: urlVehicleId } = useParams<{ vehicleId: string }>();
   const navigate = useNavigate();
@@ -88,20 +94,16 @@ const AddSparesEntry: React.FC = () => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const newImages = await Promise.all(
-      files.map(async (file) => {
-        const loadingToastId = toast.loading(`Optimizing ${file.name}...`);
-        const compressed = await compressImage(file);
-        toast.success(`${file.name} ready!`, { id: loadingToastId });
-        return {
-          file: compressed,
-          preview: URL.createObjectURL(compressed),
-          compressed: true
-        };
-      })
-    );
-
-    setImages((prev) => [...prev, ...newImages]);
+    for (const file of files) {
+      const loadingToastId = toast.loading(`Optimizing ${file.name}...`);
+      const compressed = await compressImage(file);
+      toast.success(`${file.name} ready!`, { id: loadingToastId });
+      setImages((prev) => [...prev, {
+        file: compressed,
+        preview: URL.createObjectURL(compressed),
+        compressed: true
+      }]);
+    }
   };
 
   const removeImage = (index: number) => {
@@ -115,7 +117,11 @@ const AddSparesEntry: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedVehicleId || !name || !amount) {
+    if (isGeneralAdd && !selectedVehicleId) {
+      toast.error("Please select a vehicle");
+      return;
+    }
+    if (!name || !amount) {
       toast.error("Please fill required fields");
       return;
     }
@@ -147,133 +153,144 @@ const AddSparesEntry: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-6 lg:p-12 pb-24 font-sans">
-      <div className="max-w-3xl mx-auto">
-        <div className="mb-12">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition-all group mb-4"
-          >
-            <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-            Back
-          </button>
-          <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight uppercase">
-            {isGeneralAdd ? "New" : "Add"} <span className="text-indigo-600">Spares Log</span>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-3xl mx-auto p-4 pb-24"
+    >
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-8">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 bg-white rounded-xl shadow-sm text-slate-400 hover:text-orange-600 transition-colors"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <div className="text-center">
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">
+            {isGeneralAdd ? "NEW" : "ADD"} <span className="text-orange-600 uppercase">Spares Log</span>
           </h1>
-          <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] mt-2">
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
             {isGeneralAdd ? "Add Record for Any Vehicle" : `Vehicle ${vehicleNumber}`}
           </p>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Vehicle Selection (Only show if isGeneralAdd) */}
-            {isGeneralAdd && (
-              <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100 col-span-full">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Select Vehicle</label>
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><Truck size={20}/></div>
-                  <select 
-                    className="text-xl font-black bg-transparent outline-none w-full appearance-none cursor-pointer"
-                    value={selectedVehicleId}
-                    onChange={(e) => setSelectedVehicleId(e.target.value)}
-                    disabled={loadingVehicles}
-                  >
-                    <option value="">Choose a Vehicle</option>
-                    {vehicles.map((v) => (
-                      <option key={v.id} value={v.id}>{v.vehicleNumber}</option>
-                    ))}
-                  </select>
-                  {loadingVehicles && <Loader2 className="animate-spin text-slate-300" size={20} />}
-                </div>
-              </div>
-            )}
-
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
-               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Date</label>
-               <div className="flex items-center gap-3">
-                  <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><Calendar size={20}/></div>
-                  <input 
-                    type="date"
-                    className="text-lg font-black bg-transparent outline-none w-full"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                  />
-               </div>
-            </div>
-
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
-               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Bill Amount (₹)</label>
-               <div className="flex items-center gap-3">
-                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><IndianRupee size={20}/></div>
-                  <input 
-                    type="number"
-                    className="text-2xl font-black bg-transparent outline-none w-full"
-                    placeholder="0"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
-               </div>
-            </div>
-
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100 col-span-full">
-               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Part / Service Description</label>
-               <div className="flex items-center gap-3">
-                  <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><Package size={20}/></div>
-                  <input 
-                    type="text"
-                    className="text-xl font-black bg-transparent outline-none w-full"
-                    placeholder="e.g. Engine Oil Change, Tire Replacement"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-               </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-[3rem] p-10 shadow-2xl border border-slate-100">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 block">Digitized Evidence (Images)</label>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-              <AnimatePresence>
-                {images.map((img, i) => (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    key={i} 
-                    className="aspect-square rounded-2xl overflow-hidden border-4 border-slate-50 relative group"
-                  >
-                    <img src={img.preview} alt="preview" className="w-full h-full object-cover" />
-                    <button 
-                      type="button" 
-                      onClick={() => removeImage(i)}
-                      className="absolute top-2 right-2 p-1.5 bg-rose-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X size={14} />
-                    </button>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-
-              <label className="aspect-square rounded-2xl border-4 border-dashed border-slate-100 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-all">
-                 <Upload size={24} className="text-slate-300" />
-                 <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageChange} />
-              </label>
-            </div>
-
-            <button
-               type="submit"
-               disabled={isSubmitting}
-               className="w-full py-6 bg-slate-900 text-white rounded-3xl font-black text-sm uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-2xl flex items-center justify-center gap-4 active:scale-[0.98] disabled:opacity-50"
-            >
-              {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
-              {isSubmitting ? "Processing..." : "Save Record"}
-            </button>
-          </div>
-        </form>
+        <div className="w-10" />
       </div>
-    </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* VEHICLE SELECTION */}
+        {isGeneralAdd && (
+          <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
+            <div className="space-y-1">
+              <label className={labelClass}><Truck size={12} className="inline mr-1" /> Target Vehicle</label>
+              <SearchableVehicleSelect
+                vehicles={vehicles}
+                value={selectedVehicleId}
+                onChange={(id) => setSelectedVehicleId(id)}
+                placeholder="Search Vehicle by Number..."
+                disabled={loadingVehicles}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* LOG DETAILS */}
+        <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-1">
+              <label className={labelClass}><Calendar size={12} className="inline mr-1" /> Log Date</label>
+              <input 
+                type="date"
+                className={inputClass}
+                value={date}
+                max={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className={labelClass}><IndianRupee size={12} className="inline mr-1" /> Bill Amount (₹)</label>
+              <input 
+                type="number"
+                className={inputClass}
+                placeholder="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* DESCRIPTION */}
+        <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
+          <div className="space-y-1">
+            <label className={labelClass}><Package size={12} className="inline mr-1" /> Spares / Parts Description</label>
+            <input 
+              type="text"
+              className={inputClass}
+              placeholder="e.g. Engine Oil, Tire Replacement, Brake Pads"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* IMAGES */}
+        <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
+          <label className={labelClass}><Upload size={12} className="inline mr-1" /> Transaction Evidence (Images)</label>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3">
+            <AnimatePresence>
+              {images.map((img, i) => (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  key={i} 
+                  className="aspect-square rounded-2xl overflow-hidden border-2 border-slate-50 relative group shadow-sm"
+                >
+                  <img src={img.preview} alt="preview" className="w-full h-full object-cover" />
+                  <button 
+                    type="button" 
+                    onClick={() => removeImage(i)}
+                    className="absolute top-2 right-2 p-1.5 bg-rose-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                  >
+                    <X size={14} />
+                  </button>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+
+            <label className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 hover:bg-orange-50 transition-all group">
+               <Upload size={24} className="text-slate-300 group-hover:text-orange-500 transition-colors" />
+               <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageChange} />
+            </label>
+          </div>
+        </div>
+
+        {/* ACTIONS */}
+        <div className="flex flex-col md:flex-row gap-4 pt-4">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="flex-1 py-4 rounded-2xl font-black text-slate-400 bg-white border border-gray-100 hover:bg-gray-50 transition-colors uppercase tracking-widest text-xs"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex-[2] bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-slate-200 hover:bg-orange-600 transition-all active:scale-95 flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (
+              <>
+                <CheckCircle2 size={18} />
+                Save Spares Record
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </motion.div>
   );
 };
 

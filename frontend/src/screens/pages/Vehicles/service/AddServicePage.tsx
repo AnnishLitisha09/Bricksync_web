@@ -17,6 +17,7 @@ import {
   Loader2,
   Info
 } from "lucide-react";
+import SearchableVehicleSelect from "../../../../components/SearchableVehicleSelect";
 
 const labelClass = "text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 mb-1 block";
 const inputClass =
@@ -147,12 +148,12 @@ export default function AddServicePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-1">
               <label className={labelClass}><Truck size={12} className="inline mr-1" /> Vehicle</label>
-              <select name="vehicleId" value={form.vehicleId} onChange={handleChange} className={inputClass}>
-                <option value="">Select Vehicle</option>
-                {vehicles.map(v => (
-                  <option key={v.id} value={v.id}>{v.vehicleNumber} ({v.vehicleName})</option>
-                ))}
-              </select>
+              <SearchableVehicleSelect
+                vehicles={vehicles}
+                value={form.vehicleId}
+                onChange={(id) => setForm({ ...form, vehicleId: id })}
+                placeholder="Search Vehicle by Number..."
+              />
             </div>
             <div className="space-y-1">
               <label className={labelClass}><Store size={12} className="inline mr-1" /> Service Shop</label>

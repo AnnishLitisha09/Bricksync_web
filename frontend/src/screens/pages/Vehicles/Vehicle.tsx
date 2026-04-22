@@ -67,8 +67,6 @@ export default function VehicleList() {
   const [selectedStatuses, setSelectedStatuses] = useState<("Active" | "Inactive")[]>([]);
   const [showFilter, setShowFilter] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 4;
 
   useEffect(() => {
     fetchVehicles();
@@ -93,17 +91,6 @@ export default function VehicleList() {
       return matchesSearch && matchesStatus;
     });
   }, [vehicles, searchTerm, selectedStatuses]);
-
-  const paginatedVehicles = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredVehicles.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredVehicles, currentPage]);
-
-  const totalPages = Math.ceil(filteredVehicles.length / itemsPerPage);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, selectedStatuses]);
 
   if (error) return (
     <div className="max-w-7xl mx-auto p-4">
@@ -188,148 +175,133 @@ export default function VehicleList() {
         </div>
       </div>
 
-      {/* VEHICLE LIST */}
-      <div className="grid grid-cols-1 gap-8">
-        {loading ? (
-          [1, 2, 3].map((i) => <VehicleSkeleton key={i} />)
-        ) : paginatedVehicles.length > 0 ? (
-          paginatedVehicles.map((v, index) => {
-            const status = getStatus(v);
-            const detailed = getDetailedStatus(v);
-            return (
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                key={v.id}
-                className="group flex flex-col md:flex-row bg-white rounded-[3rem] overflow-hidden border border-gray-50 shadow-2xl shadow-gray-100/50 hover:border-orange-200 hover:shadow-orange-100 transition-all duration-500"
-              >
-                {/* Image Section */}
-                <div className="relative w-full md:w-80 lg:w-[28rem] h-56 md:h-auto overflow-hidden bg-gray-50">
-                  <img
-                    src={v.vehicleImage ? `${FILE_BASE_URL}${v.vehicleImage}` : "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80&w=600"}
-                    alt={v.vehicleName}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-90"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                  <div className="absolute top-6 left-6 flex flex-col gap-2">
-                    <span className={`px-4 py-2 rounded-xl text-[10px] font-black border backdrop-blur-xl shadow-xl flex items-center gap-2 ${statusStyles[status]}`}>
-                      <div className={`w-2 h-2 rounded-full ${status === 'Active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}`} />
-                      {status.toUpperCase()}
-                    </span>
-
-                    {detailed.items.length > 0 && (
-                      <span className={`px-4 py-2 rounded-xl text-[10px] font-black border backdrop-blur-xl shadow-xl ${detailed.text} ${detailed.bg} border-${detailed.text.split('-')[1]}-200/50`}>
-                        {detailed.label} ({detailed.items.join(", ")})
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Content Section */}
-                <div className="flex-1 p-6 md:p-10 flex flex-col justify-between bg-white relative">
-                  <div className="absolute top-0 right-0 p-8 opacity-5">
-                    <Car size={160} className="text-gray-900 group-hover:text-orange-500 transition-colors" />
-                  </div>
-
-                  <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-8">
-                      <div className="space-y-1">
-                        <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tighter uppercase leading-none group-hover:text-orange-600 transition-colors">
-                          {v.vehicleName}
-                        </h2>
-                        <div className="flex items-center gap-2">
-                          <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase">{v.vehicleNumber}</p>
-                          <div className="w-1 h-1 rounded-full bg-gray-300" />
-                          <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest">{v.kilometer || 0} KM TRACKED</p>
+      {/* VEHICLE TABLE */}
+      <div className="bg-white rounded-[3rem] border border-gray-100 overflow-hidden shadow-2xl shadow-gray-100/50">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50/50 border-b border-gray-100">
+                <th className="py-6 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Asset</th>
+                <th className="py-6 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Insurance</th>
+                <th className="py-6 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Pollution</th>
+                <th className="py-6 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">RC Date</th>
+                <th className="py-6 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Kilometer</th>
+                <th className="py-6 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Total Spend</th>
+                <th className="py-6 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-8 px-8">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gray-100 rounded-xl" />
+                        <div className="space-y-2">
+                          <div className="h-4 w-32 bg-gray-100 rounded" />
+                          <div className="h-3 w-20 bg-gray-100 rounded" />
                         </div>
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-4 mt-8">
-                      <InfoIcon label="Insurance" value={v.insurance} icon={<Calendar className="w-4 h-4" />} />
-                      <InfoIcon label="Pollution" value={v.pollution} icon={<AlertCircle className="w-4 h-4" />} />
-                      <InfoIcon label="RC Expiry" value={v.rcDate} icon={<Calendar className="w-4 h-4" />} />
-                      <InfoIcon label="Configuration" value="Heavy Duty" icon={<Gauge className="w-4 h-4" />} />
-                    </div>
-                  </div>
-
-                  <div className="mt-10 md:mt-0 flex items-center justify-end relative z-10">
-                    <button
+                    </td>
+                    <td className="py-8 px-8"><div className="h-4 w-20 bg-gray-100 rounded" /></td>
+                    <td className="py-8 px-8"><div className="h-4 w-20 bg-gray-100 rounded" /></td>
+                    <td className="py-8 px-8"><div className="h-4 w-20 bg-gray-100 rounded" /></td>
+                    <td className="py-8 px-8"><div className="h-4 w-20 bg-gray-100 rounded" /></td>
+                    <td className="py-8 px-8"><div className="h-4 w-24 bg-gray-100 rounded" /></td>
+                    <td className="py-8 px-8"><div className="h-10 w-10 bg-gray-100 rounded-full mx-auto" /></td>
+                  </tr>
+                ))
+              ) : filteredVehicles.length > 0 ? (
+                filteredVehicles.map((v, index) => {
+                  return (
+                    <motion.tr
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      key={v.id}
+                      className="group hover:bg-orange-50/20 transition-colors cursor-pointer"
                       onClick={() => navigate(`/view-vehicle/${encryptId(v.id)}`)}
-                      className="w-full md:w-auto flex items-center justify-center gap-3 bg-gray-900 text-white px-10 py-5 rounded-[2rem] font-black tracking-widest text-[10px] hover:bg-orange-600 hover:shadow-2xl hover:shadow-orange-200 transition-all group/btn active:scale-95 uppercase"
                     >
-                      Protocol Details
-                      <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-2 transition-transform" />
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })
-        ) : (
-          <div className="text-center py-24 bg-gray-50 rounded-[4rem] border-4 border-dashed border-gray-100">
-            <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-gray-200 mx-auto mb-6 shadow-sm">
-              <Car size={40} />
-            </div>
-            <p className="text-gray-400 text-xs font-black uppercase tracking-[0.3em]">No Assets Found In Current Filter</p>
-          </div>
-        )}
+                      <td className="py-6 px-8">
+                        <div className="flex items-center gap-5">
+                          <div className="relative w-14 h-14 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm group-hover:border-orange-200 transition-all">
+                            <img
+                              src={v.vehicleImage ? `${FILE_BASE_URL}${v.vehicleImage}` : "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80&w=100"}
+                              alt={v.vehicleName}
+                              className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-500"
+                            />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-black text-gray-900 uppercase tracking-tighter group-hover:text-orange-600 transition-colors">
+                              {v.vehicleName}
+                            </h3>
+                            <p className="text-[10px] font-black text-gray-400 tracking-widest uppercase mt-0.5">{v.vehicleNumber}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-6 px-8">
+                        <SimpleComplianceBadge date={v.insurance} />
+                      </td>
+                      <td className="py-6 px-8">
+                        <SimpleComplianceBadge date={v.pollution} />
+                      </td>
+                      <td className="py-6 px-8">
+                        <SimpleComplianceBadge date={v.rcDate} />
+                      </td>
+                      <td className="py-6 px-8">
+                        <div className="flex items-center gap-2">
+                          <Gauge size={14} className="text-gray-300 group-hover:text-orange-500 transition-colors" />
+                          <span className="text-[11px] font-black text-gray-700 uppercase tracking-widest">
+                            {v.kilometer || 0} KM
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-6 px-8">
+                        <div className="flex flex-col">
+                          <span className="text-[11px] font-black text-emerald-600 uppercase tracking-widest">
+                            ₹ {(v.totalCost || 0).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-6 px-8 text-center">
+                        <button
+                          className="w-10 h-10 flex items-center justify-center bg-gray-900 text-white rounded-xl hover:bg-orange-600 hover:shadow-lg hover:shadow-orange-200 transition-all active:scale-95 group/btn"
+                        >
+                          <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
+                        </button>
+                      </td>
+                    </motion.tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={7} className="py-24 text-center">
+                    <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-200 mx-auto mb-4 shadow-sm border border-gray-100">
+                      <Car size={32} />
+                    </div>
+                    <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em]">No registry entries matching criteria</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* PAGINATION */}
-      {!loading && totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-12 border-t border-gray-50 mt-12">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em] text-center sm:text-left">
-            Displaying Index {((currentPage - 1) * itemsPerPage) + 1}—{Math.min(currentPage * itemsPerPage, filteredVehicles.length)} of {filteredVehicles.length}
-          </p>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="w-14 h-14 bg-white rounded-2xl border border-gray-100 text-gray-400 disabled:opacity-20 hover:text-orange-500 hover:border-orange-200 transition-all flex items-center justify-center shadow-sm"
-            >
-              <ChevronLeft size={24} />
-            </button>
-
-            <div className="flex gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-14 h-14 rounded-2xl text-[10px] font-black transition-all ${currentPage === page
-                    ? "bg-orange-600 text-white shadow-2xl shadow-orange-100 border-orange-500"
-                    : "bg-white text-gray-400 border border-gray-100 hover:border-orange-500 hover:text-orange-500 shadow-sm"
-                    }`}
-                >
-                  {String(page).padStart(2, '0')}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="w-14 h-14 bg-white rounded-2xl border border-gray-100 text-gray-400 disabled:opacity-20 hover:text-orange-500 hover:border-orange-200 transition-all flex items-center justify-center shadow-sm"
-            >
-              <ChevronRight size={24} />
-            </button>
-          </div>
-        </div>
-      )}
+      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em] text-center">
+        Total {filteredVehicles.length} vehicles indexed in fleet registry
+      </p>
     </div>
   );
 }
 
-const InfoIcon = ({ label, value, icon }: { label: string; value: string | null; icon: React.ReactNode }) => (
-  <div className="space-y-2 group/icon">
-    <div className="flex items-center gap-2 text-gray-300 group-hover/icon:text-orange-400 transition-colors">
-      <div className="p-1.5 bg-gray-50 rounded-lg">{icon}</div>
-      <p className="text-[9px] font-black uppercase tracking-widest">{label}</p>
-    </div>
-    <p className={`text-[13px] font-black uppercase tracking-tighter ${!value ? 'text-gray-300' : 'text-gray-700'}`}>
-      {value ? formatDate(value) : "Not Defined"}
-    </p>
-  </div>
-);
+const SimpleComplianceBadge = ({ date }: { date: string | null }) => {
+  const isExpired = date && new Date(date) < new Date();
+  if (!date) return <span className="text-[11px] font-black text-gray-300 uppercase tracking-widest">Not Defined</span>;
+
+  return (
+    <span className={`text-[11px] font-black uppercase tracking-tight ${isExpired ? 'text-rose-600 font-black' : 'text-gray-600'}`}>
+      {formatDate(date)}
+    </span>
+  );
+};

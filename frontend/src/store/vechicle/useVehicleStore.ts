@@ -11,11 +11,15 @@ export interface Vehicle {
   rcDate: string;
   kilometer: number;
   isActive: boolean;
+  totalCost?: number;
   vehicleImage?: string;
   rcImage?: string;
   insuranceImage?: string;
   pollutionImage?: string;
   speedImage?: string;
+  services?: any[];
+  vehicleFuels?: any[];
+  sparesTitles?: any[];
 }
 
 interface VehicleStore {
