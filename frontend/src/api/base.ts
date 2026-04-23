@@ -11,7 +11,7 @@ export const BASE_URL_NO_API = "https://l82nn883-3000.inc1.devtunnels.ms";
 // export const FILE_BASE_URL = "http://localhost:5001";
 // export const BASE_URL_NO_API = "http://localhost:5001";
 
-export const getAuthHeader = (p0?: boolean) => {
+export const getAuthHeader = () => {
   const token = localStorage.getItem("token");
 
   return {

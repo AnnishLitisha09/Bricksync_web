@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, Camera, Edit, FileText, History, MapPin, Save, ShieldCheck, X, Zap, Fuel, Wrench, Settings, ArrowRight } from "lucide-react";
+import { AlertCircle, ArrowLeft, Camera, Edit, History, X, Fuel, Wrench, Settings } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
@@ -313,15 +313,6 @@ export default function ViewVehicle() {
     );
 }
 
-const QuickStat = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
-    <div className="bg-white p-5 rounded-[2rem] border border-gray-100 flex items-center gap-4">
-        <div className="text-orange-500">{icon}</div>
-        <div>
-            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
-            <p className="font-black text-gray-900">{value}</p>
-        </div>
-    </div>
-);
 
 const DocCard = ({ label, img, preview, onSelect, isEdit }: { label: string; img?: string; preview?: string | null; onSelect: (file: File) => void; isEdit: boolean; }) => {
     const inputRef = useRef<HTMLInputElement>(null);

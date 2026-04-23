@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { AlertCircle, ArrowRight, Calendar, Car, Check, ChevronLeft, ChevronRight, Gauge, Plus, Search, Sliders } from "lucide-react";
+import { AlertCircle, ArrowRight, Car, Check, Gauge, Plus, Search, Sliders } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FILE_BASE_URL } from "../../../api/base";
@@ -7,27 +7,6 @@ import { encryptId } from "../../../utils/functions";
 import { useVehicleStore, type Vehicle } from "../../../store/vechicle/useVehicleStore";
 import { formatDate } from "../../../utils/formatDate";
 
-// --- Logic Helpers ---
-const getDetailedStatus = (v: Vehicle) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date();
-  target.setDate(target.getDate() + 5);
-  target.setHours(23, 59, 59, 999);
-
-  const docs = [
-    { label: "Insurance", date: v.insurance },
-    { label: "Pollution", date: v.pollution },
-    { label: "RC", date: v.rcDate },
-  ];
-
-  const expired = docs.filter(d => d.date && new Date(d.date) < today);
-  const expiringSoon = docs.filter(d => d.date && new Date(d.date) >= today && new Date(d.date) <= target);
-
-  if (expired.length > 0) return { label: "EXPIRED", color: "bg-rose-500", text: "text-rose-700", bg: "bg-rose-50", items: expired.map(e => e.label) };
-  if (expiringSoon.length > 0) return { label: "EXPIRING SOON", color: "bg-amber-500", text: "text-amber-700", bg: "bg-amber-50", items: expiringSoon.map(e => e.label) };
-  return { label: "ALL CLEAR", color: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50", items: [] };
-};
 
 const getStatus = (vehicle: Vehicle) => {
   if (!vehicle.insurance || !vehicle.pollution || !vehicle.rcDate) return "Inactive";
@@ -41,24 +20,7 @@ const getStatus = (vehicle: Vehicle) => {
   ) ? "Active" : "Inactive";
 };
 
-const statusStyles = {
-  Active: "bg-emerald-50/90 text-emerald-700 border-emerald-200/50",
-  Inactive: "bg-rose-50/90 text-rose-700 border-rose-200/50",
-};
 
-// --- Skeleton Loading Component ---
-const VehicleSkeleton = () => (
-  <div className="flex flex-col lg:flex-row bg-white rounded-[2.5rem] overflow-hidden border border-gray-100 animate-pulse mb-6">
-    <div className="w-full lg:w-96 h-64 bg-gray-200" />
-    <div className="flex-1 p-8 space-y-6">
-      <div className="h-8 w-1/3 bg-gray-200 rounded-xl" />
-      <div className="grid grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map(i => <div key={i} className="h-12 bg-gray-100 rounded-lg" />)}
-      </div>
-      <div className="h-12 w-32 bg-gray-100 rounded-2xl ml-auto" />
-    </div>
-  </div>
-);
 
 export default function VehicleList() {
   const navigate = useNavigate();

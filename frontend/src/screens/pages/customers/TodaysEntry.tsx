@@ -7,7 +7,7 @@ import { fetchCustomers } from "../../../api/customer";
 import { getEmployees, getAllOffices, getAllProducts } from "../../../api/inventory";
 import { createOrder } from "../../../api/order";
 import SearchableSelect from "../../../components/common/SearchableSelect";
-import { Plus, Users, MapPin, Package, Building2, IndianRupee, Hash, Trash2, Save } from "lucide-react";
+import { Plus, MapPin, Package, Building2, IndianRupee, Hash, Trash2, Save } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 function nameSimilarity(a: string, b: string): number {
@@ -131,7 +131,7 @@ export default function TodaysEntry() {
     try {
       const response = await fetch(`${BASE_URL}/todays-entry/extract`, {
         method: "POST",
-        headers: getAuthHeader(true),
+        headers: getAuthHeader(),
         body: formData,
       });
 
