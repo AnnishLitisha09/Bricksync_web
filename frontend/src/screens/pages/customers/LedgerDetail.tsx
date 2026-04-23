@@ -134,7 +134,8 @@ const CustomerDetails: React.FC = () => {
           staff: item.orderEmployees?.map((oe: any) => ({
             name: oe.employee?.name || oe.employee?.employee_name,
             role: oe.role
-          }))
+          })),
+          places: item.places
         })),
         raw: o
       });
@@ -328,6 +329,11 @@ const CustomerDetails: React.FC = () => {
                                         {item.vehicle && (
                                           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-[9px] font-black uppercase">
                                             <Truck size={10} /> {item.vehicle}
+                                          </div>
+                                        )}
+                                        {item.places && (
+                                          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase">
+                                            <Navigation size={10} /> {item.places}
                                           </div>
                                         )}
                                       </div>

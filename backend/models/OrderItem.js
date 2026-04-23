@@ -42,6 +42,10 @@ module.exports = (sequelize, DataTypes) => {
                 allowNull: false,
                 defaultValue: 0.00,
             },
+            places: {
+                type: DataTypes.STRING,
+                allowNull: true,
+            },
         },
         {
             tableName: "order_items",

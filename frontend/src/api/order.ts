@@ -11,6 +11,7 @@ export interface OrderItem {
     vehicle_id?: number;
     driver_ids?: number[];
     loader_ids?: number[];
+    places?: string;
 }
 
 export interface OrderData {

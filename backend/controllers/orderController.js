@@ -36,6 +36,7 @@ exports.createOrder = async (req, res) => {
                 price: item.price || item.rate,
                 vehicle_id: (item.vehicle_id && Number(item.vehicle_id) > 0) ? Number(item.vehicle_id) : null,
                 loader_charge_per_unit: item.loader_charge_per_unit || 0,
+                places: item.places || item.place_of_delivery || null,
             }, { transaction });
 
             // Handle item-level employees
@@ -208,6 +209,7 @@ exports.updateOrder = async (req, res) => {
                 price: item.price || item.rate,
                 vehicle_id: (item.vehicle_id && Number(item.vehicle_id) > 0) ? Number(item.vehicle_id) : null,
                 loader_charge_per_unit: item.loader_charge_per_unit || 0,
+                places: item.places || item.place_of_delivery || null,
             }, { transaction });
 
             // Handle item-level employees
