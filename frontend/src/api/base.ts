@@ -1,6 +1,6 @@
-export const BASE_URL = "https://l82nn883-3000.inc1.devtunnels.ms/api";
-export const FILE_BASE_URL = "https://l82nn883-3000.inc1.devtunnels.ms";
-export const BASE_URL_NO_API = "https://l82nn883-3000.inc1.devtunnels.ms";
+export const BASE_URL = "https://kdhtht53-3000.inc1.devtunnels.ms/api";
+export const FILE_BASE_URL = "https://kdhtht53-3000.inc1.devtunnels.ms";
+export const BASE_URL_NO_API = "https://kdhtht53-3000.inc1.devtunnels.ms";
 
 // export const BASE_URL = "https://2s01cq2n-3000.inc1.devtunnels.ms/api";
 // export const FILE_BASE_URL = "https://2s01cq2n-3000.inc1.devtunnels.ms";
