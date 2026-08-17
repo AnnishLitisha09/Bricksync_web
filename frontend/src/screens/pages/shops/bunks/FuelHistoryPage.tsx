@@ -84,18 +84,25 @@ export default function FuelHistoryPage() {
 
   // --- INFINITE SCROLL LOGIC ---
   const observer = useRef<IntersectionObserver | null>(null);
+  const loadingRef = useRef(loading);
+  const hasMoreRef = useRef(hasMore);
+
+  useEffect(() => {
+    loadingRef.current = loading;
+    hasMoreRef.current = hasMore;
+  }, [loading, hasMore]);
+
   const lastElementRef = useCallback((node: HTMLDivElement | null) => {
-    if (loading) return;
     if (observer.current) observer.current.disconnect();
 
     observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
+      if (entries[0].isIntersecting && !loadingRef.current && hasMoreRef.current) {
         setPage(prev => prev + 1);
       }
     });
 
     if (node) observer.current.observe(node);
-  }, [loading, hasMore]);
+  }, []);
 
   const selectedBankData = useMemo(() =>
     banks.find(b => b.id.toString() === paymentForm.bankId),

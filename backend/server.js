@@ -195,6 +195,9 @@ db.sequelize.authenticate()
   })
   .then(() => {
     console.log("✅ Tables Synced");
+    // Safely attempt to add the places column if it doesn't exist (ignores error if it does)
+    db.sequelize.query("ALTER TABLE order_items ADD COLUMN places VARCHAR(255);").catch(() => {});
+    
     const ip = getLocalIP();
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`👉 Local: http://localhost:${PORT}`);

@@ -67,15 +67,20 @@ const CustomerHub: React.FC = () => {
     await fetchCustomers(search, next, false, true, sortBy, sortOrder);
   }, [loading, hasMore, page, search, sortBy, sortOrder, fetchCustomers]);
 
+  const loadMoreRef = useRef(loadMore);
+  useEffect(() => {
+    loadMoreRef.current = loadMore;
+  }, [loadMore]);
+
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) loadMore();
+      if (e.isIntersecting) loadMoreRef.current();
     }, { threshold: 0.1 });
     obs.observe(el);
     return () => obs.disconnect();
-  }, [loadMore]);
+  }, []);
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) setShowSortMenu(false); };

@@ -9,7 +9,7 @@ import {
   ExternalLink,
   Truck
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllSpares, deleteSparesEntry } from "../../../api/spares";
 import { FILE_BASE_URL } from "../../../api/base";
@@ -54,13 +54,14 @@ export default function SparesLogPage() {
     }
   };
 
-  const filteredSpares = spares.filter(spare => {
-    const matchesGeneral = !search || spare.name?.toLowerCase().includes(search.toLowerCase());
-    const matchesVehicle = !vehicleSearch || spare.vehicle?.vehicleNumber?.toLowerCase().includes(vehicleSearch.toLowerCase());
+  const filteredSpares = (Array.isArray(spares) ? spares : []).filter(spare => {
+    if (!spare) return false;
+    const matchesGeneral = !search || (spare.name?.toLowerCase() || "").includes(search.toLowerCase());
+    const matchesVehicle = !vehicleSearch || (spare.vehicle?.vehicleNumber?.toLowerCase() || "").includes(vehicleSearch.toLowerCase());
     return matchesGeneral && matchesVehicle;
   });
 
-  const totalExpenditure = filteredSpares.reduce((acc, curr) => acc + (Number(curr.bill_amount) || 0), 0);
+  const totalExpenditure = filteredSpares.reduce((acc, curr) => acc + (Number(curr?.bill_amount) || 0), 0);
 
   return (
     <motion.div
@@ -149,11 +150,10 @@ export default function SparesLogPage() {
       {/* DATA VIEW */}
       <div className="bg-white rounded-2xl md:rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
-          <LottieLoader
-            type="general"
-            message="Loading Maintenance Logs"
-            size={250}
-          />
+          <div className="flex flex-col items-center justify-center py-32">
+            <div className="w-16 h-16 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin"></div>
+            <p className="mt-4 text-slate-400 font-black uppercase tracking-widest text-xs">Loading Maintenance Logs</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px]">
@@ -168,7 +168,7 @@ export default function SparesLogPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {filteredSpares.map((spare) => (
+                {filteredSpares.slice(0, 100).map((spare) => (
                   <React.Fragment key={spare.id}>
                     <tr className="group hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4">
@@ -247,6 +247,13 @@ export default function SparesLogPage() {
                     </AnimatePresence>
                   </React.Fragment>
                 ))}
+                {filteredSpares.length > 100 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-4 text-center text-slate-500 font-bold text-xs uppercase tracking-widest">
+                      Showing 100 of {filteredSpares.length} records. Please use search to find older records.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -275,5 +282,3 @@ function StatCard({ title, value, icon }: { title: string, value: string, icon: 
     </div>
   );
 }
-
-import React from "react";

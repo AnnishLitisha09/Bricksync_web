@@ -104,8 +104,8 @@ exports.getCustomerById = async (req, res) => {
                             model: OrderItem,
                             as: "items",
                             include: [
-                                { model: Office, as: "office", where: { is_deleted: false }, required: false },
-                                { model: Product, as: "material", where: { is_deleted: false }, required: false },
+                                { model: Office, as: "office", required: false },
+                                { model: Product, as: "material", required: false },
                                 { model: Vehicle, as: "vehicle", required: false },
                                 {
                                     model: OrderEmployee,
@@ -113,7 +113,6 @@ exports.getCustomerById = async (req, res) => {
                                     include: [{
                                         model: User,
                                         as: "employee",
-                                        where: { isDeleted: false },
                                         required: false
                                     }]
                                 }
@@ -148,20 +147,29 @@ exports.getCustomerById = async (req, res) => {
         const customer = customerResult.toJSON();
         if (customer.orders) {
             customer.orders = customer.orders.map(order => {
-                const drivers = (order.orderEmployees || [])
-                    .filter(oe => oe.role === "driver" && oe.employee)
-                    .map(oe => ({
-                        employee_id: oe.employee.employee_id,
-                        employee_name: oe.employee.employee_name,
-                        staff_role: "Driver"
-                    }));
-                const loaders = (order.orderEmployees || [])
-                    .filter(oe => oe.role === "loader" && oe.employee)
-                    .map(oe => ({
-                        employee_id: oe.employee.employee_id,
-                        employee_name: oe.employee.employee_name,
-                        staff_role: "Loader"
-                    }));
+                let drivers = [];
+                let loaders = [];
+                
+                (order.items || []).forEach(item => {
+                    (item.orderEmployees || []).forEach(oe => {
+                        if (oe.employee) {
+                            if (oe.role === "driver") {
+                                drivers.push({
+                                    employee_id: oe.employee.userid,
+                                    employee_name: oe.employee.name,
+                                    staff_role: "Driver"
+                                });
+                            } else if (oe.role === "loader") {
+                                loaders.push({
+                                    employee_id: oe.employee.userid,
+                                    employee_name: oe.employee.name,
+                                    staff_role: "Loader"
+                                });
+                            }
+                        }
+                    });
+                });
+                
                 return {
                     ...order,
                     drivers,

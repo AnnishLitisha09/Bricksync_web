@@ -62,13 +62,18 @@ const Staff: React.FC = () => {
     await fetchDrivers(next, search, true);
   }, [loading, hasMore, currentPage, search]);
 
+  const loadMoreRef = useRef(loadMore);
+  useEffect(() => {
+    loadMoreRef.current = loadMore;
+  }, [loadMore]);
+
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) loadMore(); }, { threshold: 0.1 });
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) loadMoreRef.current(); }, { threshold: 0.1 });
     obs.observe(el);
     return () => obs.disconnect();
-  }, [loadMore]);
+  }, []);
 
   useEffect(() => {
     window.addEventListener("click", () => setActiveMenu(null));

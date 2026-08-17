@@ -82,16 +82,23 @@ const GprsPage = () => {
                     }
                     : v
             ));
-
-            // Clear "live" status after 15s if no more updates come
-            setTimeout(() => {
-                setVehicles(prev => prev.map(v =>
-                    v.vehicleNumber.trim().toUpperCase() === newData.vehicle.trim().toUpperCase()
-                        ? { ...v, isLive: false }
-                        : v
-                ));
-            }, 15000);
         });
+
+        // Periodically check for stale 'live' status without causing infinite re-renders
+        const liveCheckInterval = setInterval(() => {
+            const now = Date.now();
+            setVehicles(prev => {
+                let hasChanges = false;
+                const next = prev.map(v => {
+                    if (v.isLive && v.lastSync && (now - new Date(v.lastSync).getTime() > 15000)) {
+                        hasChanges = true;
+                        return { ...v, isLive: false };
+                    }
+                    return v;
+                });
+                return hasChanges ? next : prev;
+            });
+        }, 5000);
 
         // 30-second auto-sync
         const syncInterval = setInterval(async () => {
@@ -105,6 +112,7 @@ const GprsPage = () => {
 
         return () => {
             clearInterval(syncInterval);
+            clearInterval(liveCheckInterval);
             socketRef.current?.disconnect();
         };
     }, []);
