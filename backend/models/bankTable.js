@@ -9,7 +9,7 @@ module.exports = (sequelize, DataTypes) => {
       amount: { type: DataTypes.INTEGER, defaultValue: 0 },
       bankTransfer: { type: DataTypes.BOOLEAN, defaultValue: false },
       phonepe: { type: DataTypes.BOOLEAN, defaultValue: false },
-      gpay: { type: DataTypes.BOOLEAN, defaultValue: false },
+      gpay: { type: DataTypes.BOOLEAN, defaultValue: false, field: "Gpay" },
     },
     { tableName: "bank_details", timestamps: true }
   );
