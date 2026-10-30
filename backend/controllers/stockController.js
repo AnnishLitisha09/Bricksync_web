@@ -4,17 +4,44 @@ const { Op } = require("sequelize");
 /* 🔹 Get All Stock */
 exports.getAllStock = async (req, res) => {
     try {
-        const { office_id } = req.query;
+        const { office_id, search } = req.query;
+        const page = req.query.page ? parseInt(req.query.page) : null;
+        const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+
         const where = { is_deleted: false };
         if (office_id) where.office_id = office_id;
 
-        const stock = await ProductStock.findAll({
+        const productWhere = {};
+        if (search) {
+            productWhere.product_name = { [Op.like]: `%${search}%` };
+        }
+
+        const queryOptions = {
             where,
             include: [
-                { model: Product, as: "product" },
+                { model: Product, as: "product", where: Object.keys(productWhere).length ? productWhere : undefined },
                 { model: Office, as: "office" },
             ],
-        });
+            order: [["created_at", "DESC"]],
+            distinct: true,
+        };
+
+        if (page) {
+            queryOptions.limit = limit;
+            queryOptions.offset = (page - 1) * limit;
+            const { count, rows } = await ProductStock.findAndCountAll(queryOptions);
+            return res.json({
+                data: rows,
+                pagination: {
+                    total: count,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(count / limit),
+                },
+            });
+        }
+
+        const stock = await ProductStock.findAll(queryOptions);
         res.json(stock);
     } catch (err) {
         res.status(500).json({ error: err.message });

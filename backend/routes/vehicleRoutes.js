@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/upload");
+const auth = require("../middleware/authMiddleware");
+const role = require("../middleware/roleMiddleware");
 const {
   createVehicle,
   getAllVehicles,
@@ -9,6 +11,8 @@ const {
   deleteVehicle,
   toggleVehicleStatus,
 } = require("../controllers/vehicleController");
+
+router.use(auth);
 
 // Multer fields
 const vehicleUpload = upload.fields([
@@ -19,12 +23,14 @@ const vehicleUpload = upload.fields([
   { name: "speedImage", maxCount: 1 },
 ]);
 
-router.post("/", vehicleUpload, createVehicle);
-router.put("/:id", vehicleUpload, updateVehicle);
+// Admin-only vehicle modifications
+router.post("/", role(1), vehicleUpload, createVehicle);
+router.put("/:id", role(1), vehicleUpload, updateVehicle);
+router.delete("/:id", role(1), deleteVehicle);
+router.patch("/:id/toggle-status", role(1), toggleVehicleStatus);
 
-router.get("/", getAllVehicles);
-router.get("/:id", getVehicleById);
-router.delete("/:id", deleteVehicle);
-router.patch("/:id/toggle-status", toggleVehicleStatus);
+// Vehicle lookup (Admin, Driver)
+router.get("/", role(1, 2), getAllVehicles);
+router.get("/:id", role(1, 2), getVehicleById);
 
 module.exports = router;

@@ -21,7 +21,40 @@ exports.createServiceShop = async (req, res) => {
 /* ================= GET ALL ================= */
 exports.getAllServiceShops = async (req, res) => {
   try {
+    const page = req.query.page ? parseInt(req.query.page) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+    const search = req.query.search || "";
+    const { Op } = require("sequelize");
+
+    const where = {};
+    if (search) {
+      where[Op.or] = [
+        { shopName: { [Op.like]: `%${search}%` } },
+        { ownerName: { [Op.like]: `%${search}%` } },
+        { phoneNumber: { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    if (page) {
+      const { count, rows } = await ServiceShop.findAndCountAll({
+        where,
+        order: [["createdAt", "DESC"]],
+        limit,
+        offset: (page - 1) * limit,
+      });
+      return res.json({
+        data: rows,
+        pagination: {
+          total: count,
+          page,
+          limit,
+          totalPages: Math.ceil(count / limit),
+        },
+      });
+    }
+
     const data = await ServiceShop.findAll({
+      where,
       order: [["createdAt", "DESC"]],
     });
 

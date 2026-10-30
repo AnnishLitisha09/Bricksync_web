@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const verifyToken = require("../middleware/authMiddleware");
+const role = require("../middleware/roleMiddleware");
 const upload = require("../middleware/upload");
 
 const {
@@ -63,15 +64,16 @@ router.put(
 );
 
 
-/* ================= ADMIN ================= */
+/* ================= ADMIN ONLY (ROLE 1) ================= */
 
 // Get All Users
-router.get("/", verifyToken, getAllUsers);
+router.get("/", verifyToken, role(1), getAllUsers);
 
 // ⭐ Admin Update User
 router.put(
   "/admin/update/:userid",
   verifyToken,
+  role(1),
   upload.fields([
     { name: "image", maxCount: 1 },
     { name: "aadhar", maxCount: 1 },
@@ -82,7 +84,7 @@ router.put(
 );
 
 // Soft Delete
-router.delete("/:userid", verifyToken, deleteUser);
+router.delete("/:userid", verifyToken, role(1), deleteUser);
 
 
 module.exports = router;

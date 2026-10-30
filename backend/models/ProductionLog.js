@@ -30,6 +30,10 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.DECIMAL(10, 2),
                 defaultValue: 0.00,
             },
+            raw_materials_used: {
+                type: DataTypes.JSON,
+                allowNull: true,
+            },
             is_deleted: {
                 type: DataTypes.BOOLEAN,
                 defaultValue: false,

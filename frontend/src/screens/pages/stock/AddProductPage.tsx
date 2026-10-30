@@ -21,10 +21,10 @@ interface Office {
 }
 
 
-const labelClass = "text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 mb-1 block";
+const labelClass = "text-[11px] font-semibold text-slate-500 ml-0.5 mb-1.5 block";
 const inputClass =
-  "w-full bg-gray-50 border-2 border-transparent rounded-2xl px-4 py-3 text-sm font-bold " +
-  "focus:bg-white focus:ring-0 focus:border-orange-500 transition-all outline-none text-slate-700";
+  "w-full bg-white border border-slate-200 rounded-xl px-3.5 h-10 text-xs font-medium " +
+  "focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all outline-none text-slate-800";
 
 import toast from "react-hot-toast";
 
@@ -112,44 +112,51 @@ export default function AddProductPage() {
       className="max-w-3xl mx-auto p-4 md:p-8"
     >
       {/* HEADER */}
-      <div className="flex items-center justify-between mb-8">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 bg-white rounded-xl shadow-sm text-slate-400 hover:text-orange-600 transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="text-center">
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight text-center uppercase">
-            Add <span className="text-orange-600">Product</span>
+      {/* HEADER */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100 mb-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-1.5 rounded-lg border border-slate-200 hover:border-indigo-200 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 transition-all cursor-pointer"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full font-bold text-[10px] uppercase tracking-wider">
+              Inventory Item
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Add <span className="text-indigo-600">Product</span>
           </h1>
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Inventory Management</p>
+          <p className="text-xs font-medium text-slate-500">
+            Register a new manufactured item or raw material into your yard catalog
+          </p>
         </div>
-        <div className="w-10" />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
 
         {/* SECTION 1: IDENTITY & STORE */}
-        <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl p-5 md:p-6 shadow-2xs border border-slate-200/80">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className={labelClass}>
-                <Package size={12} className="inline mr-1" /> Product Name
+                <Package size={12} className="inline mr-1 text-slate-400" /> Product Name
               </label>
               <input
                 type="text"
                 name="name"
                 value={form.name}
                 onChange={handleChange}
-                placeholder="e.g. Wireless Mouse"
+                placeholder="e.g. Red Solid Bricks"
                 className={inputClass}
               />
             </div>
 
             <div className="space-y-1">
               <label className={labelClass}>
-                <Store size={12} className="inline mr-1" /> Select Shop
+                <Store size={12} className="inline mr-1 text-slate-400" /> Select Shop
               </label>
               <select
                 name="shopId"
@@ -167,11 +174,11 @@ export default function AddProductPage() {
         </div>
 
         {/* SECTION 2: CATEGORY & STOCK */}
-        <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl p-5 md:p-6 shadow-2xs border border-slate-200/80">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className={labelClass}>
-                <Tag size={12} className="inline mr-1" /> Category
+                <Tag size={12} className="inline mr-1 text-slate-400" /> Category
               </label>
               <select
                 name="category"
@@ -188,7 +195,7 @@ export default function AddProductPage() {
 
             <div className="space-y-1">
               <label className={labelClass}>
-                <Boxes size={12} className="inline mr-1" /> Opening Quantity
+                <Boxes size={12} className="inline mr-1 text-slate-400" /> Opening Quantity
               </label>
               <input
                 type="number"
@@ -203,33 +210,33 @@ export default function AddProductPage() {
         </div>
 
         {/* SECTION 3: IMAGE UPLOAD */}
-        <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-5 md:p-6 shadow-2xs border border-slate-200/80">
           <label className={labelClass}>
-            <Upload size={12} className="inline mr-1" /> Product Image
+            <Upload size={12} className="inline mr-1 text-slate-400" /> Product Image
           </label>
 
           <div className="mt-2">
             {!imagePreview ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="group w-full aspect-video md:aspect-21/9 bg-gray-50 border-2 border-dashed border-gray-200 rounded-4xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 hover:bg-orange-50/30 transition-all"
+                className="group w-full aspect-video md:aspect-21/9 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 transition-all"
               >
-                <div className="p-4 bg-white rounded-2xl shadow-sm text-slate-400 group-hover:text-orange-600 group-hover:scale-110 transition-all">
-                  <Upload size={24} />
+                <div className="p-3 bg-white rounded-xl shadow-2xs text-slate-400 group-hover:text-indigo-600 transition-all">
+                  <Upload size={20} />
                 </div>
-                <p className="mt-3 text-xs font-black text-slate-400 uppercase tracking-tighter">Click to upload photo</p>
-                <p className="text-[10px] text-slate-300 font-bold">JPG, PNG or WEBP (Max 5MB)</p>
+                <p className="mt-2 text-xs font-bold text-slate-600">Click to upload photo</p>
+                <p className="text-[10px] text-slate-400 font-medium">JPG, PNG or WEBP (Max 5MB)</p>
               </div>
             ) : (
-              <div className="relative w-full aspect-video md:aspect-21/9 rounded-4xl overflow-hidden group">
+              <div className="relative w-full aspect-video md:aspect-21/9 rounded-xl overflow-hidden group">
                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <button
                     type="button"
                     onClick={removeImage}
-                    className="p-3 bg-red-500 text-white rounded-2xl shadow-xl hover:bg-red-600 transition-all active:scale-90"
+                    className="p-2.5 bg-rose-600 text-white rounded-xl shadow-lg hover:bg-rose-700 transition-all"
                   >
-                    <X size={20} />
+                    <X size={18} />
                   </button>
                 </div>
               </div>
@@ -245,28 +252,28 @@ export default function AddProductPage() {
         </div>
 
         {/* SECTION 4: DESCRIPTION */}
-        <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-5 md:p-6 shadow-2xs border border-slate-200/80">
           <div className="space-y-1">
             <label className={labelClass}>
-              <FileText size={12} className="inline mr-1" /> Product Description
+              <FileText size={12} className="inline mr-1 text-slate-400" /> Product Description
             </label>
             <textarea
               name="description"
-              rows={4}
+              rows={3}
               value={form.description}
               onChange={handleChange}
               placeholder="Provide a detailed description of the product..."
-              className={`${inputClass} resize-none`}
+              className="w-full bg-white border border-slate-200 rounded-xl p-3.5 text-xs font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all outline-none text-slate-800 resize-none"
             />
           </div>
         </div>
 
         {/* ACTIONS */}
-        <div className="flex flex-col md:flex-row gap-4 pt-4">
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="flex-1 py-4 rounded-2xl font-black text-slate-400 bg-white border border-gray-100 hover:bg-gray-50 transition-colors uppercase tracking-widest text-xs"
+            className="h-10 px-6 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors text-xs"
           >
             Cancel
           </button>
@@ -274,14 +281,14 @@ export default function AddProductPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex-2 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-slate-200 hover:bg-orange-600 transition-all active:scale-95 flex items-center justify-center gap-2"
+            className="h-10 px-8 bg-indigo-600 text-white rounded-xl font-bold text-xs shadow-2xs hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {loading ? (
-              <Loader2 className="animate-spin" size={18} />
+              <Loader2 className="animate-spin" size={16} />
             ) : (
               <>
-                <Save size={18} />
-                Create Product
+                <Save size={16} />
+                <span>Create Product</span>
               </>
             )}
           </button>

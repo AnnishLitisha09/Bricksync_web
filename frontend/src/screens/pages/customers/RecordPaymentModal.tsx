@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, Landmark, Calendar, CreditCard, Loader2 } from "lucide-react";
+import { X, Landmark, Calendar, CreditCard, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { fetchBanks } from "../../../api/bank";
 import { createStatement, updateStatement } from "../../../api/statement";
@@ -10,9 +10,33 @@ interface RecordPaymentModalProps {
     onClose: () => void;
     customerId: string | number;
     editData?: any;
+    initialAmount?: string | number;
+    initialDate?: string;
+    onPaymentSubmit?: (paymentPayload: {
+        cus_id: number;
+        amount: number;
+        bank_type: string;
+        bank_id: number | null;
+        description: string;
+        date: string;
+    }) => Promise<void>;
+    title?: string;
+    subtitle?: string;
+    submitButtonText?: string;
 }
 
-const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose, customerId, editData }) => {
+const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
+    isOpen,
+    onClose,
+    customerId,
+    editData,
+    initialAmount,
+    initialDate,
+    onPaymentSubmit,
+    title,
+    subtitle,
+    submitButtonText,
+}) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [banks, setBanks] = useState<any[]>([]);
     const [formData, setFormData] = useState({
@@ -28,7 +52,23 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
             const loadBanks = async () => {
                 try {
                     const res = await fetchBanks();
-                    setBanks(res.data);
+                    const bankList = res.data || [];
+                    setBanks(bankList);
+
+                    if (!editData && bankList.length > 0) {
+                        const defaultBank = bankList.find((b: any) => b.name.toLowerCase() === 'cash') || bankList[0];
+                        let defaultType = "Net Banking";
+                        if (defaultBank.name.toLowerCase() === 'cash') defaultType = "Cash";
+                        else if (defaultBank.bankTransfer) defaultType = "Net Banking";
+                        else if (defaultBank.gpay) defaultType = "GPay";
+                        else if (defaultBank.phonepe) defaultType = "PhonePe";
+
+                        setFormData(prev => ({
+                            ...prev,
+                            bank_id: prev.bank_id || defaultBank.id.toString(),
+                            bank_type: prev.bank_type || defaultType
+                        }));
+                    }
                 } catch (error) {
                     toast.error("Failed to load banks");
                 }
@@ -45,20 +85,21 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
                     date: editData.date || editData.created_at?.split('T')[0] || new Date().toISOString().split('T')[0]
                 });
             } else {
-                setFormData({
-                    amount: "",
-                    bank_type: "",
-                    bank_id: "",
+                setFormData(prev => ({
+                    ...prev,
+                    amount: initialAmount !== undefined && initialAmount !== null ? String(initialAmount) : "",
                     description: "",
-                    date: new Date().toISOString().split('T')[0]
-                });
+                    date: initialDate || new Date().toISOString().split('T')[0]
+                }));
             }
         }
-    }, [isOpen, editData]);
+    }, [isOpen, editData, initialAmount, initialDate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.amount) return toast.error("Please enter amount");
+        if (!formData.amount || Number(formData.amount) <= 0) {
+            return toast.error("Please enter a valid amount");
+        }
 
         setIsSubmitting(true);
         try {
@@ -71,14 +112,17 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
                 date: formData.date
             };
 
-            if (editData) {
+            if (onPaymentSubmit) {
+                await onPaymentSubmit(payload);
+            } else if (editData) {
                 await updateStatement(editData.id, payload);
                 toast.success("Payment record updated");
+                onClose();
             } else {
                 await createStatement(payload);
                 toast.success("Payment recorded successfully");
+                onClose();
             }
-            onClose();
         } catch (error: any) {
             toast.error(error.message || "Failed to record payment");
         } finally {
@@ -89,50 +133,54 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
     if (!isOpen) return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl" onClick={(e) => { e.stopPropagation(); onClose(); }} />
-            <div className="bg-white rounded-4xl w-full max-w-lg p-8 shadow-2xl relative z-10 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={(e) => { e.stopPropagation(); onClose(); }} />
+            <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-lg p-6 sm:p-7 shadow-2xl relative z-10 animate-in zoom-in-95 duration-200 border border-slate-200/80">
                 {/* Modal Content */}
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex justify-between items-center mb-6 pb-2 border-b border-slate-100">
                     <div>
-                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">
-                            {editData ? "Edit Payment" : "Record Payment"}
+                        <h3 className="text-lg font-bold text-slate-900">
+                            {title || (editData ? "Edit Payment" : "Record Payment")}
                         </h3>
-                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Customer Settlement</p>
+                        <p className="text-slate-500 text-xs font-medium mt-0.5">
+                            {subtitle || "Customer Settlement & Ledger Balancing"}
+                        </p>
                     </div>
                     <button
+                        type="button"
                         onClick={(e) => { e.stopPropagation(); onClose(); }}
-                        className="p-3 bg-slate-100 rounded-2xl text-slate-400 hover:text-red-500 transition-colors"
+                        className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
                     >
-                        <X size={20} />
+                        <X size={16} />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Payment Date</label>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-semibold text-slate-500 block">Payment Date</label>
                             <div className="relative">
-                                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                                 <input
                                     type="date"
                                     required
-                                    className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/5 focus:bg-white outline-none"
+                                    className="w-full pl-9 pr-3 h-10 rounded-xl border border-slate-200 bg-white font-medium text-xs text-slate-800 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none"
                                     value={formData.date}
                                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                                 />
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-emerald-400 ml-1">Amount (₹)</label>
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-semibold text-emerald-700 block">Amount (₹)</label>
                             <div className="relative">
-                                <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-300" size={18} />
+                                <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-600" size={15} />
                                 <input
                                     type="number"
                                     required
+                                    autoFocus
                                     placeholder="0.00"
-                                    className="w-full pl-12 pr-4 py-4 rounded-2xl border border-emerald-50 bg-emerald-50/30 font-bold text-slate-700 focus:ring-4 focus:ring-emerald-500/5 focus:bg-white outline-none"
+                                    className="w-full pl-9 pr-3 h-10 rounded-xl border border-emerald-200 bg-emerald-50/20 font-bold text-xs text-emerald-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 outline-none"
                                     value={formData.amount}
                                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                 />
@@ -140,14 +188,14 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-indigo-400 ml-1">Receive in Bank / Cash</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-semibold text-slate-500 block">Receive in Account / Cash</label>
                             <div className="relative">
-                                <Landmark className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-300" size={18} />
+                                <Landmark className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                                 <select
                                     required
-                                    className="w-full pl-12 pr-4 py-4 rounded-2xl border border-indigo-50 bg-indigo-50/30 font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/5 focus:bg-white outline-none appearance-none"
+                                    className="w-full pl-9 pr-3 h-10 rounded-xl border border-slate-200 bg-white font-medium text-xs text-slate-800 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none appearance-none"
                                     value={formData.bank_id}
                                     onChange={(e) => {
                                         const newBankId = e.target.value;
@@ -173,7 +221,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
                                         }));
                                     }}
                                 >
-                                    <option value="">Select Bank / Cash</option>
+                                    <option value="">Select Account...</option>
                                     {banks.map(b => (
                                         <option key={b.id} value={b.id}>{b.name} - {b.accountNumber}</option>
                                     ))}
@@ -181,16 +229,16 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Payment Mode</label>
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-semibold text-slate-500 block">Payment Mode</label>
                             <select
-                                className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/5 focus:bg-white outline-none appearance-none"
+                                className="w-full px-3.5 h-10 rounded-xl border border-slate-200 bg-white font-medium text-xs text-slate-800 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none appearance-none"
                                 value={formData.bank_type}
                                 onChange={(e) => setFormData({ ...formData, bank_type: e.target.value })}
                             >
                                 {(() => {
                                     const selectedBank = banks.find(b => b.id === Number(formData.bank_id));
-                                    if (!selectedBank) return <option value="">Select Bank First</option>;
+                                    if (!selectedBank) return <option value="">Select Account First</option>;
                                     if (selectedBank.name.toLowerCase() === 'cash') return <option value="Cash">Cash</option>;
                                     return (
                                         <>
@@ -204,12 +252,12 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Description / Notes</label>
+                    <div className="space-y-1">
+                        <label className="text-[11px] font-semibold text-slate-500 block">Description / Notes</label>
                         <textarea
-                            placeholder="Add reference or note..."
-                            rows={3}
-                            className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/5 focus:bg-white outline-none resize-none"
+                            placeholder="Add reference, cheque number or notes..."
+                            rows={2}
+                            className="w-full p-3 rounded-xl border border-slate-200 bg-white font-medium text-xs text-slate-800 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none resize-none"
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         />
@@ -218,14 +266,16 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl flex items-center justify-center gap-3 disabled:opacity-50"
+                        className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-2xs disabled:opacity-50 mt-2 cursor-pointer"
                     >
                         {isSubmitting ? (
-                            <Loader2 className="animate-spin" size={18} />
+                            <Loader2 className="animate-spin" size={16} />
                         ) : (
-                            <CreditCard size={18} />
+                            <>
+                                <CheckCircle2 size={16} />
+                                <span>{submitButtonText || (editData ? "Update Settlement" : "Confirm Settlement")}</span>
+                            </>
                         )}
-                        {editData ? "Update Payment Record" : "Confirm & Save Payment"}
                     </button>
                 </form>
             </div>

@@ -1,7 +1,4 @@
 import React from 'react';
-import Lottie from 'lottie-react';
-import truckLoading from '../../assets/loading/Truck.json';
-import generalLoading from '../../assets/loading/loading.json';
 
 interface LottieLoaderProps {
     type?: 'truck' | 'general';
@@ -10,7 +7,7 @@ interface LottieLoaderProps {
 }
 
 const LottieLoader: React.FC<LottieLoaderProps> = ({
-    type = 'general',
+    type: _type = 'general',
     message,
     size = 200
 }) => {

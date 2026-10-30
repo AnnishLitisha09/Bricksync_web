@@ -81,15 +81,15 @@ const SparesVehicleList: React.FC = () => {
 
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full lg:w-auto">
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-[2rem] p-6 text-center">
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center">
                 <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Total Fleet</p>
                 <h3 className="text-3xl font-black text-white">{vehicles.length}</h3>
               </div>
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-[2rem] p-6 text-center">
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center">
                 <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Active</p>
                 <h3 className="text-3xl font-black text-white">{vehicles.length}</h3>
               </div>
-              <div className="hidden sm:block bg-white/5 backdrop-blur-md border border-white/10 rounded-[2rem] p-6 text-center">
+              <div className="hidden sm:block bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center">
                 <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Health</p>
                 <h3 className="text-3xl font-black text-white">100%</h3>
               </div>
@@ -100,7 +100,7 @@ const SparesVehicleList: React.FC = () => {
 
       {/* ─── SEARCH & FILTER SECTION ─── */}
       <div className="max-w-7xl mx-auto px-6 lg:px-12 -mt-10 relative z-20">
-        <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-900/10 border border-slate-100 p-4 md:p-6 flex flex-col md:flex-row items-center gap-6">
+        <div className="bg-white rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-100 p-4 md:p-6 flex flex-col md:flex-row items-center gap-6">
           <div className="relative flex-1 group w-full">
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors" size={22} />
             <input 
@@ -108,10 +108,10 @@ const SparesVehicleList: React.FC = () => {
               placeholder="Search vehicle number (e.g. TN39...)" 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-16 pr-8 py-5 bg-slate-50 border-none rounded-[1.8rem] focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-300 font-bold text-slate-700 text-lg"
+              className="w-full pl-16 pr-8 py-5 bg-slate-50 border-none rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-300 font-bold text-slate-700 text-lg"
             />
           </div>
-          <div className="flex items-center gap-2 px-6 py-5 bg-indigo-50 text-indigo-600 rounded-[1.8rem] border border-indigo-100 shrink-0">
+          <div className="flex items-center gap-2 px-6 py-5 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100 shrink-0">
             <LayoutGrid size={20} />
             <span className="font-black text-xs uppercase tracking-widest">Inventory View</span>
           </div>
@@ -132,7 +132,7 @@ const SparesVehicleList: React.FC = () => {
                   exit={{ opacity: 0, scale: 0.9 }}
                   whileHover={{ y: -12, transition: { duration: 0.2 } }}
                   onClick={() => navigate(`/vehicle/spares/${v.id}`, { state: { vehicleNumber: v.vehicleNumber } })}
-                  className="bg-white rounded-[3rem] p-8 shadow-xl shadow-slate-200/60 border border-slate-100 cursor-pointer group relative overflow-hidden transition-all hover:shadow-2xl hover:shadow-indigo-200/50"
+                  className="bg-white rounded-2xl p-8 shadow-xl shadow-slate-200/60 border border-slate-100 cursor-pointer group relative overflow-hidden transition-all hover:shadow-2xl hover:shadow-indigo-200/50"
                 >
                   {/* Decorative Background Elements */}
                   <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-50 rounded-full -mr-24 -mt-24 group-hover:scale-125 transition-transform duration-700" />
@@ -142,7 +142,7 @@ const SparesVehicleList: React.FC = () => {
 
                   <div className="relative z-10">
                     <div className="flex justify-between items-start mb-10">
-                      <div className="p-5 bg-slate-900 text-white rounded-[1.8rem] shadow-xl group-hover:bg-indigo-600 group-hover:scale-110 transition-all duration-300">
+                      <div className="p-5 bg-slate-900 text-white rounded-xl shadow-xl group-hover:bg-indigo-600 group-hover:scale-110 transition-all duration-300">
                         <Truck size={32} />
                       </div>
                       <div className="flex p-3 bg-emerald-50 text-emerald-600 rounded-2xl shadow-sm border border-emerald-100">
@@ -173,8 +173,8 @@ const SparesVehicleList: React.FC = () => {
                 </motion.div>
               ))
             ) : (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="col-span-full py-32 text-center bg-white rounded-[4rem] shadow-xl shadow-slate-200/50 border border-slate-100">
-                 <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 text-slate-200">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="col-span-full py-32 text-center bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100">
+                 <div className="w-24 h-24 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-slate-200">
                     <Package size={48} strokeWidth={1.5} />
                  </div>
                  <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">No Results Found</h3>

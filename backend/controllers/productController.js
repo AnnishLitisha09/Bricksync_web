@@ -4,8 +4,41 @@ const { Op } = require("sequelize");
 /* 🔹 Get All Products */
 exports.getAllProducts = async (req, res) => {
     try {
+        const page = req.query.page ? parseInt(req.query.page) : null;
+        const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+        const search = req.query.search || "";
+        const category = req.query.category;
+
+        const where = { is_deleted: { [Op.ne]: true } };
+        if (search) {
+            where.product_name = { [Op.like]: `%${search}%` };
+        }
+        if (category) {
+            where.category = category;
+        }
+
+        if (page) {
+            const { count, rows } = await Product.findAndCountAll({
+                where,
+                limit,
+                offset: (page - 1) * limit,
+                order: [["created_at", "DESC"]],
+            });
+            return res.json({
+                success: true,
+                data: rows,
+                pagination: {
+                    total: count,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(count / limit),
+                },
+            });
+        }
+
         const products = await Product.findAll({
-            where: { is_deleted: { [Op.ne]: true } },
+            where,
+            order: [["created_at", "DESC"]],
         });
         res.json({ success: true, data: products });
     } catch (err) {

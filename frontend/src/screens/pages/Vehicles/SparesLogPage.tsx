@@ -13,7 +13,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllSpares, deleteSparesEntry } from "../../../api/spares";
 import { FILE_BASE_URL } from "../../../api/base";
-import LottieLoader from "../../../components/common/LottieLoader";
 import { toast } from "react-hot-toast";
 
 export default function SparesLogPage() {
@@ -77,7 +76,7 @@ export default function SparesLogPage() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-sm shadow-2xl text-center"
+              className="bg-white rounded-2xl p-6 md:p-8 w-full max-w-sm shadow-2xl text-center"
             >
               <div className="p-4 bg-red-50 text-red-600 rounded-full w-fit mx-auto mb-4"><Trash2 size={32} /></div>
               <h3 className="text-xl font-black text-slate-800">Delete Record?</h3>
@@ -101,7 +100,7 @@ export default function SparesLogPage() {
         </div>
         <button
           onClick={() => navigate("/vehicle/spares/add/new")}
-          className="flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-xl md:rounded-2xl font-bold hover:bg-indigo-600 transition-all shadow-lg active:scale-95 text-sm md:text-base"
+          className="flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-xl sm:rounded-2xl font-bold hover:bg-indigo-600 transition-all shadow-lg active:scale-95 text-sm md:text-base"
         >
           <Plus size={18} /> Add Spares
         </button>
@@ -131,7 +130,7 @@ export default function SparesLogPage() {
               placeholder="Search Part or Service Name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-xl md:rounded-2xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-medium"
+              className="w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-xl sm:rounded-2xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-medium"
             />
           </div>
           <div className="relative group">
@@ -141,14 +140,14 @@ export default function SparesLogPage() {
               placeholder="Filter by Vehicle Number..."
               value={vehicleSearch}
               onChange={(e) => setVehicleSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-xl md:rounded-2xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-medium"
+              className="w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-xl sm:rounded-2xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-medium"
             />
           </div>
         </div>
       </div>
 
       {/* DATA VIEW */}
-      <div className="bg-white rounded-2xl md:rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32">
             <div className="w-16 h-16 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin"></div>
@@ -220,7 +219,7 @@ export default function SparesLogPage() {
                               exit={{ height: 0, opacity: 0 }}
                               className="overflow-hidden"
                             >
-                              <div className="py-6 px-4 bg-slate-50/50 rounded-[2rem] my-4 border border-slate-100">
+                              <div className="py-6 px-4 bg-slate-50/50 rounded-2xl my-4 border border-slate-100">
                                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                                   {spare.images?.length > 0 ? spare.images.map((img: any, i: number) => (
                                     <div 
@@ -261,7 +260,7 @@ export default function SparesLogPage() {
       </div>
 
       {!loading && filteredSpares.length === 0 && (
-        <div className="text-center py-24 bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
+        <div className="text-center py-24 bg-white rounded-2xl border-2 border-dashed border-gray-100">
            <Package size={56} className="mx-auto text-slate-200 mb-4" />
            <p className="text-slate-400 text-sm font-black uppercase tracking-widest">Archive Empty</p>
            <p className="text-slate-300 text-xs mt-2">No spare records found matching your criteria.</p>
@@ -273,7 +272,7 @@ export default function SparesLogPage() {
 
 function StatCard({ title, value, icon }: { title: string, value: string, icon: React.ReactNode }) {
   return (
-    <div className="bg-white p-4 md:p-6 rounded-[2rem] shadow-sm border border-gray-100 flex items-center gap-4">
+    <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
       <div className="p-3 bg-slate-50 rounded-2xl shrink-0 shadow-inner">{icon}</div>
       <div className="min-w-0">
         <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest truncate">{title}</p>

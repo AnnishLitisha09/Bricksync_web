@@ -305,84 +305,82 @@ const TransactionsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 lg:p-10 bg-[#F8FAFC] min-h-screen">
+    <div className="space-y-6 font-sans animate-in">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-        <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight uppercase">Transactions</h1>
-          <p className="text-slate-400 text-sm font-medium mt-1 uppercase tracking-widest">{totalItems} Total Records Found</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Transactions</h1>
+          <p className="text-slate-400 text-xs font-semibold">{totalItems} Total Records Processed</p>
         </div>
 
         <button
           onClick={() => setIsExportOpen(true)}
-          className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-indigo-100 group"
+          className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-sm shadow-indigo-600/25 cursor-pointer active:scale-95 group shrink-0"
         >
-          <Download size={16} className="group-hover:translate-y-0.5 transition-transform" />
-          Export Statement
+          <Download size={15} className="group-hover:translate-y-0.5 transition-transform" />
+          <span>Export Statement</span>
         </button>
       </div>
 
       {/* Analytics Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center justify-between group overflow-hidden relative"
+          className="bg-white p-4 sm:p-5 rounded-2xl shadow-2xs border border-slate-200/80 flex items-center justify-between group overflow-hidden relative"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
-          <div className="flex items-center gap-6">
-            <div className="p-4 bg-emerald-500 text-white rounded-2xl shadow-lg shadow-emerald-100">
-              <ArrowUpRight size={24} />
+          <div className="flex items-center gap-4">
+            <div className="size-11 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl flex items-center justify-center shrink-0">
+              <ArrowUpRight size={20} />
             </div>
             <div>
-              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Today's Income</p>
-              <h3 className="text-3xl font-black text-slate-900 tracking-tighter">₹{analytics.todayIncome.toLocaleString()}</h3>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider mb-0.5">Today's Income</p>
+              <h3 className="text-2xl font-black text-emerald-600 tracking-tight">₹{analytics.todayIncome.toLocaleString()}</h3>
             </div>
           </div>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center justify-between group overflow-hidden relative"
+          transition={{ delay: 0.05 }}
+          className="bg-white p-4 sm:p-5 rounded-2xl shadow-2xs border border-slate-200/80 flex items-center justify-between group overflow-hidden relative"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
-          <div className="flex items-center gap-6">
-            <div className="p-4 bg-rose-50 text-rose-600 rounded-2xl shadow-lg shadow-rose-100">
-              <ArrowDownLeft size={24} />
+          <div className="flex items-center gap-4">
+            <div className="size-11 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl flex items-center justify-center shrink-0">
+              <ArrowDownLeft size={20} />
             </div>
             <div>
-              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Today's Expenses</p>
-              <h3 className="text-3xl font-black text-slate-900 tracking-tighter">₹{analytics.todayExpenses.toLocaleString()}</h3>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider mb-0.5">Today's Expenses</p>
+              <h3 className="text-2xl font-black text-rose-600 tracking-tight">₹{analytics.todayExpenses.toLocaleString()}</h3>
             </div>
           </div>
         </motion.div>
       </div>
 
       {/* Control Bar */}
-      <div className="bg-white p-2 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col lg:flex-row items-center gap-4 mb-8">
+      <div className="bg-white p-2.5 rounded-2xl shadow-2xs border border-slate-200/80 flex flex-col sm:flex-row items-center gap-3">
         {/* Search */}
-        <div className="flex-1 flex items-center bg-slate-50 rounded-[2rem] px-6 py-3 w-full border border-transparent focus-within:border-indigo-100 focus-within:bg-white transition-all">
-          <Search className="w-5 h-5 text-slate-400" />
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={15} />
           <input
             type="text"
             placeholder="Search transactions..."
-            className="ml-3 w-full bg-transparent outline-none text-sm font-bold text-slate-600 placeholder:text-slate-300"
+            className="w-full h-10 pl-9 pr-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
           />
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-50 rounded-full w-full lg:w-auto overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl w-full sm:w-auto overflow-x-auto no-scrollbar shrink-0">
           {["all", "sent", "received"].map((status) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status as any)}
-              className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${statusFilter === status
-                ? "bg-white text-indigo-600 shadow-sm"
-                : "text-slate-400 hover:text-slate-600"
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all whitespace-nowrap cursor-pointer ${statusFilter === status
+                ? "bg-white text-indigo-600 shadow-2xs"
+                : "text-slate-500 hover:text-slate-800"
                 }`}
             >
               {status}
@@ -392,22 +390,22 @@ const TransactionsPage: React.FC = () => {
       </div>
 
       {/* Transactions List */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center">
-            <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Syncing Records...</p>
+            <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Syncing Records...</p>
           </div>
         ) : filteredTransactions.length === 0 ? (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-[2rem] p-20 text-center border border-dashed border-slate-200"
+            className="bg-white rounded-2xl p-16 text-center border border-dashed border-slate-200"
           >
-            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <FileText size={32} className="text-slate-200" />
+            <div className="size-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
+              <FileText size={26} className="text-slate-300" />
             </div>
-            <p className="text-slate-400 font-bold">No transactions found matching your criteria.</p>
+            <p className="text-slate-400 font-bold text-sm">No transactions found matching your criteria.</p>
           </motion.div>
         ) : (
           <AnimatePresence mode="popLayout">
@@ -415,20 +413,20 @@ const TransactionsPage: React.FC = () => {
               <motion.div
                 key={t.id}
                 layout
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                className="group bg-white p-2 pr-8 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(idx * 0.03, 0.25) }}
+                className="group bg-white p-3.5 sm:p-4 rounded-2xl shadow-2xs border border-slate-200/80 hover:shadow-md hover:border-indigo-300 transition-all flex flex-col sm:flex-row items-center gap-4"
               >
                 {/* Visual Type Indicator */}
-                <div className={`w-full md:w-32 h-24 rounded-[1.5rem] flex flex-col items-center justify-center ${t.isSent ? "bg-rose-50 border border-rose-100" : "bg-emerald-50 border border-emerald-100"
+                <div className={`w-full sm:w-28 h-16 rounded-xl flex items-center justify-center gap-2.5 px-3 shrink-0 ${t.isSent ? "bg-rose-50 border border-rose-100 text-rose-700" : "bg-emerald-50 border border-emerald-100 text-emerald-700"
                   }`}>
-                  <span className={`text-[10px] font-black uppercase mb-1 ${t.isSent ? "text-rose-400" : "text-emerald-400"}`}>
-                    {t.isSent ? "Outgoing" : "Incoming"}
-                  </span>
-                  <div className={`p-3 rounded-2xl ${t.isSent ? "bg-rose-100 text-rose-600" : "bg-emerald-100 text-emerald-600"}`}>
-                    {t.isSent ? <ArrowUpRight size={24} /> : <ArrowDownLeft size={24} />}
+                  <div className={`p-2 rounded-lg ${t.isSent ? "bg-rose-100 text-rose-600" : "bg-emerald-100 text-emerald-600"}`}>
+                    {t.isSent ? <ArrowUpRight size={18} /> : <ArrowDownLeft size={18} />}
                   </div>
+                  <span className="text-xs font-black uppercase tracking-wider">
+                    {t.isSent ? "Out" : "In"}
+                  </span>
                 </div>
 
                 {/* Details */}
@@ -540,61 +538,61 @@ const TransactionsPage: React.FC = () => {
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              className="relative w-full max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-slate-200/80"
             >
               {/* Modal Header */}
-              <div className="p-8 pb-0 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
-                    <Download size={24} />
+              <div className="p-6 pb-0 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="size-11 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 border border-indigo-100">
+                    <Download size={20} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Statement Export</h3>
-                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Select Date Range</p>
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">Statement Export</h3>
+                    <p className="text-slate-400 text-xs font-semibold">Select Date Range</p>
                   </div>
                 </div>
-                <button onClick={() => setIsExportOpen(false)} className="p-2 hover:bg-slate-50 rounded-xl transition-colors">
-                  <X size={20} className="text-slate-400" />
+                <button onClick={() => setIsExportOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors cursor-pointer">
+                  <X size={18} />
                 </button>
               </div>
 
-              <div className="p-8 space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                       <Calendar size={12} /> Start Date
                     </label>
                     <input
                       type="date"
                       value={exportDates.start}
                       onChange={(e) => setExportDates(p => ({ ...p, start: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-600 focus:bg-white focus:border-indigo-500 outline-none transition-all"
+                      className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-700 focus:bg-white focus:border-indigo-500 outline-none transition-all"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                       <Calendar size={12} /> End Date
                     </label>
                     <input
                       type="date"
                       value={exportDates.end}
                       onChange={(e) => setExportDates(p => ({ ...p, end: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-600 focus:bg-white focus:border-indigo-500 outline-none transition-all"
+                      className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-700 focus:bg-white focus:border-indigo-500 outline-none transition-all"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Layout size={12} /> Filter by Bank (Optional)
                   </label>
                   <select
                     value={exportBankId}
                     onChange={(e) => setExportBankId(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-600 focus:bg-white focus:border-indigo-500 outline-none transition-all"
+                    className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-700 focus:bg-white focus:border-indigo-500 outline-none transition-all"
                   >
                     <option value="">All Banks / Cash</option>
                     {banks.map(bank => (
@@ -603,24 +601,24 @@ const TransactionsPage: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-start gap-4">
-                  <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl mt-1">
-                    <Layout size={16} />
+                <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100 flex items-start gap-3">
+                  <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg shrink-0 mt-0.5">
+                    <Layout size={14} />
                   </div>
-                  <p className="text-[10px] leading-relaxed font-bold text-indigo-400 uppercase">
+                  <p className="text-[11px] leading-relaxed font-semibold text-indigo-700">
                     This will generate a consolidated PDF statement of all financial activities between the selected dates. All wallet, material, service, and fuel records will be included.
                   </p>
                 </div>
               </div>
 
-              <div className="p-8 pt-0">
+              <div className="p-6 pt-0">
                 <button
                   onClick={exportToPDF}
                   disabled={isGeneratingPDF}
-                  className="w-full bg-[#0f172a] hover:bg-[#1e293b] text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-xl disabled:opacity-50"
+                  className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-600/25 disabled:opacity-50 cursor-pointer active:scale-95"
                 >
                   {isGeneratingPDF ? "Generating Statement..." : <>
-                    <Download size={18} /> Generate PDF
+                    <Download size={16} /> <span>Generate Statement PDF</span>
                   </>}
                 </button>
               </div>

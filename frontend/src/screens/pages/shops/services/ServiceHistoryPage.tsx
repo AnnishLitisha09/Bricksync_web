@@ -239,7 +239,7 @@ export default function ServiceHistoryPage() {
 
       {/* SUMMARY STATS */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 relative bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center gap-6 overflow-hidden">
+        <div className="lg:col-span-3 relative bg-white rounded-2xl p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center gap-6 overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
           <div className="relative z-10 p-5 bg-blue-50 rounded-3xl text-blue-600"><Wrench size={40} strokeWidth={2.5} /></div>
           <div className="relative z-10 flex-1">
@@ -252,7 +252,7 @@ export default function ServiceHistoryPage() {
             </div>
           </div>
         </div>
-        <div className="bg-blue-600 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+        <div className="bg-blue-600 rounded-2xl p-8 text-white shadow-2xl relative overflow-hidden group">
           <div className="absolute -bottom-4 -right-4 text-white/10 group-hover:scale-110 transition-transform"><TrendingUp size={120} /></div>
           <div className="relative z-10">
             <p className="text-[10px] font-black text-blue-100 uppercase tracking-[0.2em] opacity-80 mb-2">Net Outstanding</p>
@@ -317,7 +317,7 @@ export default function ServiceHistoryPage() {
         {isModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden">
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
               <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-emerald-50/30">
                 <div>
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Add Payment</h2>
@@ -408,8 +408,8 @@ export default function ServiceHistoryPage() {
 function ServiceLogRow({ log, idx }: { log: Transaction; idx: number }) {
   const date = log.sortDate;
   return (
-    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="group bg-white p-2 pr-6 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
-      <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-slate-50 border border-slate-100 flex flex-col items-center justify-center group-hover:bg-blue-50 transition-colors">
+    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="group bg-white p-2 pr-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
+      <div className="w-full md:w-32 h-24 rounded-xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center group-hover:bg-blue-50 transition-colors">
         <span className="text-[10px] font-black text-slate-400 uppercase mb-1">{date.getFullYear()}</span>
         <span className="text-2xl font-black text-slate-800 leading-none">{date.getDate()}</span>
         <span className="text-[10px] font-black uppercase text-blue-600 mt-1">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>
@@ -434,7 +434,7 @@ function ServiceLogRow({ log, idx }: { log: Transaction; idx: number }) {
           </div>
         </div>
       </div>
-      <div className="w-full md:w-56 p-4 rounded-[1.5rem] bg-slate-900 text-white shadow-lg">
+      <div className="w-full md:w-56 p-4 rounded-xl bg-slate-900 text-white shadow-lg">
         <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Vehicle</p>
         <p className="font-black text-sm uppercase truncate">{log.vehicle?.vehicleName || "Unknown"}</p>
         <span className="text-[10px] font-mono text-blue-400">{log.vehicle?.vehicleNumber || "N/A"}</span>
@@ -446,8 +446,8 @@ function ServiceLogRow({ log, idx }: { log: Transaction; idx: number }) {
 function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
   const date = st.sortDate;
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="bg-white p-2 pr-6 rounded-[2rem] shadow-sm border border-emerald-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
-      <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-emerald-50 border border-emerald-100 flex flex-col items-center justify-center">
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="bg-white p-2 pr-6 rounded-2xl shadow-sm border border-emerald-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
+      <div className="w-full md:w-32 h-24 rounded-xl bg-emerald-50 border border-emerald-100 flex flex-col items-center justify-center">
         <span className="text-[10px] font-black text-emerald-600/50 uppercase mb-1">PAID</span>
         <span className="text-2xl font-black text-emerald-700 leading-none">{date.getDate()}</span>
         <span className="text-[10px] font-black uppercase text-emerald-600 mt-1">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>
@@ -478,7 +478,7 @@ function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
           </div>
         )}
       </div>
-      <div className="w-full md:w-56 p-4 rounded-[1.5rem] bg-emerald-900 text-white shadow-xl shadow-emerald-100">
+      <div className="w-full md:w-56 p-4 rounded-xl bg-emerald-900 text-white shadow-xl shadow-emerald-100">
         <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Confirmed</p>
         <p className="font-black text-[10px] uppercase truncate">{st.bank?.holderName || 'Account Holder'}</p>
       </div>
@@ -542,7 +542,7 @@ function LogDetailModal({ log, onClose, onUpdate }: { log: Transaction; onClose:
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-      <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+      <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
         <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
           <div>
             <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Service Details</h2>
@@ -559,7 +559,7 @@ function LogDetailModal({ log, onClose, onUpdate }: { log: Transaction; onClose:
         <form onSubmit={handleUpdate} className="p-8 space-y-8">
            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
-                 <div className="p-6 bg-slate-900 text-white rounded-[2rem] shadow-xl">
+                 <div className="p-6 bg-slate-900 text-white rounded-2xl shadow-xl">
                     <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Vehicle Reference</p>
                     <p className="text-lg font-black uppercase">{log.vehicle?.vehicleName || "Unknown"}</p>
                     <p className="text-xs font-mono text-blue-400">{log.vehicle?.vehicleNumber || "N/A"}</p>
@@ -650,7 +650,7 @@ function LogDetailModal({ log, onClose, onUpdate }: { log: Transaction; onClose:
 
 function EmptyState({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="text-center py-24 bg-white rounded-[3rem] border-4 border-dashed border-slate-100">
+    <div className="text-center py-24 bg-white rounded-2xl border-4 border-dashed border-slate-100">
       <div className="flex justify-center text-slate-200 mb-4">{icon}</div>
       <h3 className="text-slate-800 font-black uppercase tracking-tighter">{label}</h3>
     </div>

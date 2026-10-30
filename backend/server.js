@@ -13,14 +13,32 @@ const { initScheduledTasks } = require("./utils/scheduler");
 initScheduledTasks();
 
 // ================= Middleware =================
+const requestPool = require("./middleware/requestPool");
+const { networkIntrusionGuard } = require("./utils/securityLogger");
+const payloadSecurity = require("./middleware/payloadSecurity");
+
+app.use(requestPool);
+app.use(networkIntrusionGuard);
+
 app.use(cors({
   origin: true,
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-folder-name']
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'x-folder-name',
+    'x-client-signature',
+    'x-client-timestamp',
+    'x-client-platform',
+    'x-encrypted-transfer',
+    'x-api-key',
+    'accept-encoding-secure'
+  ]
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+app.use(payloadSecurity);
 
 // Static folders
 app.use("/images", express.static(path.join(__dirname, "images")));
@@ -156,10 +174,13 @@ app.use("/api/notepad", require("./routes/notepadRoutes"));
 app.use("/api/invoices", require("./routes/invoiceRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/analytics", require("./routes/analyticsRoutes"));
+app.use("/api/bi", require("./routes/analyticsRoutes"));
 app.use("/api/salary", require("./routes/salaryRoutes"));
+app.use("/api/salaries", require("./routes/salaryRoutes"));
 
 // Add todaysEntry routes
 app.use("/api/todays-entry", require("./routes/todaysEntryRoutes"));
+app.use("/api/security-logs", require("./routes/securityLogRoutes"));
 
 
 // Default

@@ -1,8 +1,9 @@
 import {
   ExternalLink, Mail, MoreVertical, Phone, Plus, Search, ShieldCheck,
-  Trash2, Users, X, LayoutGrid, List, Loader2, ChevronRight, Pencil
+  Trash2, X, LayoutGrid, List, Loader2, ChevronRight, Pencil, Users,
+  Truck, Wrench, CheckCircle2, UserCheck
 } from "lucide-react";
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { BASE_URL, FILE_BASE_URL, getAuthHeader } from "../../../api/base";
@@ -16,17 +17,21 @@ interface InternalDriver extends Omit<DriverType, 'status'> {
 }
 
 const avatarColors = [
-  "from-violet-500 to-purple-600", "from-blue-500 to-indigo-600",
-  "from-emerald-500 to-teal-600", "from-rose-500 to-pink-600",
-  "from-amber-500 to-orange-600", "from-cyan-500 to-sky-600",
+  "from-indigo-600 to-indigo-700",
+  "from-violet-600 to-purple-700",
+  "from-blue-600 to-cyan-700",
+  "from-emerald-600 to-teal-700",
+  "from-rose-600 to-pink-700",
+  "from-amber-600 to-orange-700",
 ];
 const getAvatarColor = (name: string) => avatarColors[(name?.charCodeAt(0) || 0) % avatarColors.length];
 
-const LIMIT = 8;
+const LIMIT = 12;
 
 const Staff: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [loading, setLoading] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,12 +51,19 @@ const Staff: React.FC = () => {
       setDrivers((append ? [...drivers, ...(data.drivers || [])] : (data.drivers || [])) as DriverType[]);
       setTotalItems(data.totalCount || 0);
       setHasMore(page < data.totalPages);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    } catch (e) {
+      console.error("Fetch drivers error:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    const t = setTimeout(() => { setCurrentPage(1); setHasMore(true); fetchDrivers(1, search, false); }, 300);
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      setHasMore(true);
+      fetchDrivers(1, search, false);
+    }, 300);
     return () => clearTimeout(t);
   }, [search]);
 
@@ -76,69 +88,209 @@ const Staff: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    window.addEventListener("click", () => setActiveMenu(null));
-    return () => window.removeEventListener("click", () => setActiveMenu(null));
+    const closeMenu = () => setActiveMenu(null);
+    window.addEventListener("click", closeMenu);
+    return () => window.removeEventListener("click", closeMenu);
   }, []);
 
   const handleDeleteUser = async (e: React.MouseEvent, id: string | number) => {
     e.stopPropagation();
-    if (!window.confirm("Delete this personnel record?")) return;
+    if (!window.confirm("Are you sure you want to delete this staff record? Associated logs will be archived.")) return;
     const res = await fetch(`${BASE_URL}/user/${id}`, { method: 'DELETE', headers: getAuthHeader() });
-    if (res.ok) { setDrivers(drivers.filter(d => d.userid !== id) as DriverType[]); setActiveMenu(null); }
+    if (res.ok) {
+      setDrivers(drivers.filter(d => d.userid !== id) as DriverType[]);
+      setActiveMenu(null);
+    }
   };
 
-  return (
-    <div className="p-4 md:p-8 lg:p-12 min-h-screen bg-[#F8F9FC] space-y-6 md:space-y-8 font-sans max-w-[1600px] mx-auto">
+  // Filtered by role
+  const filteredDrivers = useMemo(() => {
+    if (roleFilter === "ALL") return drivers;
+    if (roleFilter === "ACTIVE") return drivers.filter(d => d.status !== "Inactive");
+    if (roleFilter === "DRIVER") return drivers.filter(d => (d.staffRole || "").toLowerCase().includes("driver"));
+    if (roleFilter === "STAFF") return drivers.filter(d => !(d.staffRole || "").toLowerCase().includes("driver"));
+    return drivers;
+  }, [drivers, roleFilter]);
 
-      {/* HEADER */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
-        <div className="space-y-2">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-            className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 rounded-full text-indigo-600 font-bold text-[10px] uppercase tracking-widest border border-indigo-100">
-            <ShieldCheck size={13} /> Verified System Access
-          </motion.div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 tracking-tight leading-none">
+  // Quick stats
+  const activeCount = useMemo(() => drivers.filter(d => d.status !== "Inactive").length, [drivers]);
+  const driverCount = useMemo(() => drivers.filter(d => (d.staffRole || "").toLowerCase().includes("driver")).length, [drivers]);
+
+  return (
+    <div className="space-y-6 font-sans text-slate-800">
+      {/* ── HEADER ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 rounded-full text-indigo-700 font-bold text-[10px] uppercase tracking-wider border border-indigo-100">
+              <ShieldCheck size={11} /> Verified Workforce
+            </span>
+            <span className="text-xs font-bold text-slate-400">
+              • {totalItems} Enrolled Members
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1">
             Personnel <span className="text-indigo-600">Hub</span>
           </h1>
-          <p className="text-slate-400 text-sm font-medium">Centralized management for staff and fleet security profiles</p>
+          <p className="text-xs font-medium text-slate-500">
+            Centralized registry for plant drivers, mechanics, dispatch crew & support staff
+          </p>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4 flex items-center gap-3 shadow-sm">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-slate-900 rounded-xl flex items-center justify-center shrink-0">
-              <Users size={16} className="text-white sm:size-5" />
-            </div>
-            <div>
-              <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase leading-tight">Workforce</p>
-              <p className="text-lg sm:text-2xl font-black text-slate-900 leading-none">{totalItems}</p>
-            </div>
-          </div>
-          <button onClick={() => navigate("/driver/add")}
-            className="h-full px-4 sm:px-7 py-3 sm:py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-lg shadow-indigo-100 transition-all font-bold flex items-center gap-2 text-sm">
-            <Plus size={17} /><span className="hidden sm:inline">Add Member</span><span className="sm:hidden">Add</span>
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          <button
+            onClick={() => navigate("/driver/add")}
+            className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm shadow-indigo-600/25 cursor-pointer active:scale-95"
+          >
+            <Plus size={16} />
+            <span>Add Member</span>
           </button>
         </div>
       </div>
 
-      {/* SEARCH + VIEW TOGGLE */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2 sm:gap-3">
-        <div className="relative group flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={17} />
-          <input type="text" placeholder="Search staff..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-11 pr-9 py-3 sm:py-4 rounded-2xl border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 outline-none font-semibold text-slate-700 transition-all text-sm" />
-          {search && <button onClick={() => setSearch("")} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600"><X size={15} /></button>}
+      {/* ── QUICK STATS PILLS ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+            <Users size={18} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Workforce</p>
+            <p className="text-lg font-black text-slate-900 tabular-nums">{totalItems}</p>
+          </div>
         </div>
-        <div className="hidden lg:flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm gap-0.5 shrink-0">
-          <button onClick={() => setViewMode("grid")} className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}><LayoutGrid size={16} /></button>
-          <button onClick={() => setViewMode("table")} className={`p-2.5 rounded-xl transition-all ${viewMode === 'table' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}><List size={16} /></button>
-        </div>
-      </motion.div>
 
-      {/* CONTENT */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <UserCheck size={18} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Active On Duty</p>
+            <p className="text-lg font-black text-emerald-600 tabular-nums">{activeCount}</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <Truck size={18} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Fleet Drivers</p>
+            <p className="text-lg font-black text-slate-900 tabular-nums">{driverCount}</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+            <Wrench size={18} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Operations & Crew</p>
+            <p className="text-lg font-black text-slate-900 tabular-nums">{Math.max(0, totalItems - driverCount)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── SEARCH & FILTER CONTROLS ── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-2xs">
+        {/* Role Filters */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <button
+            onClick={() => setRoleFilter("ALL")}
+            className={`h-8 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              roleFilter === "ALL"
+                ? "bg-slate-900 text-white shadow-2xs"
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+            }`}
+          >
+            All Staff
+          </button>
+          <button
+            onClick={() => setRoleFilter("DRIVER")}
+            className={`h-8 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              roleFilter === "DRIVER"
+                ? "bg-indigo-600 text-white shadow-2xs"
+                : "text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50"
+            }`}
+          >
+            <Truck size={13} />
+            Drivers
+          </button>
+          <button
+            onClick={() => setRoleFilter("STAFF")}
+            className={`h-8 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              roleFilter === "STAFF"
+                ? "bg-indigo-600 text-white shadow-2xs"
+                : "text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50"
+            }`}
+          >
+            <Wrench size={13} />
+            Plant Staff
+          </button>
+          <button
+            onClick={() => setRoleFilter("ACTIVE")}
+            className={`h-8 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              roleFilter === "ACTIVE"
+                ? "bg-emerald-600 text-white shadow-2xs"
+                : "text-slate-500 hover:text-emerald-600 hover:bg-emerald-50/50"
+            }`}
+          >
+            <CheckCircle2 size={13} />
+            Active Only
+          </button>
+        </div>
+
+        {/* Search & View Toggle */}
+        <div className="flex items-center gap-2">
+          <div className="relative group flex-1 sm:w-64">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none" size={15} />
+            <input
+              type="text"
+              placeholder="Search by name, phone..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full h-9 pl-9 pr-8 rounded-xl border border-slate-200/80 bg-slate-50/50 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white shadow-2xs transition-all"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          <div className="hidden sm:flex bg-slate-100 h-9 p-1 rounded-xl shrink-0 items-center gap-1">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`h-7 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                viewMode === 'grid'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-400 hover:text-slate-700'
+              }`}
+            >
+              <LayoutGrid size={14} />
+            </button>
+            <button
+              onClick={() => setViewMode("table")}
+              className={`h-7 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-400 hover:text-slate-700'
+              }`}
+            >
+              <List size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── MAIN CONTENT ── */}
       {loading && drivers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24">
-          <div className="w-11 h-11 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin mb-4" />
-          <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Loading...</p>
+        <div className="flex flex-col items-center justify-center py-24 bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
+          <div className="w-10 h-10 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3" />
+          <p className="text-slate-400 font-bold uppercase tracking-wider text-xs">Loading Personnel Registry...</p>
         </div>
       ) : (
         <>
@@ -146,119 +298,270 @@ const Staff: React.FC = () => {
           {viewMode === "grid" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               <AnimatePresence mode="popLayout">
-                {drivers.map(driver => (
-                  <motion.div layout key={driver._id}
-                    initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: .97 }}
-                    whileHover={{ y: -4, transition: { duration: 0.18 } }}
-                    className="bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-lg hover:shadow-slate-200/60 hover:border-slate-200 transition-all flex flex-col group overflow-hidden">
+                {filteredDrivers.map(driver => {
+                  const isInactive = driver.status === 'Inactive';
+                  const isDriver = (driver.staffRole || "").toLowerCase().includes("driver");
 
-                    <div className="p-5 pb-3 flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        {/* Avatar: photo or gradient initial */}
-                        <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl overflow-hidden shrink-0 ${!driver.imageUrl ? `bg-gradient-to-br ${getAvatarColor(driver.name || 'A')} flex items-center justify-center` : 'bg-slate-100'}`}>
-                          {driver.imageUrl
-                            ? <img src={`${FILE_BASE_URL}${driver.imageUrl}`} className="w-full h-full object-cover" alt={driver.name} />
-                            : <span className="text-white font-black text-lg uppercase">{(driver.name || 'A').charAt(0)}</span>}
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-black text-slate-800 text-sm sm:text-base truncate max-w-[130px] sm:max-w-[150px] group-hover:text-indigo-600 transition-colors" title={driver.name}>{driver.name}</h3>
-                          <span className="inline-block px-2 py-0.5 bg-indigo-50 text-indigo-500 font-bold text-[9px] sm:text-[10px] uppercase rounded-full mt-1 border border-indigo-100">{driver.staffRole || "Personnel"}</span>
+                  return (
+                    <motion.div
+                      layout
+                      key={driver._id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                      className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-lg hover:border-indigo-300 transition-all flex flex-col justify-between group overflow-hidden"
+                    >
+                      {/* Top Header */}
+                      <div className="p-5 pb-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {/* Avatar with status ring */}
+                            <div className="relative shrink-0">
+                              <div className={`w-12 h-12 rounded-2xl overflow-hidden border-2 border-white shadow-2xs ${
+                                !driver.imageUrl
+                                  ? `bg-gradient-to-br ${getAvatarColor(driver.name || 'A')} flex items-center justify-center text-white font-black text-lg`
+                                  : 'bg-slate-100'
+                              }`}>
+                                {driver.imageUrl ? (
+                                  <img
+                                    src={`${FILE_BASE_URL}${driver.imageUrl}`}
+                                    className="w-full h-full object-cover"
+                                    alt={driver.name}
+                                  />
+                                ) : (
+                                  <span>{(driver.name || 'A').charAt(0).toUpperCase()}</span>
+                                )}
+                              </div>
+                              <span
+                                className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white ${
+                                  isInactive ? "bg-amber-400" : "bg-emerald-500"
+                                }`}
+                              />
+                            </div>
+
+                            <div className="min-w-0">
+                              <h3
+                                className="font-black text-slate-900 text-sm sm:text-base tracking-tight truncate group-hover:text-indigo-600 transition-colors"
+                                title={driver.name}
+                              >
+                                {driver.name}
+                              </h3>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
+                                  isDriver
+                                    ? "bg-indigo-50 text-indigo-700 border border-indigo-100"
+                                    : "bg-purple-50 text-purple-700 border border-purple-100"
+                                }`}>
+                                  {driver.staffRole || "Personnel"}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-400">
+                                  #{driver.userid}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 3-Dot Menu */}
+                          <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
+                            <button
+                              onClick={() => setActiveMenu(activeMenu === driver._id ? null : driver._id)}
+                              className="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                              <MoreVertical size={16} />
+                            </button>
+                            <AnimatePresence>
+                              {activeMenu === driver._id && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                                  className="absolute right-0 mt-1 w-44 bg-white border border-slate-200/90 rounded-2xl shadow-xl z-30 py-1.5 overflow-hidden"
+                                >
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/driver/view/${obfuscate(driver.userid)}`); }}
+                                    className="w-full text-left px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                  >
+                                    <ExternalLink size={13} className="text-indigo-600" />
+                                    <span>View Profile & Ledger</span>
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/driver/add?edit=${obfuscate(driver.userid)}`); }}
+                                    className="w-full text-left px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                  >
+                                    <Pencil size={13} className="text-blue-600" />
+                                    <span>Edit Credentials</span>
+                                  </button>
+                                  <div className="h-px bg-slate-100 my-1" />
+                                  <button
+                                    onClick={(e) => handleDeleteUser(e, driver.userid)}
+                                    className="w-full text-left px-3.5 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 size={13} className="text-rose-500" />
+                                    <span>Delete Staff</span>
+                                  </button>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         </div>
                       </div>
 
-                      {/* 3-dot menu with Edit Profile + Delete */}
-                      <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => setActiveMenu(activeMenu === driver._id ? null : driver._id)} className="p-1.5 text-slate-300 hover:text-slate-600 bg-slate-50 rounded-lg transition-colors">
-                          <MoreVertical size={16} />
+                      {/* Contact Info */}
+                      <div className="px-5 space-y-2 pb-4">
+                        <div className="flex items-center gap-2.5 bg-slate-50/70 hover:bg-slate-100/70 px-3 py-2 rounded-xl transition-colors border border-slate-100">
+                          <Phone size={13} className="text-slate-400 shrink-0" />
+                          <span className="text-xs font-semibold text-slate-700 truncate">
+                            {driver.phoneNumber || "No Phone Recorded"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 bg-slate-50/70 hover:bg-slate-100/70 px-3 py-2 rounded-xl transition-colors border border-slate-100">
+                          <Mail size={13} className="text-slate-400 shrink-0" />
+                          <span className="text-xs font-semibold text-slate-700 truncate">
+                            {driver.email || "No Email Address"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                            isInactive ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isInactive ? "bg-amber-500" : "bg-emerald-500"}`} />
+                            {isInactive ? "Inactive / On Leave" : "Active on Duty"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action Button Footer */}
+                      <div className="p-3 bg-slate-50/80 border-t border-slate-100 flex items-center gap-2">
+                        <button
+                          onClick={() => navigate(`/driver/view/${obfuscate(driver.userid)}`)}
+                          className="flex-1 h-9 bg-slate-900 hover:bg-indigo-600 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs group/btn cursor-pointer"
+                        >
+                          <span>View Profile</span>
+                          <ChevronRight size={13} className="group-hover/btn:translate-x-0.5 transition-transform" />
                         </button>
-                        <AnimatePresence>
-                          {activeMenu === driver._id && (
-                            <motion.div initial={{ opacity: 0, y: 6, scale: .95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: .95 }}
-                              className="absolute right-0 mt-1 w-44 bg-white border border-slate-100 rounded-2xl shadow-xl z-30 py-1.5">
-                              <button onClick={(e) => { e.stopPropagation(); navigate(`/driver/view/${obfuscate(driver.userid)}`); }}
-                                className="w-full text-left px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2.5"><ExternalLink size={13} className="text-indigo-400" /> View Profile</button>
-                              <button onClick={(e) => { e.stopPropagation(); navigate(`/driver/add?edit=${obfuscate(driver.userid)}`); }}
-                                className="w-full text-left px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2.5"><Pencil size={13} className="text-blue-400" /> Edit Profile</button>
-                              <button onClick={(e) => handleDeleteUser(e, driver.userid)}
-                                className="w-full text-left px-4 py-2 text-xs font-bold text-red-500 hover:bg-red-50 flex items-center gap-2.5"><Trash2 size={13} className="text-red-400" /> Delete</button>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                        <button
+                          onClick={() => navigate(`/driver/add?edit=${obfuscate(driver.userid)}`)}
+                          className="w-9 h-9 rounded-xl bg-white border border-slate-200/80 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                          title="Edit Profile"
+                        >
+                          <Pencil size={13} />
+                        </button>
                       </div>
-                    </div>
-
-                    <div className="px-5 space-y-2 pb-5">
-                      {/* Email */}
-                      <div className="flex items-center gap-2.5 bg-slate-50 px-3 py-2.5 rounded-xl group-hover:bg-slate-100/60 transition-colors overflow-hidden">
-                        <Mail size={12} className="text-slate-400 shrink-0" /><span className="text-xs font-semibold text-slate-500 truncate">{driver.email || "No Email"}</span>
-                      </div>
-                      {/* Phone */}
-                      <div className="flex items-center gap-2.5 bg-slate-50 px-3 py-2.5 rounded-xl group-hover:bg-slate-100/60 transition-colors overflow-hidden">
-                        <Phone size={12} className="text-slate-400 shrink-0" /><span className="text-xs font-semibold text-slate-500 truncate">{driver.phoneNumber || "No Phone"}</span>
-                      </div>
-                      {/* Status */}
-                      <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold ${driver.status === 'Inactive' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                        <div className={`w-2 h-2 rounded-full ${driver.status === 'Inactive' ? 'bg-amber-400' : 'bg-emerald-500'}`} />{driver.status || "Active"}
-                      </div>
-                      {/* CTA */}
-                      <button onClick={() => navigate(`/driver/view/${obfuscate(driver.userid)}`)}
-                        className="w-full py-2.5 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-indigo-600 transition-all flex items-center justify-center gap-1.5 group/btn">
-                        View Profile <ChevronRight size={13} className="group-hover/btn:translate-x-0.5 transition-transform" />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
             </div>
           )}
 
           {/* TABLE VIEW */}
           {viewMode === "table" && (
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden"
+            >
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[580px]">
+                <table className="w-full text-left border-collapse min-w-[620px]">
                   <thead>
-                    <tr className="border-b border-slate-50">
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Personnel</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden md:table-cell">Designation</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:table-cell">Status</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                    <tr className="border-b border-slate-100 bg-slate-50/50">
+                      <th className="px-6 py-3.5 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                        Staff Member
+                      </th>
+                      <th className="px-6 py-3.5 text-[10px] font-black text-slate-400 uppercase tracking-wider hidden md:table-cell">
+                        Designation
+                      </th>
+                      <th className="px-6 py-3.5 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                        Contact Details
+                      </th>
+                      <th className="px-6 py-3.5 text-[10px] font-black text-slate-400 uppercase tracking-wider hidden sm:table-cell">
+                        Status
+                      </th>
+                      <th className="px-6 py-3.5 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50/60">
-                    {drivers.map(driver => (
-                      <tr key={driver._id} className="hover:bg-slate-50/50 transition-colors group">
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredDrivers.map(driver => (
+                      <tr key={driver._id} className="hover:bg-indigo-50/30 transition-colors group">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-xl overflow-hidden shrink-0 ${!driver.imageUrl ? `bg-gradient-to-br ${getAvatarColor(driver.name || 'A')} flex items-center justify-center` : 'bg-slate-100'}`}>
-                              {driver.imageUrl ? <img src={`${FILE_BASE_URL}${driver.imageUrl}`} className="w-full h-full object-cover" alt={driver.name} /> : <span className="text-white font-black text-sm uppercase">{(driver.name || 'A').charAt(0)}</span>}
+                            <div className={`w-10 h-10 rounded-xl overflow-hidden shrink-0 ${
+                              !driver.imageUrl
+                                ? `bg-gradient-to-br ${getAvatarColor(driver.name || 'A')} flex items-center justify-center text-white font-black text-sm`
+                                : 'bg-slate-100'
+                            }`}>
+                              {driver.imageUrl ? (
+                                <img src={`${FILE_BASE_URL}${driver.imageUrl}`} className="w-full h-full object-cover" alt={driver.name} />
+                              ) : (
+                                <span>{(driver.name || 'A').charAt(0).toUpperCase()}</span>
+                              )}
                             </div>
                             <div className="min-w-0">
-                              <p className="font-bold text-slate-800 text-sm truncate max-w-[160px] group-hover:text-indigo-600 transition-colors" title={driver.name}>{driver.name}</p>
-                              <p className="text-[9px] text-slate-400 font-bold uppercase">#{driver.userid?.toString().slice(-6)}</p>
+                              <p className="font-bold text-slate-900 text-sm truncate max-w-[160px] group-hover:text-indigo-600 transition-colors">
+                                {driver.name}
+                              </p>
+                              <p className="text-[10px] text-slate-400 font-bold">
+                                ID: #{driver.userid}
+                              </p>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 hidden md:table-cell">
-                          <span className="px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase border border-indigo-100">{driver.staffRole || "Personnel"}</span>
+                          <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md text-[10px] font-black uppercase tracking-wider border border-indigo-100">
+                            {driver.staffRole || "Personnel"}
+                          </span>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="space-y-0.5">
-                            {driver.email && <p className="text-xs font-semibold text-slate-500 flex items-center gap-2"><Mail size={11} className="text-slate-300 shrink-0" /><span className="truncate max-w-[140px]">{driver.email}</span></p>}
-                            {driver.phoneNumber && <p className="text-xs text-slate-400 flex items-center gap-2"><Phone size={11} className="text-slate-300 shrink-0" />{driver.phoneNumber}</p>}
+                          <div className="space-y-1">
+                            {driver.phoneNumber && (
+                              <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                                <Phone size={11} className="text-slate-400 shrink-0" />
+                                {driver.phoneNumber}
+                              </p>
+                            )}
+                            {driver.email && (
+                              <p className="text-xs text-slate-400 flex items-center gap-1.5">
+                                <Mail size={11} className="text-slate-400 shrink-0" />
+                                <span className="truncate max-w-[140px]">{driver.email}</span>
+                              </p>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 hidden sm:table-cell">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${driver.status === 'Inactive' ? 'bg-amber-400' : 'bg-emerald-500'}`} />
-                            <span className="text-xs font-black text-slate-600">{driver.status || "Active"}</span>
-                          </div>
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold ${
+                            driver.status === 'Inactive' ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${driver.status === 'Inactive' ? "bg-amber-500" : "bg-emerald-500"}`} />
+                            {driver.status || "Active"}
+                          </span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            <button onClick={() => navigate(`/driver/view/${obfuscate(driver.userid)}`)} className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all" title="View"><ExternalLink size={14} /></button>
-                            <button onClick={(e) => handleDeleteUser(e, driver.userid)} className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all" title="Delete"><Trash2 size={14} /></button>
+                            <button
+                              onClick={() => navigate(`/driver/view/${obfuscate(driver.userid)}`)}
+                              className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all cursor-pointer"
+                              title="View Profile"
+                            >
+                              <ExternalLink size={14} />
+                            </button>
+                            <button
+                              onClick={() => navigate(`/driver/add?edit=${obfuscate(driver.userid)}`)}
+                              className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition-all cursor-pointer"
+                              title="Edit Credentials"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              onClick={(e) => handleDeleteUser(e, driver.userid)}
+                              className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-all cursor-pointer"
+                              title="Delete Record"
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -269,18 +572,41 @@ const Staff: React.FC = () => {
             </motion.div>
           )}
 
-          {drivers.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-slate-100">
-              <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-5"><Search size={36} className="text-slate-200" /></div>
-              <h2 className="text-xl font-black text-slate-700">No Records Found</h2>
-              <p className="text-slate-400 text-sm mt-1">Try a different search.</p>
-              <button onClick={() => setSearch("")} className="mt-6 px-7 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-100 text-sm">Clear Search</button>
+          {/* Empty State */}
+          {filteredDrivers.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-slate-200 shadow-2xs">
+              <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mb-3">
+                <Users size={28} />
+              </div>
+              <h3 className="text-base font-bold text-slate-800">No Personnel Records</h3>
+              <p className="text-slate-400 font-medium text-xs max-w-sm text-center mt-1">
+                {search
+                  ? "No staff members matched your search criteria."
+                  : "No staff members registered under this filter."}
+              </p>
+              {(search || roleFilter !== "ALL") && (
+                <button
+                  onClick={() => { setSearch(""); setRoleFilter("ALL"); }}
+                  className="mt-4 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           )}
 
-          <div ref={sentinelRef} className="h-8" />
-          {loading && drivers.length > 0 && <div className="flex justify-center py-5"><Loader2 className="animate-spin text-indigo-500" size={24} /></div>}
-          {!hasMore && drivers.length > 0 && <p className="text-center text-[10px] font-black text-slate-300 uppercase tracking-widest py-3">All {totalItems} staff loaded</p>}
+          {/* Sentinel & Loaders */}
+          <div ref={sentinelRef} className="h-4" />
+          {loading && drivers.length > 0 && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="animate-spin text-indigo-600" size={20} />
+            </div>
+          )}
+          {!hasMore && drivers.length > 0 && (
+            <p className="text-center text-[11px] font-bold text-slate-400 uppercase tracking-wider py-2">
+              All {totalItems} personnel records loaded
+            </p>
+          )}
         </>
       )}
     </div>

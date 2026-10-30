@@ -147,3 +147,42 @@ export const deleteProductionLog = async (id: number) => {
     if (!res.ok) throw new Error("Failed to delete production log");
     return await res.json();
 };
+
+/* 🧪 PRODUCTION RECIPES & BOM RATIOS */
+export const getProductionRecipes = async (officeId?: number | string) => {
+    const url = officeId ? `${BASE_URL}/production/recipes?office_id=${officeId}` : `${BASE_URL}/production/recipes`;
+    const res = await fetch(url, { headers: { ...getAuthHeader() } });
+    if (!res.ok) throw new Error("Failed to fetch mix recipes");
+    return await res.json();
+};
+
+export const getRecipeEstimate = async (officeId: number | string, productId: number | string, units: number | string) => {
+    const res = await fetch(`${BASE_URL}/production/recipes/estimate?office_id=${officeId}&product_id=${productId}&unit_produced=${units}`, {
+        headers: { ...getAuthHeader() }
+    });
+    if (!res.ok) throw new Error("Failed to fetch recipe estimate");
+    return await res.json();
+};
+
+export const upsertProductionRecipe = async (recipeData: any) => {
+    const res = await fetch(`${BASE_URL}/production/recipes`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeader(),
+        },
+        body: JSON.stringify(recipeData),
+    });
+    if (!res.ok) throw new Error("Failed to save mix recipe");
+    return await res.json();
+};
+
+export const deleteProductionRecipe = async (id: number) => {
+    const res = await fetch(`${BASE_URL}/production/recipes/${id}`, {
+        method: "DELETE",
+        headers: { ...getAuthHeader() },
+    });
+    if (!res.ok) throw new Error("Failed to delete recipe");
+    return await res.json();
+};
+

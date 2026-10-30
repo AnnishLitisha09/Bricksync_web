@@ -33,6 +33,8 @@ export interface Office {
 export interface Employee {
     employee_id: number;
     employee_name: string;
+    staff_role?: string | null;
+    daily_salary?: number;
 }
 
 export interface ProductionLog {

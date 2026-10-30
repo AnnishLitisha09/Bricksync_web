@@ -183,7 +183,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, supplier, al
                         initial={{ scale: 0.9, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                        className="relative bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl"
+                        className="relative bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl"
                     >
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-black uppercase italic tracking-tight text-slate-800">Export Ledger</h3>

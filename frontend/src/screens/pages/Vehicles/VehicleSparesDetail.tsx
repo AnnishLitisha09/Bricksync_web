@@ -103,7 +103,7 @@ const VehicleSparesDetail: React.FC = () => {
         {/* Stats Dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
           {/* Total Spent */}
-          <div className="bg-white rounded-[2rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100 flex items-center gap-5 relative overflow-hidden group">
+          <div className="bg-white rounded-2xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 flex items-center gap-5 relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-150 transition-transform duration-700">
                <IndianRupee size={80} className="text-emerald-600" />
             </div>
@@ -117,7 +117,7 @@ const VehicleSparesDetail: React.FC = () => {
           </div>
 
           {/* Service Count */}
-          <div className="bg-white rounded-[2rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100 flex items-center gap-5">
+          <div className="bg-white rounded-2xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 flex items-center gap-5">
             <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl">
               <CreditCard size={24} />
             </div>
@@ -128,7 +128,7 @@ const VehicleSparesDetail: React.FC = () => {
           </div>
 
           {/* Latest Service */}
-          <div className="bg-white rounded-[2rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100 flex items-center gap-5">
+          <div className="bg-white rounded-2xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 flex items-center gap-5">
             <div className="p-4 bg-amber-50 text-amber-600 rounded-2xl">
               <Clock size={24} />
             </div>
@@ -149,7 +149,7 @@ const VehicleSparesDetail: React.FC = () => {
           </div>
 
           {spares.length === 0 ? (
-            <div className="text-center py-24 bg-white rounded-[3rem] border border-dashed border-slate-200">
+            <div className="text-center py-24 bg-white rounded-2xl border border-dashed border-slate-200">
               <Package size={56} className="mx-auto text-slate-200 mb-6" strokeWidth={1} />
               <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">Clear Archive</p>
               <p className="text-slate-300 text-[10px] mt-2 font-medium">No service records found for this vehicle.</p>
@@ -158,7 +158,7 @@ const VehicleSparesDetail: React.FC = () => {
             spares.map((group) => (
               <div 
                 key={group.id} 
-                className={`bg-white rounded-[2rem] border transition-all duration-300 overflow-hidden ${expandedId === group.id ? 'shadow-2xl shadow-indigo-100 border-indigo-200' : 'shadow-xl shadow-slate-200/40 border-slate-100 hover:border-slate-300'}`}
+                className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden ${expandedId === group.id ? 'shadow-2xl shadow-indigo-100 border-indigo-200' : 'shadow-xl shadow-slate-200/40 border-slate-100 hover:border-slate-300'}`}
               >
                 <div 
                   className="p-6 md:p-8 cursor-pointer flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 group"
@@ -221,7 +221,7 @@ const VehicleSparesDetail: React.FC = () => {
                             <motion.div 
                               key={i}
                               whileHover={{ scale: 1.05, rotate: i % 2 === 0 ? 1 : -1 }}
-                              className="aspect-square rounded-[1.5rem] overflow-hidden border-2 border-white shadow-xl relative group/img cursor-pointer"
+                              className="aspect-square rounded-xl overflow-hidden border-2 border-white shadow-xl relative group/img cursor-pointer"
                               onClick={() => window.open(`${FILE_BASE_URL}${img.image_url}`, '_blank')}
                             >
                                <img 

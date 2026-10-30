@@ -9,14 +9,19 @@ import {
   Download,
   Landmark,
   Pencil,
-  Trash2
+  Trash2,
+  Building2,
+  Package,
+  Layers,
+  CheckCircle2,
+  X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { BASE_URL } from "../../../../api/base";
 
-// NEW COMPONENTS
+// SUB COMPONENTS
 import SummaryCards from "./components/SummaryCards";
 import Pagination from "./components/Pagination";
 import EntryModal from "./components/modals/EntryModal";
@@ -56,6 +61,7 @@ export default function MaterialHistoryPage() {
   const shopName = searchParams.get("shopName") || "Merchant Ledger";
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<"ALL" | "ENTRY" | "STATEMENT">("ALL");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -96,8 +102,8 @@ export default function MaterialHistoryPage() {
       const statementsData = await statementsRes.json();
       const supplierData = await supplierRes.json();
 
-      if (entriesData.success) setEntries(entriesData.data);
-      if (statementsData.success) setStatements(statementsData.data);
+      if (entriesData.success) setEntries(entriesData.data || []);
+      if (statementsData.success) setStatements(statementsData.data || []);
       if (supplierData.success) setSupplier(supplierData.data);
     } catch (error) {
       console.error("Failed to fetch history:", error);
@@ -127,6 +133,14 @@ export default function MaterialHistoryPage() {
     }
   };
 
+  const totalProcurementAmount = useMemo(() => {
+    return entries.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+  }, [entries]);
+
+  const totalPaidAmount = useMemo(() => {
+    return statements.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+  }, [statements]);
+
   const allLogs = useMemo(() => {
     const procurement = entries.map(e => ({
       ...e,
@@ -143,13 +157,28 @@ export default function MaterialHistoryPage() {
 
   const filteredLogs = useMemo(() => {
     return allLogs.filter((l: any) => {
-      const term = searchTerm.toLowerCase();
-      if (l.type === 'ENTRY') {
-        return (l as any).product?.product_name.toLowerCase().includes(term);
+      // Tab filter
+      if (activeTab !== "ALL" && l.type !== activeTab) {
+        return false;
       }
-      return (l as any).payment_mode.toLowerCase().includes(term) || (l as any).description?.toLowerCase().includes(term);
+
+      // Search filter
+      const term = searchTerm.toLowerCase();
+      if (!term) return true;
+
+      if (l.type === 'ENTRY') {
+        const prod = (l as any).product?.product_name?.toLowerCase() || '';
+        const off = (l as any).office?.office_name?.toLowerCase() || '';
+        const fieldsStr = (l as any).fields?.map((f: any) => `${f.field_name} ${f.field_value}`).join(' ').toLowerCase() || '';
+        return prod.includes(term) || off.includes(term) || fieldsStr.includes(term);
+      } else {
+        const mode = (l as any).payment_mode?.toLowerCase() || '';
+        const desc = (l as any).description?.toLowerCase() || '';
+        const bank = (l as any).bank?.name?.toLowerCase() || '';
+        return mode.includes(term) || desc.includes(term) || bank.includes(term);
+      }
     });
-  }, [searchTerm, allLogs]);
+  }, [searchTerm, activeTab, allLogs]);
 
   const paginatedLogs = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -162,86 +191,163 @@ export default function MaterialHistoryPage() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gray-50/50 p-4 md:p-8 space-y-8 font-sans"
+      className="min-h-screen bg-[#F8F9FC] p-4 md:p-8 space-y-6 font-sans text-slate-800"
     >
-      {/* HEADER */}
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
+      {/* ── HEADER ── */}
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
+        <div className="flex items-center gap-3 sm:gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-indigo-50 transition-all group"
+            className="w-10 h-10 bg-white border border-slate-200/80 rounded-xl shadow-2xs hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer group"
           >
-            <ArrowLeft size={20} className="text-slate-400 group-hover:text-indigo-600 group-hover:-translate-x-1 transition-all" />
+            <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
           </button>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 uppercase italic tracking-tight flex items-center gap-3">
-              <Store className="text-indigo-600" size={28} />
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 rounded-full text-indigo-700 font-bold text-[10px] uppercase tracking-wider border border-indigo-100">
+                <Store size={11} /> Merchant Procurement Ledger
+              </span>
+              <span className="text-xs font-bold text-slate-400">
+                • ID: #{shopId}
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1">
               {shopName}
             </h1>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em]">Material Supply History</p>
+            <p className="text-xs font-medium text-slate-500">
+              Procurement orders, material intake logs & payment clearance records
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 flex-wrap">
           <button
             onClick={() => setIsExportModalOpen(true)}
-            className="hidden sm:flex items-center gap-2 px-5 py-3.5 bg-white text-slate-600 border border-slate-200 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all shadow-sm"
+            className="h-10 px-3.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-2xs cursor-pointer active:scale-95"
           >
-            <Download size={16} /> Export Report
+            <Download size={14} className="text-slate-500" />
+            <span>Export Statement</span>
           </button>
+
           <button
             onClick={() => setIsPaymentModalOpen(true)}
-            className="hidden sm:flex items-center gap-2 px-5 py-3.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-100 transition-all"
+            className="h-10 px-3.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer active:scale-95"
           >
-            <CreditCard size={16} /> Record Payment
+            <CreditCard size={14} className="text-emerald-600" />
+            <span>Record Payment</span>
           </button>
+
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-slate-300 hover:bg-indigo-600 transition-all active:scale-95"
+            className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-sm shadow-indigo-600/25 cursor-pointer active:scale-95"
           >
-            <Plus size={18} /> New Entry
+            <Plus size={16} />
+            <span>New Procurement</span>
           </button>
         </div>
       </div>
 
-      {/* SUMMARY CARDS */}
+      {/* ── SUMMARY CARDS ── */}
       <SummaryCards
         supplier={supplier}
         entriesCount={entries.length}
         statementsCount={statements.length}
+        totalProcurementAmount={totalProcurementAmount}
+        totalPaidAmount={totalPaidAmount}
         onExportClick={() => setIsExportModalOpen(true)}
+        onPaymentClick={() => setIsPaymentModalOpen(true)}
       />
 
-      {/* TRANSACTION LIST */}
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h3 className="text-xl font-black uppercase italic tracking-tight flex items-center gap-2">
-            <div className="p-2 bg-indigo-100 rounded-lg"><Receipt size={18} className="text-indigo-600" /></div>
-            Procurement Ledger
-          </h3>
+      {/* ── TRANSACTION LIST & CONTROLS ── */}
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+          {/* Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <button
+              onClick={() => { setActiveTab("ALL"); setCurrentPage(1); }}
+              className={`h-8 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                activeTab === "ALL"
+                  ? "bg-slate-900 text-white shadow-2xs"
+                  : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+              }`}
+            >
+              All Records ({allLogs.length})
+            </button>
+            <button
+              onClick={() => { setActiveTab("ENTRY"); setCurrentPage(1); }}
+              className={`h-8 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                activeTab === "ENTRY"
+                  ? "bg-indigo-600 text-white shadow-2xs"
+                  : "text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50"
+              }`}
+            >
+              <Package size={13} />
+              Procurements ({entries.length})
+            </button>
+            <button
+              onClick={() => { setActiveTab("STATEMENT"); setCurrentPage(1); }}
+              className={`h-8 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                activeTab === "STATEMENT"
+                  ? "bg-emerald-600 text-white shadow-2xs"
+                  : "text-slate-500 hover:text-emerald-600 hover:bg-emerald-50/50"
+              }`}
+            >
+              <CreditCard size={13} />
+              Payments ({statements.length})
+            </button>
+          </div>
 
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          {/* Search Box */}
+          <div className="relative group w-full sm:w-72">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none" size={15} />
             <input
               type="text"
-              placeholder="Search history..."
+              placeholder="Search by material, mode, bank..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-white border border-slate-200 rounded-2xl py-3 pl-12 pr-6 shadow-sm focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-xs w-full sm:w-64"
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              className="w-full h-9 pl-9 pr-8 rounded-xl border border-slate-200/80 bg-slate-50/50 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white shadow-2xs transition-all"
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="space-y-4">
+        {/* List Content */}
+        <div className="space-y-3">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-32 space-y-4">
-              <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-              <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Loading Records...</p>
+            <div className="flex flex-col items-center justify-center py-24 bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
+              <div className="w-10 h-10 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+              <p className="text-slate-400 font-bold uppercase tracking-wider text-xs mt-3">
+                Loading Records...
+              </p>
             </div>
           ) : paginatedLogs.length === 0 ? (
-            <div className="py-20 text-center bg-white rounded-[2.5rem] border-4 border-dashed border-slate-100">
-              <Search size={40} className="text-slate-200 mx-auto mb-4" />
-              <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">No material entries found</p>
+            <div className="py-20 text-center bg-white rounded-2xl border border-dashed border-slate-200 shadow-2xs flex flex-col items-center justify-center">
+              <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mb-3">
+                <Receipt size={28} />
+              </div>
+              <h3 className="text-base font-bold text-slate-800">No Transactions Found</h3>
+              <p className="text-slate-400 font-medium text-xs max-w-sm mt-1">
+                {searchTerm
+                  ? "No records matched your search query. Try clearing your filters."
+                  : "No procurement logs or payments recorded for this merchant yet."}
+              </p>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="mt-4 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors"
+                >
+                  Clear Search Filter
+                </button>
+              )}
             </div>
           ) : (
             paginatedLogs.map((l: any, idx: number) => (
@@ -265,18 +371,21 @@ export default function MaterialHistoryPage() {
             ))
           )}
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredLogs.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            label="supply records"
-          />
+          {/* Pagination */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredLogs.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              label="ledger transactions"
+            />
+          </div>
         </div>
       </div>
 
-      {/* MODALS */}
+      {/* ── MODALS ── */}
       <EntryModal
         isOpen={isModalOpen || !!editingEntry}
         onClose={() => {
@@ -308,86 +417,189 @@ export default function MaterialHistoryPage() {
   );
 }
 
-// --- SUB-COMPONENTS ---
+// ── SUB-COMPONENT: PROCUREMENT ENTRY ROW ──
 function MaterialLogRow({ log, idx, onEdit, onDelete }: { log: any; idx: number; onEdit: () => void; onDelete: () => void }) {
   const date = new Date(log.date);
+  const formattedDay = date.toLocaleDateString('en-IN', { weekday: 'short' });
+  const formattedDate = date.getDate();
+  const formattedMonth = date.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+
   return (
-    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="group bg-white p-2 pr-6 rounded-4xl shadow-sm border border-slate-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
-      <div className="w-full md:w-32 h-24 rounded-3xl bg-indigo-50 border border-indigo-100 flex flex-col items-center justify-center group-hover:bg-indigo-100 transition-colors">
-        <span className="text-[10px] font-black text-indigo-400 uppercase mb-1">{date.getFullYear()}</span>
-        <span className="text-2xl font-black text-indigo-800 leading-none">{date.getDate()}</span>
-        <span className="text-[10px] font-black uppercase text-indigo-600 mt-1">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>
-      </div>
-      <div className="flex-1 flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-2">
-        <div>
-          <h3 className="text-xl font-black text-slate-800 tracking-tight uppercase group-hover:text-indigo-600 transition-colors">{log.product?.product_name || 'Material'}</h3>
-          <div className="flex flex-wrap gap-1.5 mt-1">
-            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[8px] font-black uppercase rounded-md border border-slate-200">
-              {log.units} Units
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: idx * 0.02 }}
+      className="group bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 hover:border-indigo-300 hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+    >
+      <div className="flex items-start sm:items-center gap-4">
+        {/* Date Box */}
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex flex-col items-center justify-center shrink-0 group-hover:bg-indigo-100/70 transition-colors">
+          <span className="text-[9px] font-black text-indigo-500 uppercase tracking-wider leading-none">
+            {formattedDay}
+          </span>
+          <span className="text-xl sm:text-2xl font-black text-indigo-900 leading-none my-0.5 tabular-nums">
+            {formattedDate}
+          </span>
+          <span className="text-[9px] font-bold uppercase text-indigo-600 leading-none">
+            {date.toLocaleDateString('en-IN', { month: 'short' })}
+          </span>
+        </div>
+
+        {/* Details */}
+        <div className="space-y-1.5 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wider border border-indigo-100">
+              <Package size={11} /> Procurement
             </span>
-            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[8px] font-black uppercase rounded-md border border-slate-200">
-              @ {log.office?.office_name}
+            {log.office?.office_name && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">
+                <Building2 size={11} /> {log.office.office_name}
+              </span>
+            )}
+            <span className="text-xs font-semibold text-slate-400">
+              {formattedMonth}
             </span>
+          </div>
+
+          <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors truncate">
+            {log.product?.product_name || 'Raw Material Order'}
+          </h3>
+
+          <div className="flex items-center gap-2 flex-wrap text-xs font-medium text-slate-500">
+            <span className="inline-flex items-center gap-1 font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md">
+              <Layers size={11} className="text-slate-500" />
+              {Number(log.units).toLocaleString()} Units
+            </span>
+
+            {/* Custom Field Tags */}
+            {log.fields && log.fields.map((f: any, i: number) => (
+              <span key={i} className="inline-flex items-center gap-1 bg-slate-50 text-slate-600 px-2 py-0.5 rounded-md border border-slate-100 text-[11px]">
+                <span className="text-slate-400 font-bold">{f.field_name}:</span> {f.field_value}
+              </span>
+            ))}
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Procurement</p>
-            <span className="text-xl font-black text-slate-900">₹{Number(log.amount).toLocaleString()}</span>
-          </div>
-          <div className="flex items-center gap-2 ml-4">
-            <button onClick={onEdit} className="p-2.5 bg-slate-50 text-slate-400 hover:text-amber-600 rounded-xl hover:bg-amber-50 transition-all border border-transparent hover:border-amber-100"><Pencil size={14} /></button>
-            <button onClick={onDelete} className="p-2.5 bg-slate-50 text-slate-400 hover:text-red-600 rounded-xl hover:bg-red-50 transition-all border border-transparent hover:border-red-100"><Trash2 size={14} /></button>
-          </div>
+      </div>
+
+      {/* Amount & Actions */}
+      <div className="flex items-center justify-between md:justify-end gap-5 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
+        <div className="text-left md:text-right">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+            Procurement Value
+          </p>
+          <span className="text-xl sm:text-2xl font-black text-slate-900 tabular-nums">
+            ₹{Number(log.amount).toLocaleString('en-IN')}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={onEdit}
+            title="Edit Entry"
+            className="w-8 h-8 rounded-xl bg-slate-50 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors cursor-pointer border border-transparent hover:border-indigo-100"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={onDelete}
+            title="Delete Entry"
+            className="w-8 h-8 rounded-xl bg-slate-50 text-slate-500 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer border border-transparent hover:border-rose-100"
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
       </div>
     </motion.div>
   );
 }
 
+// ── SUB-COMPONENT: SETTLEMENT / PAYMENT STATEMENT ROW ──
 function StatementRow({ st, idx, onEdit, onDelete }: { st: any; idx: number; onEdit: () => void; onDelete: () => void }) {
   const date = new Date(st.createdAt);
+  const formattedDay = date.toLocaleDateString('en-IN', { weekday: 'short' });
+  const formattedDate = date.getDate();
+  const formattedMonth = date.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="bg-white p-2 pr-6 rounded-[2rem] shadow-sm border border-emerald-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
-      <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-emerald-50 border border-emerald-100 flex flex-col items-center justify-center">
-        <span className="text-[10px] font-black text-emerald-600/50 uppercase mb-1">PAID</span>
-        <span className="text-2xl font-black text-emerald-700 leading-none">{date.getDate()}</span>
-        <span className="text-[10px] font-black uppercase text-emerald-600 mt-1">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>
-      </div>
-      <div className="flex-1 flex flex-col justify-center p-4">
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl"><Landmark size={24} /></div>
-            <div>
-              <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Clearance</h3>
-              <div className="flex items-center gap-2">
-                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{st.bank?.name || 'Bank'}</p>
-                <div className="w-1 h-1 bg-emerald-300 rounded-full" />
-                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[8px] font-black uppercase rounded-md border border-emerald-100">
-                  {st.payment_mode || 'N/A'}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="text-right">
-              <p className="text-[8px] font-black text-emerald-600 uppercase mb-1">Settlement</p>
-              <span className="text-xl font-black text-emerald-700">₹{Number(st.amount).toLocaleString()}</span>
-            </div>
-            <div className="flex items-center gap-2 ml-4">
-              <button onClick={onEdit} className="p-2.5 bg-slate-50 text-slate-400 hover:text-amber-600 rounded-xl hover:bg-amber-50 transition-all border border-transparent hover:border-amber-100"><Pencil size={14} /></button>
-              <button onClick={onDelete} className="p-2.5 bg-slate-50 text-slate-400 hover:text-red-600 rounded-xl hover:bg-red-50 transition-all border border-transparent hover:border-red-100"><Trash2 size={14} /></button>
-            </div>
-          </div>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: idx * 0.02 }}
+      className="group bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 hover:border-emerald-300 hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+    >
+      <div className="flex items-start sm:items-center gap-4">
+        {/* Date Box */}
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-emerald-50 border border-emerald-100 flex flex-col items-center justify-center shrink-0 group-hover:bg-emerald-100/70 transition-colors">
+          <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider leading-none">
+            {formattedDay}
+          </span>
+          <span className="text-xl sm:text-2xl font-black text-emerald-900 leading-none my-0.5 tabular-nums">
+            {formattedDate}
+          </span>
+          <span className="text-[9px] font-bold uppercase text-emerald-700 leading-none">
+            {date.toLocaleDateString('en-IN', { month: 'short' })}
+          </span>
         </div>
-        {st.description && (
-          <div className="mt-3 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl">
-            <p className="text-[10px] font-bold text-slate-400 italic">"{st.description}"</p>
+
+        {/* Details */}
+        <div className="space-y-1.5 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
+              <CheckCircle2 size={11} /> Settled Payment
+            </span>
+            {st.bank?.name && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">
+                <Landmark size={11} /> {st.bank.name}
+              </span>
+            )}
+            <span className="px-2 py-0.5 bg-slate-50 text-slate-600 text-[10px] font-black uppercase rounded-md border border-slate-200">
+              {st.payment_mode || 'Cash'}
+            </span>
+            <span className="text-xs font-semibold text-slate-400">
+              {formattedMonth}
+            </span>
           </div>
-        )}
+
+          <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight group-hover:text-emerald-700 transition-colors truncate">
+            Supplier Settlement Clearance
+          </h3>
+
+          {st.description && (
+            <p className="text-xs font-medium text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 inline-block">
+              Note: <span className="text-slate-700 font-semibold">{st.description}</span>
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Amount & Actions */}
+      <div className="flex items-center justify-between md:justify-end gap-5 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
+        <div className="text-left md:text-right">
+          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">
+            Amount Paid
+          </p>
+          <span className="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums">
+            -₹{Number(st.amount).toLocaleString('en-IN')}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={onEdit}
+            title="Edit Payment"
+            className="w-8 h-8 rounded-xl bg-slate-50 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors cursor-pointer border border-transparent hover:border-indigo-100"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={onDelete}
+            title="Delete Payment"
+            className="w-8 h-8 rounded-xl bg-slate-50 text-slate-500 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer border border-transparent hover:border-rose-100"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
     </motion.div>
   );
 }
-
-

@@ -48,7 +48,41 @@ exports.createBank = async (req, res) => {
 /* ===================== GET ALL ===================== */
 exports.getAllBanks = async (req, res) => {
   try {
+    const page = req.query.page ? parseInt(req.query.page) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+    const search = req.query.search || "";
+    const { Op } = require("sequelize");
+
+    const where = {};
+    if (search) {
+      where[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { holderName: { [Op.like]: `%${search}%` } },
+        { accountNumber: { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    if (page) {
+      const { count, rows } = await BankTable.findAndCountAll({
+        where,
+        order: [["createdAt", "DESC"]],
+        limit,
+        offset: (page - 1) * limit,
+      });
+      return res.json({
+        success: true,
+        data: rows,
+        pagination: {
+          total: count,
+          page,
+          limit,
+          totalPages: Math.ceil(count / limit),
+        },
+      });
+    }
+
     const banks = await BankTable.findAll({
+      where,
       order: [["createdAt", "DESC"]],
     });
 

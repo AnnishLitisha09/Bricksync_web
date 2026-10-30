@@ -233,65 +233,62 @@ const ExportLedgerModal: React.FC<ExportLedgerModalProps> = ({ isOpen, onClose, 
   return createPortal(
     <div className="fixed inset-0 z-9999 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="bg-white rounded-[3rem] w-full max-w-xl p-10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] relative z-10 animate-in fade-in zoom-in duration-300 overflow-hidden">
-        {/* Visual Accent */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -mr-32 -mt-32 blur-3xl opacity-50" />
-
-        <div className="flex justify-between items-start mb-10 relative">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center shadow-2xl shadow-slate-200 ring-8 ring-slate-50">
-              <FileText size={32} className="text-white" />
+      <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-lg p-6 sm:p-8 shadow-2xl relative z-10 animate-in fade-in zoom-in duration-300 overflow-hidden border border-slate-200/80">
+        <div className="flex justify-between items-center mb-6 relative">
+          <div className="flex items-center gap-3.5">
+            <div className="size-11 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-xs">
+              <FileText size={20} />
             </div>
             <div>
-              <h3 className="text-3xl font-black text-slate-900 tracking-tight leading-none">Ledger Hub</h3>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Ready for Generation</p>
+              <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none">Export Customer Ledger</h3>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-slate-400 text-xs font-semibold">Ready for Statement Generation</p>
               </div>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-4 hover:bg-slate-50 rounded-2xl text-slate-300 hover:text-slate-900 transition-all active:scale-90"
+            className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-all cursor-pointer"
           >
-            <X size={24} />
+            <X size={18} />
           </button>
         </div>
 
-        <div className="space-y-8 relative">
-          <div className="group p-8 bg-slate-50 rounded-[2.5rem] border-2 border-transparent hover:border-slate-200 transition-all duration-500">
+        <div className="space-y-4 relative">
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/70">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Target Account</p>
-                <p className="text-2xl font-black text-slate-900 tracking-tight">{customer.name}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Target Account</p>
+                <p className="text-sm font-black text-slate-900 tracking-tight">{customer.name}</p>
               </div>
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm">
-                <CheckCircle2 size={24} className="text-emerald-500" />
+              <div className="size-8 bg-white rounded-lg flex items-center justify-center shadow-2xs border border-slate-200/60">
+                <CheckCircle2 size={16} className="text-emerald-600" />
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Period Start</label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">Period Start</label>
               <div className="relative">
-                <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
+                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={15} />
                 <input
                   type="date"
-                  className="w-full pl-14 pr-6 py-5 rounded-[1.8rem] border-2 border-slate-100 bg-white font-bold text-slate-700 shadow-sm focus:border-slate-900 focus:ring-0 outline-none transition-all cursor-pointer"
+                  className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-200/80 bg-white text-xs font-bold text-slate-700 shadow-2xs focus:border-indigo-500 outline-none transition-all cursor-pointer"
                   value={dateRange.from}
                   onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
                 />
               </div>
             </div>
 
-            <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Period End</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">Period End</label>
               <div className="relative">
-                <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
+                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={15} />
                 <input
                   type="date"
-                  className="w-full pl-14 pr-6 py-5 rounded-[1.8rem] border-2 border-slate-100 bg-white font-bold text-slate-700 shadow-sm focus:border-slate-900 focus:ring-0 outline-none transition-all cursor-pointer"
+                  className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-200/80 bg-white text-xs font-bold text-slate-700 shadow-2xs focus:border-indigo-500 outline-none transition-all cursor-pointer"
                   value={dateRange.to}
                   onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
                 />
@@ -303,7 +300,7 @@ const ExportLedgerModal: React.FC<ExportLedgerModalProps> = ({ isOpen, onClose, 
             <button
               onClick={handleDownloadPDF}
               disabled={isGenerating}
-              className="w-full py-6 bg-slate-900 text-white rounded-4xl font-black text-sm uppercase tracking-[0.25em] hover:bg-slate-800 hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.3)] transition-all flex items-center justify-center gap-4 active:scale-[0.97] disabled:opacity-50"
+              className="w-full py-6 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-[0.25em] hover:bg-slate-800 hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.3)] transition-all flex items-center justify-center gap-4 active:scale-[0.97] disabled:opacity-50"
             >
               {isGenerating ? (
                 <Loader2 size={24} className="animate-spin" />

@@ -119,19 +119,19 @@ export default function AddVehicle() {
 
     return (
       <div className="flex flex-col gap-2">
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">{label}</label>
-        <div className={`relative group h-32 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl transition-all ${file ? "border-orange-500 bg-orange-50/30" : "border-gray-200 hover:border-orange-400 bg-gray-50/50"
+        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>
+        <div className={`relative group h-32 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl transition-all ${file ? "border-indigo-500 bg-indigo-50/30" : "border-slate-200 hover:border-indigo-400 bg-slate-50/50"
           }`}>
           {previewUrl ? (
             <div className="relative w-full h-full p-2">
-              <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-xl shadow-sm" />
-              <button type="button" onClick={() => removeFile(name)} className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition-transform hover:scale-110">
+              <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-xl shadow-xs" />
+              <button type="button" onClick={() => removeFile(name)} className="absolute -top-2 -right-2 bg-rose-500 text-white p-1 rounded-full shadow-md hover:bg-rose-600 transition-transform hover:scale-110 cursor-pointer">
                 <X size={14} />
               </button>
             </div>
           ) : (
             <label htmlFor={name} className="cursor-pointer flex flex-col items-center justify-center w-full h-full">
-              <UploadCloud className="text-gray-400 group-hover:text-orange-500 transition-colors" size={20} />
+              <UploadCloud className="text-slate-400 group-hover:text-indigo-600 transition-colors" size={20} />
               <input id={name} type="file" name={name} accept="image/*" onChange={handleFileChange} className="hidden" />
             </label>
           )}
@@ -141,89 +141,89 @@ export default function AddVehicle() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] py-8 px-4 sm:px-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto space-y-6 animate-in font-sans">
+      {/* Top Navigation & Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-1.5 rounded-lg border border-slate-200 hover:border-indigo-200 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 transition-all cursor-pointer"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full font-bold text-[10px] uppercase tracking-wider">
+              Fleet Management
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Register <span className="text-indigo-600">Vehicle</span>
+          </h1>
+          <p className="text-xs font-medium text-slate-500">
+            Add a new commercial vehicle or transport asset to your enterprise registry.
+          </p>
+        </div>
+        <div className="hidden sm:flex h-12 w-12 bg-indigo-600 rounded-xl shadow-md shadow-indigo-600/20 items-center justify-center shrink-0">
+          <Car className="text-white" size={24} />
+        </div>
+      </div>
 
-        {/* Top Navigation & Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-500 hover:text-orange-600 transition-colors mb-4 group"
-          >
-            <div className="p-2 rounded-full group-hover:bg-orange-50 transition-colors">
-              <ArrowLeft size={20} />
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Section: Core Specs */}
+        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-2xs border border-slate-200/80">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-indigo-50 rounded-xl text-indigo-600 border border-indigo-100">
+              <FileText size={18} />
             </div>
-            <span className="font-medium">Back to Fleet</span>
-          </button>
+            <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Basic Details</h2>
+          </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight">Register Vehicle</h1>
-              <p className="text-gray-500 mt-1 font-medium">Add a new asset to your transport management system.</p>
-            </div>
-            <div className="hidden sm:flex h-14 w-14 bg-orange-500 rounded-2xl shadow-lg shadow-orange-200 items-center justify-center">
-              <Car className="text-white" size={28} />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Input label="Vehicle Name" name="vehicleName" placeholder="e.g. BharatBenz 3523R" value={form.vehicleName} onChange={handleChange} required />
+            <Input label="Vehicle Number" name="vehicleNumber" placeholder="e.g. DL-01-CA-1234" value={form.vehicleNumber} onChange={handleChange} required />
+            <Input label="Odometer Reading (KM)" name="kilometer" type="number" placeholder="Enter current KM" value={form.kilometer} onChange={handleChange} required />
+            <Input label="RC Expiry" name="rcDate" type="date" value={form.rcDate} onChange={handleChange} required />
+            <Input label="Insurance Expiry" name="insurance" type="date" value={form.insurance} onChange={handleChange} required />
+            <Input label="Pollution Expiry" name="pollution" type="date" value={form.pollution} onChange={handleChange} required />
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Section: Core Specs */}
-          <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
-                <FileText size={18} />
-              </div>
-              <h2 className="text-lg font-bold text-gray-800 uppercase tracking-tight">Basic Details</h2>
+        {/* Section: Documentation */}
+        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-2xs border border-slate-200/80">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-indigo-50 rounded-xl text-indigo-600 border border-indigo-100">
+              <ImageIcon size={18} />
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input label="Vehicle Name" name="vehicleName" placeholder="e.g. BharatBenz 3523R" value={form.vehicleName} onChange={handleChange} required />
-              <Input label="Vehicle Number" name="vehicleNumber" placeholder="e.g. DL-01-CA-1234" value={form.vehicleNumber} onChange={handleChange} required />
-              <Input label="Odometer Reading (KM)" name="kilometer" type="number" placeholder="Enter current KM" value={form.kilometer} onChange={handleChange} required />
-              <Input label="RC Expiry" name="rcDate" type="date" value={form.rcDate} onChange={handleChange} required />
-              <Input label="Insurance Expiry" name="insurance" type="date" value={form.insurance} onChange={handleChange} required />
-              <Input label="Pollution Expiry" name="pollution" type="date" value={form.pollution} onChange={handleChange} required />
-            </div>
+            <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Upload Documents</h2>
           </div>
 
-          {/* Section: Documentation */}
-          <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
-                <ImageIcon size={18} />
-              </div>
-              <h2 className="text-lg font-bold text-gray-800 uppercase tracking-tight">Upload Documents</h2>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              <FileUploadCard name="vehicleImage" label="Vehicle" />
-              <FileUploadCard name="rcImage" label="RC Copy" />
-              <FileUploadCard name="insuranceImage" label="Insurance" />
-              <FileUploadCard name="pollutionImage" label="Pollution" />
-              <FileUploadCard name="speedImage" label="Speed Limit" />
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <FileUploadCard name="vehicleImage" label="Vehicle" />
+            <FileUploadCard name="rcImage" label="RC Copy" />
+            <FileUploadCard name="insuranceImage" label="Insurance" />
+            <FileUploadCard name="pollutionImage" label="Pollution" />
+            <FileUploadCard name="speedImage" label="Speed Limit" />
           </div>
+        </div>
 
-          {/* Submit Button */}
-          <div className="pt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-orange-500 text-white py-4 rounded-2xl text-lg font-bold hover:bg-orange-600 transition-all shadow-xl shadow-orange-100 disabled:opacity-70 flex items-center justify-center gap-3 active:scale-[0.99]"
-            >
-              {loading ? (
-                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <CheckCircle2 size={22} />
-                  Complete Registration
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
+        {/* Submit Button */}
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full h-11 bg-indigo-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 disabled:opacity-70 flex items-center justify-center gap-2 active:scale-[0.99] cursor-pointer"
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <CheckCircle2 size={16} />
+                <span>Complete Registration</span>
+              </>
+            )}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

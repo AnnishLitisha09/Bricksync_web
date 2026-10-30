@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
+const role = require("../middleware/roleMiddleware");
 
 const {
   createVehicleService,
@@ -10,31 +11,31 @@ const {
   getAllVehicleServices,
   deleteVehicleService,
   getServicesByShopId,
-  updateVehicleService, // ⭐ added
+  updateVehicleService,
 } = require("../controllers/vehicleServiceController");
 
 /* Protect all routes */
 router.use(authMiddleware);
 
-/* Create */
-router.post("/", createVehicleService);
+/* Create (Admin only) */
+router.post("/", role(1), createVehicleService);
 
 /* Vehicle specific */
-router.get("/vehicle/:vehicleId", getServicesByVehicleId);
+router.get("/vehicle/:vehicleId", role(1, 2), getServicesByVehicleId);
 
 /* ⭐ Shop specific */
-router.get("/shop/:serviceShopId", getServicesByShopId);
+router.get("/shop/:serviceShopId", role(1), getServicesByShopId);
 
 /* Vehicle + services */
-router.get("/vehicle-with-services/:id", getVehicleWithServices);
+router.get("/vehicle-with-services/:id", role(1, 2), getVehicleWithServices);
 
 /* Pagination + Search + Date Filter */
-router.get("/", getAllVehicleServices);
+router.get("/", role(1, 2), getAllVehicleServices);
 
-/* Update */
-router.put("/:id", updateVehicleService);
+/* Update (Admin only) */
+router.put("/:id", role(1), updateVehicleService);
 
-/* Delete */
-router.delete("/:id", deleteVehicleService);
+/* Delete (Admin only) */
+router.delete("/:id", role(1), deleteVehicleService);
 
 module.exports = router;

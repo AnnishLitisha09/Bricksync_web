@@ -4,6 +4,12 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const notepadController = require("../controllers/notepadController");
+const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
+
+// Strictly Admin Only (Role 1) - Protected Notepad Billing
+router.use(authMiddleware);
+router.use(roleMiddleware(1));
 
 // Multer config for PDF storage
 const storage = multer.diskStorage({

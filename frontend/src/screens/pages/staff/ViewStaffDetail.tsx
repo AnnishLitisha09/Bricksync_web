@@ -1,10 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ChevronLeft, Edit3, History, Loader2, Plus, User,
+  ChevronLeft, Edit3, History, Loader2, User,
   ArrowUpRight, ArrowDownLeft, CalendarDays, ChevronRight,
-  CalendarCheck, CalendarRange
+  CalendarCheck, CalendarRange, ShieldCheck,
+  Landmark, Wallet, AlertCircle, X
 } from "lucide-react";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 import { BASE_URL, BASE_URL_NO_API, FILE_BASE_URL, getAuthHeader } from "../../../api/base";
@@ -83,7 +84,7 @@ const ViewStaffDetail: React.FC = () => {
 
       const transData = await transRes.json();
       if (transData.success) {
-        setTransactions(transData.data);
+        setTransactions(transData.data || []);
         setSummary(transData.summary || { remainingAdvance: 0 });
         setPagination(transData.pagination || { page: 1, totalPages: 1, total: 0 });
       }
@@ -101,7 +102,6 @@ const ViewStaffDetail: React.FC = () => {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, "0");
 
-    // Days in current month / days elapsed in year
     const daysInMonth = new Date(year, now.getMonth() + 1, 0).getDate();
     const startOfYear = new Date(year, 0, 1);
     const dayOfYear = Math.ceil((now.getTime() - startOfYear.getTime()) / 86400000) + 1;
@@ -121,186 +121,437 @@ const ViewStaffDetail: React.FC = () => {
     } catch { /* non-blocking */ }
   }, [id]);
 
-  useEffect(() => { if (id) { fetchData(1); fetchAttendance(); } }, [id, fetchData, fetchAttendance]);
+  useEffect(() => {
+    if (id) {
+      fetchData(1);
+      fetchAttendance();
+    }
+  }, [id, fetchData, fetchAttendance]);
 
-  if (loading || !staff) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8F9FC]">
-      <Loader2 className="animate-spin text-indigo-600" size={40} />
-    </div>
-  );
+  const monthlyPct = useMemo(() => {
+    if (attendance.monthlyTotal === 0) return 0;
+    return Math.min(100, Math.round((attendance.monthlyPresent / attendance.monthlyTotal) * 100));
+  }, [attendance]);
+
+  const yearlyPct = useMemo(() => {
+    if (attendance.yearlyTotal === 0) return 0;
+    return Math.min(100, Math.round((attendance.yearlyPresent / attendance.yearlyTotal) * 100));
+  }, [attendance]);
+
+  if (loading && !staff) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F9FC]">
+        <Loader2 className="animate-spin text-indigo-600 mb-3" size={36} />
+        <p className="text-slate-400 font-bold uppercase tracking-wider text-xs">
+          Loading Staff Profile...
+        </p>
+      </div>
+    );
+  }
+
+  if (!staff) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F9FC] p-4 text-center">
+        <AlertCircle size={44} className="text-rose-500 mb-3" />
+        <h2 className="text-xl font-black text-slate-800">Staff Member Not Found</h2>
+        <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm">
+          The requested personnel profile could not be retrieved from the database.
+        </p>
+        <button
+          onClick={() => navigate("/staff")}
+          className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition shadow-2xs"
+        >
+          Return to Personnel Hub
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      className="min-h-screen bg-[#F8F9FC] p-4 md:p-8 lg:p-12 space-y-8 font-sans text-slate-900 max-w-7xl mx-auto">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-[#F8F9FC] p-4 md:p-8 space-y-6 font-sans text-slate-800 max-w-7xl mx-auto"
+    >
       <Toaster position="top-right" />
 
       {/* ── HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-3 bg-white border border-slate-200 rounded-2xl shadow-sm hover:bg-slate-50 transition-colors shrink-0">
-            <ChevronLeft size={22} />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 bg-white border border-slate-200/80 rounded-xl shadow-2xs hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer group shrink-0"
+          >
+            <ChevronLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
           </button>
-          <div>
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-slate-900 uppercase truncate max-w-[220px] sm:max-w-none">{staff.name}</h1>
-            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.25em]">Staff ID: {staff.userid}</p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 rounded-full text-indigo-700 font-bold text-[10px] uppercase tracking-wider border border-indigo-100">
+                <ShieldCheck size={11} /> Verified Staff Profile
+              </span>
+              <span className="text-xs font-bold text-slate-400">
+                • Staff ID #{staff.userid}
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1 truncate">
+              {staff.name}
+            </h1>
+            <p className="text-xs font-medium text-slate-500">
+              Employment records, salary settlements, advance balance & shift attendance
+            </p>
           </div>
         </div>
-        <div className="flex gap-2 sm:gap-3 flex-wrap">
-          <button onClick={() => setIsEditModalOpen(true)}
-            className="flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition shadow-sm">
-            <Edit3 size={16} /> Edit Profile
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 flex-wrap">
+          <button
+            onClick={() => setIsEditModalOpen(true)}
+            className="h-10 px-3.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-2xs cursor-pointer active:scale-95"
+          >
+            <Edit3 size={14} className="text-slate-500" />
+            <span>Edit Profile</span>
           </button>
-          <button onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-5 sm:px-8 py-3 sm:py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-600 transition shadow-lg shadow-slate-200">
-            <Plus size={16} /> Manage Ledger
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-sm shadow-indigo-600/25 cursor-pointer active:scale-95"
+          >
+            <Wallet size={15} />
+            <span>Manage Ledger</span>
           </button>
         </div>
       </div>
 
-      {/* ── OVERVIEW CARDS ── */}
+      {/* ── 4-CARD EXECUTIVE OVERVIEW ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Name / Onboarding */}
-        <div className="sm:col-span-2 lg:col-span-2 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 flex items-center gap-5">
-          <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600 shrink-0"><User size={32} strokeWidth={2.5} /></div>
-          <div>
-            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.25em] mb-0.5">Onboarding Details</p>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter uppercase truncate max-w-[200px]">{staff.name}</h2>
-            <p className="text-slate-400 font-bold text-xs mt-1">Joined: <span className="text-slate-700">{new Date(staff.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span></p>
+        {/* CARD 1: ONBOARDING IDENTITY */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+            <User size={22} />
           </div>
-        </div>
-
-        {/* Remaining Advance */}
-        <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden group">
-          <div className="absolute -bottom-3 -right-3 text-white/5 group-hover:scale-110 transition-transform"><ArrowUpRight size={100} /></div>
-          <div className="relative z-10">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Remaining Advance</p>
-            <p className="text-3xl sm:text-4xl font-black tabular-nums">₹{summary.remainingAdvance?.toLocaleString('en-IN')}</p>
-            <span className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-lg text-[9px] font-black uppercase tracking-widest">Liability</span>
-          </div>
-        </div>
-
-        {/* Monthly Attendance */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">This Month</p>
-            <CalendarCheck size={18} className="text-indigo-400" />
-          </div>
-          <div>
-            <p className="text-3xl sm:text-4xl font-black text-slate-900 tabular-nums leading-none">
-              {attendance.monthlyPresent}<span className="text-slate-300 text-xl font-bold">/{attendance.monthlyTotal}</span>
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Personnel Details
             </p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">Days Present</p>
-          </div>
-          <div className="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-indigo-600 rounded-full transition-all" style={{ width: `${attendance.monthlyTotal > 0 ? (attendance.monthlyPresent / attendance.monthlyTotal) * 100 : 0}%` }} />
-          </div>
-        </div>
-      </div>
-
-      {/* ── YEARLY ATTENDANCE BANNER ── */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center shrink-0"><CalendarRange size={22} className="text-emerald-600" /></div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Yearly Attendance ({new Date().getFullYear()})</p>
-            <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
-              {attendance.yearlyPresent}<span className="text-slate-300 font-bold text-lg">/{attendance.yearlyTotal}</span>
-              <span className="text-emerald-600 text-sm font-black ml-3">{attendance.yearlyTotal > 0 ? Math.round((attendance.yearlyPresent / attendance.yearlyTotal) * 100) : 0}%</span>
+            <h3 className="text-base font-black text-slate-900 tracking-tight truncate mt-0.5">
+              {staff.name}
+            </h3>
+            <p className="text-xs font-semibold text-slate-400 mt-0.5">
+              Joined {new Date(staff.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
             </p>
-            <p className="text-xs font-bold text-slate-400 mt-0.5">Days present this year</p>
           </div>
         </div>
-        <div className="w-full sm:w-64 h-3 bg-slate-100 rounded-full overflow-hidden">
-          <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${attendance.yearlyTotal > 0 ? (attendance.yearlyPresent / attendance.yearlyTotal) * 100 : 0}%` }} />
+
+        {/* CARD 2: REMAINING ADVANCE */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Advance Liability
+            </p>
+            <span
+              className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                (summary.remainingAdvance || 0) > 0
+                  ? "bg-rose-50 text-rose-700 border border-rose-100"
+                  : "bg-emerald-50 text-emerald-700 border border-emerald-100"
+              }`}
+            >
+              {(summary.remainingAdvance || 0) > 0 ? "Pending Due" : "Settled"}
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">
+              ₹{(summary.remainingAdvance || 0).toLocaleString("en-IN")}
+            </span>
+            <span className="text-xs font-bold text-slate-400">INR</span>
+          </div>
+          <p className="text-[11px] font-semibold text-slate-400 mt-1">
+            Current advance balance outstanding
+          </p>
+        </div>
+
+        {/* CARD 3: MONTHLY ATTENDANCE */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              This Month
+            </p>
+            <CalendarCheck size={16} className="text-indigo-600" />
+          </div>
+          <div className="mt-2">
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">
+                {attendance.monthlyPresent}
+                <span className="text-slate-300 text-base font-bold">/{attendance.monthlyTotal}</span>
+              </span>
+              <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                {monthlyPct}%
+              </span>
+            </div>
+            <div className="mt-2.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-indigo-600 rounded-full transition-all duration-500"
+                style={{ width: `${monthlyPct}%` }}
+              />
+            </div>
+          </div>
+          <p className="text-[11px] font-semibold text-slate-400 mt-2">
+            Present days logged in {new Date().toLocaleDateString('en-IN', { month: 'short' })}
+          </p>
+        </div>
+
+        {/* CARD 4: YEARLY ATTENDANCE */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Yearly Score ({new Date().getFullYear()})
+            </p>
+            <CalendarRange size={16} className="text-emerald-600" />
+          </div>
+          <div className="mt-2">
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">
+                {attendance.yearlyPresent}
+                <span className="text-slate-300 text-base font-bold">/{attendance.yearlyTotal}</span>
+              </span>
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                {yearlyPct}%
+              </span>
+            </div>
+            <div className="mt-2.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                style={{ width: `${yearlyPct}%` }}
+              />
+            </div>
+          </div>
+          <p className="text-[11px] font-semibold text-slate-400 mt-2">
+            Cumulative annual attendance rate
+          </p>
         </div>
       </div>
 
       {/* ── PROFILE & ATTENDANCE ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
-        <div className="lg:col-span-4"><DriverInfoCard staff={staff} fileBaseUrl={FILE_BASE_URL} /></div>
-        <div className="lg:col-span-8"><WeeklyAttendance userId={id!} /></div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div className="lg:col-span-4">
+          <DriverInfoCard staff={staff} fileBaseUrl={FILE_BASE_URL} />
+        </div>
+        <div className="lg:col-span-8">
+          <WeeklyAttendance userId={id!} />
+        </div>
       </div>
 
-      {/* ── TRANSACTION FLOW ── */}
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-white border border-slate-100 rounded-xl shadow-sm"><History size={18} className="text-indigo-500" /></div>
-            <h3 className="text-xl font-black uppercase tracking-tight">Transaction Flow</h3>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-            <div className="flex items-center gap-2 bg-white border border-slate-100 p-1.5 rounded-2xl shadow-sm">
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none text-[10px] font-black uppercase text-slate-600 focus:ring-0" />
-              <span className="text-slate-300 text-[10px] font-black">→</span>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none text-[10px] font-black uppercase text-slate-600 focus:ring-0" />
+      {/* ── TRANSACTION FLOW & LEDGER ── */}
+      <div className="space-y-4">
+        {/* Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+              <History size={16} />
             </div>
-            <div className="flex gap-1.5 p-1.5 bg-white border border-slate-100 rounded-2xl shadow-sm">
+            <div>
+              <h3 className="text-base font-black text-slate-900 tracking-tight">
+                Personnel Financial Flow
+              </h3>
+              <p className="text-[11px] font-semibold text-slate-400">
+                Itemized salary dispatches, advance receipts & expense clearances
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Date Filters */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 px-2 py-1 rounded-xl text-xs">
+              <input
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="bg-transparent border-none text-[11px] font-bold text-slate-700 outline-none p-0 cursor-pointer"
+              />
+              <span className="text-slate-300 font-bold">→</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                className="bg-transparent border-none text-[11px] font-bold text-slate-700 outline-none p-0 cursor-pointer"
+              />
+              {(startDate || endDate) && (
+                <button
+                  onClick={() => { setStartDate(""); setEndDate(""); }}
+                  className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  title="Clear Dates"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Category Filter Tabs */}
+            <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
               {(["all", "salary", "advance"] as const).map(tab => (
-                <button key={tab} onClick={() => setFilter(tab)}
-                  className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filter === tab ? "bg-slate-900 text-white shadow" : "text-slate-400 hover:text-slate-600"}`}>
-                  {tab}
+                <button
+                  key={tab}
+                  onClick={() => setFilter(tab)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
+                    filter === tab
+                      ? "bg-white text-slate-900 shadow-2xs"
+                      : "text-slate-500 hover:text-slate-900"
+                  }`}
+                >
+                  {tab === "all" ? "All" : tab}
                 </button>
               ))}
             </div>
           </div>
         </div>
 
+        {/* Transaction Cards List */}
         <div className="space-y-3">
           <AnimatePresence mode="popLayout">
             {transactions.length > 0 ? (
               <>
-                {transactions.map((t, idx) => (
-                  <motion.div key={t.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }}
-                    className="bg-white rounded-2xl p-5 border border-slate-100 hover:border-indigo-100 transition-all shadow-sm">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-2xl shrink-0 ${t.category === 'salary' ? "bg-blue-50 text-blue-600" : t.type === 'received' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"}`}>
-                          {t.type === "received" ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
+                {transactions.map((t, idx) => {
+                  const isSalary = t.category === "salary";
+                  const isReceived = t.type === "received";
+
+                  return (
+                    <motion.div
+                      key={t.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.02 }}
+                      className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 hover:border-indigo-300 hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
+                      <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                        {/* Transaction Icon */}
+                        <div
+                          className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                            isSalary
+                              ? "bg-blue-50 text-blue-600"
+                              : isReceived
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-rose-50 text-rose-600"
+                          }`}
+                        >
+                          {isReceived ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
                         </div>
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${t.category === 'salary' ? "text-blue-500" : "text-slate-400"}`}>{t.category}</span>
-                            <span className="text-[10px] font-black uppercase text-indigo-500 px-2 py-0.5 bg-indigo-50 rounded-md">{t.paymentType}</span>
+
+                        {/* Details */}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                                isSalary
+                                  ? "bg-blue-50 text-blue-700 border border-blue-100"
+                                  : "bg-purple-50 text-purple-700 border border-purple-100"
+                              }`}
+                            >
+                              {t.category}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-600 px-2 py-0.5 bg-slate-100 rounded-md">
+                              {t.paymentType || "Cash"}
+                            </span>
+                            {t.bank?.name && (
+                              <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
+                                <Landmark size={11} className="text-slate-400" />
+                                {t.bank.name}
+                              </span>
+                            )}
                           </div>
-                          <h4 className="text-base font-black text-slate-900 mt-0.5 uppercase">{t.description}</h4>
-                          <p className="text-xs font-bold text-slate-400 flex items-center gap-1.5 mt-0.5 uppercase">
-                            <CalendarDays size={11} /> {new Date(t.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                            <span className="text-slate-300">•</span>{t.bank?.name || "Cash"}
+
+                          <h4 className="text-sm sm:text-base font-black text-slate-900 tracking-tight mt-1 truncate">
+                            {t.description || `${isSalary ? "Salary Payment" : "Advance Settlement"}`}
+                          </h4>
+
+                          <p className="text-xs font-semibold text-slate-400 flex items-center gap-1.5 mt-0.5">
+                            <CalendarDays size={12} />
+                            {new Date(t.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                           </p>
                         </div>
                       </div>
-                      <p className={`text-xl sm:text-2xl font-black tabular-nums shrink-0 ${t.category === 'salary' ? "text-blue-600" : t.type === 'received' ? "text-emerald-600" : "text-rose-600"}`}>
-                        {t.type === "received" ? "+" : "-"} ₹{t.amount.toLocaleString('en-IN')}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
+
+                      {/* Amount */}
+                      <div className="text-left sm:text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                          Amount
+                        </p>
+                        <span
+                          className={`text-xl sm:text-2xl font-black tabular-nums ${
+                            isSalary
+                              ? "text-blue-600"
+                              : isReceived
+                              ? "text-emerald-600"
+                              : "text-rose-600"
+                          }`}
+                        >
+                          {isReceived ? "+" : "-"} ₹{t.amount.toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+
+                {/* Pagination */}
                 {pagination.totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-3 mt-8">
-                    <button disabled={pagination.page === 1} onClick={() => fetchData(pagination.page - 1)} className="p-3.5 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-indigo-600 disabled:opacity-30 shadow-sm"><ChevronLeft size={18} /></button>
-                    <div className="flex gap-2">
-                      {[...Array(pagination.totalPages)].map((_, i) => (
-                        <button key={i} onClick={() => fetchData(i + 1)} className={`w-11 h-11 rounded-2xl text-[10px] font-black transition-all ${pagination.page === i + 1 ? "bg-slate-900 text-white shadow-lg" : "bg-white text-slate-400 border border-slate-100 hover:bg-slate-50"}`}>{i + 1}</button>
-                      ))}
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs flex items-center justify-between">
+                    <p className="text-xs font-bold text-slate-400">
+                      Page {pagination.page} of {pagination.totalPages}
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        disabled={pagination.page === 1}
+                        onClick={() => fetchData(pagination.page - 1)}
+                        className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 disabled:opacity-30 transition-all cursor-pointer"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <button
+                        disabled={pagination.page === pagination.totalPages}
+                        onClick={() => fetchData(pagination.page + 1)}
+                        className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 disabled:opacity-30 transition-all cursor-pointer"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
                     </div>
-                    <button disabled={pagination.page === pagination.totalPages} onClick={() => fetchData(pagination.page + 1)} className="p-3.5 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-indigo-600 disabled:opacity-30 shadow-sm"><ChevronRight size={18} /></button>
                   </div>
                 )}
               </>
             ) : (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-100">
-                <History size={44} className="text-slate-100 mb-4" />
-                <h3 className="text-lg font-black text-slate-300 uppercase">No Transactions Found</h3>
-                <p className="text-slate-400 text-xs font-bold mt-1 uppercase tracking-widest">Records appear after payments or advances</p>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-dashed border-slate-200 shadow-2xs text-center"
+              >
+                <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mb-3">
+                  <History size={24} />
+                </div>
+                <h3 className="text-base font-bold text-slate-800">No Transactions Recorded</h3>
+                <p className="text-slate-400 text-xs font-medium max-w-sm mt-1">
+                  Salary disbursements and advance payouts recorded in the ledger will show up here.
+                </p>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition shadow-2xs cursor-pointer"
+                >
+                  Record Payment or Advance
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
 
-      <EditStaffModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} staff={staff} refresh={fetchData} />
-      <LedgerModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} userId={id!} refresh={fetchData} />
+      {/* ── MODALS ── */}
+      <EditStaffModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        staff={staff}
+        refresh={fetchData}
+      />
+      <LedgerModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        userId={id!}
+        refresh={fetchData}
+      />
     </motion.div>
   );
 };

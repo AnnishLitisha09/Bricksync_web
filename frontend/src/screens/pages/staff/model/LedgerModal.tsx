@@ -97,56 +97,71 @@ const LedgerModal: React.FC<Props> = ({ isOpen, onClose, userId, refresh }) => {
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-          <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-lg rounded-[3.5rem] shadow-2xl overflow-hidden">
-            <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-indigo-50/30">
+          <motion.div initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} className="relative bg-white w-full max-w-md rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden border border-slate-200/80">
+            <div className="p-5 md:p-6 border-b border-slate-100 flex justify-between items-center">
               <div>
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">Manage Funds</h2>
-                <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-1">Staff Ledger Entry</p>
+                <h2 className="text-lg font-bold text-slate-900">Manage Funds</h2>
+                <p className="text-xs font-medium text-slate-500 mt-0.5">Staff Ledger Entry</p>
               </div>
-              <button onClick={onClose} className="p-3 hover:bg-white rounded-full transition-colors text-slate-400"><X size={24} /></button>
+              <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors"><X size={16} /></button>
             </div>
-            <form className="p-10 space-y-6" onSubmit={handleTransaction}>
-              <div className="flex p-1.5 bg-slate-100 rounded-[2rem]">
+            <form className="p-5 md:p-6 space-y-4" onSubmit={handleTransaction}>
+              <div className="flex p-1 bg-slate-100 rounded-xl border border-slate-200/60">
                 {(['salary', 'advance'] as const).map((m) => (
                   <button key={m} type="button" onClick={() => {
                     setMode(m);
                     setFormData({ ...formData, type: 'received', description: m === 'salary' ? 'Monthly Salary' : 'Fuel Advance' });
-                  }} className={`flex-1 py-3.5 rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest transition-all ${mode === m ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500'}`}>
+                  }} className={`flex-1 h-8 rounded-lg font-bold text-xs transition-all capitalize ${mode === m ? 'bg-white text-indigo-700 shadow-2xs font-extrabold' : 'text-slate-500 hover:text-slate-900'}`}>
                     {m}
                   </button>
                 ))}
               </div>
 
               {mode === "advance" && (
-                <div className="flex p-1 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+                <div className="flex p-1 bg-indigo-50/50 rounded-xl border border-indigo-100">
                   <button type="button" onClick={() => setFormData({ ...formData, type: 'received', description: 'Fuel Advance' })}
-                    className={`flex-1 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all ${formData.type === 'received' ? 'bg-indigo-600 text-white' : 'text-indigo-400'}`}>
+                    className={`flex-1 h-7 rounded-lg font-bold text-[11px] transition-all ${formData.type === 'received' ? 'bg-indigo-600 text-white' : 'text-indigo-600'}`}>
                     Give Advance
                   </button>
                   <button type="button" onClick={() => setFormData({ ...formData, type: 'sent', description: 'Advance Recovery' })}
-                    className={`flex-1 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all ${formData.type === 'sent' ? 'bg-rose-600 text-white' : 'text-indigo-400'}`}>
+                    className={`flex-1 h-7 rounded-lg font-bold text-[11px] transition-all ${formData.type === 'sent' ? 'bg-rose-600 text-white' : 'text-indigo-600'}`}>
                     Recover Advance
                   </button>
                 </div>
               )}
 
-              <select required value={formData.bankId} onChange={(e) => setFormData({ ...formData, bankId: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4 font-black text-slate-800 outline-none">
-                <option value="">Select Account...</option>
-                {banks.map(bank => <option key={bank.id} value={bank.id}>{bank.name} - {bank.holderName}</option>)}
-              </select>
-
-              <div className="grid grid-cols-2 gap-4">
-                <input type="number" required placeholder="Amount (₹)" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4 font-black" />
-                <select value={formData.paymentType} onChange={(e) => setFormData({ ...formData, paymentType: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4 font-black">
-                  {availableModes.map(m => <option key={m} value={m}>{m}</option>)}
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 block mb-1">Account</label>
+                <select required value={formData.bankId} onChange={(e) => setFormData({ ...formData, bankId: e.target.value })} className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3.5 font-medium text-xs text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20">
+                  <option value="">Select Account...</option>
+                  {banks.map(bank => <option key={bank.id} value={bank.id}>{bank.name} - {bank.holderName}</option>)}
                 </select>
               </div>
 
-              <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4 font-black" />
-              <input type="text" required placeholder="Notes..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-6 py-4 font-black" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-500 block mb-1">Amount (₹)</label>
+                  <input type="number" required placeholder="0.00" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3.5 font-bold text-xs text-slate-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-500 block mb-1">Payment Method</label>
+                  <select value={formData.paymentType} onChange={(e) => setFormData({ ...formData, paymentType: e.target.value })} className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3.5 font-medium text-xs text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20">
+                    {availableModes.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+              </div>
 
-              <button type="submit" disabled={modalLoading} className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3">
-                {modalLoading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} Confirm Entry
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 block mb-1">Date</label>
+                <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3.5 font-medium text-xs text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20" />
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 block mb-1">Notes / Description</label>
+                <input type="text" required placeholder="Add notes..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3.5 font-medium text-xs text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20" />
+              </div>
+
+              <button type="submit" disabled={modalLoading} className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-2xs">
+                {modalLoading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Confirm Entry
               </button>
             </form>
           </motion.div>

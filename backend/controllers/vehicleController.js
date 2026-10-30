@@ -1,4 +1,5 @@
 require("dotenv").config();
+const { Op } = require("sequelize");
 const db = require("../models");
 const Vehicle = db.Vehicle;
 const nodemailer = require("nodemailer");
@@ -140,7 +141,20 @@ exports.createVehicle = async (req, res) => {
 
 exports.getAllVehicles = async (req, res) => {
   try {
-    const vehicles = await Vehicle.findAll({
+    const page = req.query.page ? parseInt(req.query.page) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+    const search = req.query.search || "";
+
+    const where = {};
+    if (search) {
+      where[Op.or] = [
+        { vehicleName: { [Op.like]: `%${search}%` } },
+        { vehicleNumber: { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    const queryOptions = {
+      where,
       attributes: {
         include: [
           [
@@ -170,7 +184,33 @@ exports.getAllVehicles = async (req, res) => {
         ]
       },
       order: [["createdAt", "DESC"]]
-    });
+    };
+
+    if (page) {
+      queryOptions.limit = limit;
+      queryOptions.offset = (page - 1) * limit;
+      const { count, rows } = await Vehicle.findAndCountAll(queryOptions);
+
+      const enrichedVehicles = rows.map(v => {
+        const data = v.toJSON();
+        data.totalCost = (Number(data.totalFuel) || 0) + 
+                         (Number(data.totalService) || 0) + 
+                         (Number(data.totalSpares) || 0);
+        return data;
+      });
+
+      return res.json({
+        data: enrichedVehicles,
+        pagination: {
+          total: count,
+          page,
+          limit,
+          totalPages: Math.ceil(count / limit)
+        }
+      });
+    }
+
+    const vehicles = await Vehicle.findAll(queryOptions);
 
     // Add a virtual totalCost field for convenience
     const enrichedVehicles = vehicles.map(v => {

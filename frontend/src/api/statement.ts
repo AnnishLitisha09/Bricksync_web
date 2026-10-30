@@ -26,8 +26,9 @@ export const createStatement = async (data: StatementData) => {
         },
         body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error("Failed to create statement");
-    return await res.json();
+    const result = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(result?.error || result?.message || "Failed to create statement");
+    return result;
 };
 
 export const updateStatement = async (id: number, data: StatementData) => {
@@ -39,8 +40,9 @@ export const updateStatement = async (id: number, data: StatementData) => {
         },
         body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error("Failed to update statement");
-    return await res.json();
+    const result = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(result?.error || result?.message || "Failed to update statement");
+    return result;
 };
 
 export const deleteStatement = async (id: number) => {

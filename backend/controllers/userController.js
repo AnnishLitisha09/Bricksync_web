@@ -215,9 +215,45 @@ exports.updateDrivingLicenceBack = async (req, res) => {
 /* 🔹 Get All Users */
 exports.getAllUsers = async (req, res) => {
   try {
+    const page = req.query.page ? parseInt(req.query.page) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+    const search = req.query.search || "";
+    const role = req.query.userRole;
+    const { Op } = require("sequelize");
+
+    const where = { isDeleted: false };
+    if (role) where.userRole = role;
+    if (search) {
+      where[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+        { phoneNumber: { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    if (page) {
+      const { count, rows } = await User.findAndCountAll({
+        where,
+        attributes: { exclude: ["password"] },
+        limit,
+        offset: (page - 1) * limit,
+        order: [["createdAt", "DESC"]],
+      });
+      return res.json({
+        data: rows,
+        pagination: {
+          total: count,
+          page,
+          limit,
+          totalPages: Math.ceil(count / limit),
+        },
+      });
+    }
+
     const users = await User.findAll({
-      where: { isDeleted: false },
+      where,
       attributes: { exclude: ["password"] },
+      order: [["createdAt", "DESC"]],
     });
 
     res.json(users);

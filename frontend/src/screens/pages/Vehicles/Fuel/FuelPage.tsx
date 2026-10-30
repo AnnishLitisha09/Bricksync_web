@@ -69,36 +69,36 @@ export default function FuelPage() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gray-50/50 p-3 md:p-8 space-y-4 md:space-y-6 relative"
+      className="space-y-5 animate-in font-sans"
     >
       {/* MODALS (Shared Backdrop Logic) */}
       <AnimatePresence>
         {(confirmModal.show || deleteModal.show) && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-sm shadow-2xl text-center"
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="bg-white rounded-2xl p-6 md:p-8 w-full max-w-sm shadow-2xl text-center"
             >
               {confirmModal.show ? (
                 <>
-                  <div className="p-4 bg-amber-50 rounded-full text-amber-600 w-fit mx-auto mb-4"><AlertCircle size={32} /></div>
-                  <h3 className="text-xl font-black text-slate-800">Verify Record?</h3>
-                  <p className="text-slate-500 text-sm mt-2">Mark as verified to confirm this fuel bill.</p>
-                  <div className="flex gap-3 mt-8">
-                    <button onClick={() => setConfirmModal({ show: false, fuelId: null })} className="flex-1 py-3.5 rounded-2xl font-bold text-slate-500 bg-gray-100 active:scale-95 transition-transform">Cancel</button>
-                    <button onClick={handleVerifyFuel} className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-orange-600 shadow-lg shadow-orange-200 active:scale-95 transition-transform">Verify</button>
+                  <div className="size-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4"><AlertCircle size={28} /></div>
+                  <h3 className="text-lg font-black text-slate-800">Verify Record?</h3>
+                  <p className="text-slate-500 text-xs mt-1.5 font-medium">Mark as verified to confirm this fuel bill entry.</p>
+                  <div className="flex gap-2.5 mt-6">
+                    <button onClick={() => setConfirmModal({ show: false, fuelId: null })} className="flex-1 h-10 rounded-xl font-bold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer">Cancel</button>
+                    <button onClick={handleVerifyFuel} className="flex-1 h-10 rounded-xl font-bold text-xs text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 active:scale-95 transition-all cursor-pointer">Verify Now</button>
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="p-4 bg-red-50 text-red-600 rounded-full w-fit mx-auto mb-4"><Trash2 size={32} /></div>
-                  <h3 className="text-xl font-black text-slate-800">Delete Record?</h3>
-                  <p className="text-slate-500 text-sm mt-2">This action is permanent. The fuel log will be removed forever.</p>
-                  <div className="flex gap-3 mt-8">
-                    <button onClick={() => setDeleteModal({ show: false, fuelId: null })} className="flex-1 py-3.5 rounded-2xl font-bold text-slate-500 bg-gray-100 active:scale-95 transition-transform">Go Back</button>
-                    <button onClick={handleDeleteFuel} className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-red-600 shadow-lg shadow-red-200 active:scale-95 transition-transform">Delete</button>
+                  <div className="size-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4"><Trash2 size={28} /></div>
+                  <h3 className="text-lg font-black text-slate-800">Delete Record?</h3>
+                  <p className="text-slate-500 text-xs mt-1.5 font-medium">This action cannot be undone. The fuel entry will be removed permanently.</p>
+                  <div className="flex gap-2.5 mt-6">
+                    <button onClick={() => setDeleteModal({ show: false, fuelId: null })} className="flex-1 h-10 rounded-xl font-bold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer">Go Back</button>
+                    <button onClick={handleDeleteFuel} className="flex-1 h-10 rounded-xl font-bold text-xs text-white bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/20 active:scale-95 transition-all cursor-pointer">Delete Log</button>
                   </div>
                 </>
               )}
@@ -108,51 +108,52 @@ export default function FuelPage() {
       </AnimatePresence>
 
       {/* HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl md:text-3xl font-black text-slate-800 tracking-tight uppercase">
-            Fuel <span className="text-orange-600 italic">Records</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Fuel <span className="text-indigo-600">Records</span>
           </h1>
-          <p className="text-slate-500 text-xs md:text-sm font-medium">Monitoring fleet consumption & bills</p>
+          <p className="text-xs font-medium text-slate-500">Monitoring fleet fuel consumption, bunk entries & bill payments</p>
         </div>
         <button
           onClick={() => navigate("/vehicles/fuel/add")}
-          className="flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-xl md:rounded-2xl font-bold hover:bg-orange-600 transition-all shadow-lg active:scale-95 text-sm md:text-base"
+          className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm shadow-indigo-600/25 cursor-pointer active:scale-95 shrink-0"
         >
-          <Plus size={18} /> Add Record
+          <Plus size={16} />
+          <span>Add Fuel Record</span>
         </button>
       </div>
 
-      {/* QUICK STATS - GRID 2 COLS ON MOBILE */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+      {/* QUICK STATS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title="Total Volume"
-          value={`${fuels.reduce((acc, curr) => acc + (curr.volume || 0), 0).toLocaleString()}L`}
-          icon={<Droplets className="text-blue-500 w-5 h-5 md:w-6 md:h-6" />}
+          value={`${fuels.reduce((acc, curr) => acc + (curr.volume || 0), 0).toLocaleString()} L`}
+          icon={<Droplets className="text-indigo-600 size-5" />}
         />
         <StatCard
           title="Total Expense"
           value={`₹${fuels.reduce((acc, curr) => acc + (curr.amount || 0), 0).toLocaleString()}`}
-          icon={<CreditCard className="text-emerald-500 w-5 h-5 md:w-6 md:h-6" />}
+          icon={<CreditCard className="text-emerald-600 size-5" />}
         />
       </div>
 
       {/* SEARCH BAR */}
-      <div className="bg-white p-3 md:p-5 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100">
+      <div className="bg-white p-3 rounded-2xl shadow-2xs border border-slate-200/80">
         <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={18} />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none" size={16} />
           <input
             type="text"
-            placeholder="Search Vehicle Number..."
+            placeholder="Search Vehicle Number or Bunk..."
             value={search}
             onChange={(e) => setSearch(e.target.value.toUpperCase())}
-            className="w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-xl md:rounded-2xl text-sm focus:bg-white focus:ring-2 focus:ring-orange-500 transition-all outline-none"
+            className="w-full h-10 pl-9 pr-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
           />
         </div>
       </div>
 
       {/* DATA VIEW */}
-      <div className="bg-white rounded-2xl md:rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
           <LottieLoader
             type="truck"
@@ -174,7 +175,7 @@ export default function FuelPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {fuels.map((fuel) => (
-                  <tr key={fuel.fuelId} className="group hover:bg-orange-50/30 transition-colors">
+                  <tr key={fuel.fuelId} className="group hover:bg-indigo-50/20 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-black text-slate-800 text-sm uppercase leading-tight">{fuel.vehicle?.vehicleNumber}</div>
                       <div className="text-[10px] text-slate-400 font-bold uppercase truncate max-w-[120px]">{fuel.fuelBunk?.bunkName || "N/A"}</div>
@@ -229,7 +230,7 @@ export default function FuelPage() {
               <button
                 key={i}
                 onClick={() => { getFuels(i + 1); window.scrollTo(0, 0); }}
-                className={`min-w-[40px] h-10 rounded-xl text-sm font-black transition-all ${currentPage === i + 1 ? "bg-orange-600 text-white shadow-md" : "bg-gray-50 text-slate-400"}`}
+                className={`min-w-[40px] h-10 rounded-xl text-sm font-black transition-all ${currentPage === i + 1 ? "bg-indigo-600 text-white shadow-md" : "bg-gray-50 text-slate-400"}`}
               >
                 {i + 1}
               </button>

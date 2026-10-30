@@ -167,36 +167,37 @@ const BusinessNotepad: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen w-full bg-[#F8FAFC] overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-140px)] min-h-[640px] w-full bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden font-sans">
 
       {/* SIDEBAR */}
       <aside className={`
-        fixed inset-0 lg:relative lg:flex lg:w-[420px] flex-col bg-white border-r border-slate-200 z-30 shadow-xl transition-transform duration-300
+        fixed inset-0 lg:relative lg:flex lg:w-[420px] flex-col bg-white border-r border-slate-200/80 z-30 shadow-xl lg:shadow-none transition-transform duration-300
         ${!showPreview ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#4f46e5] rounded-xl flex items-center justify-center text-white">
-              <Layout size={20} />
+            <div className="size-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-2xs">
+              <Layout size={18} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-800">Document Studio</h2>
-              <p className="text-[10px] text-slate-400 font-medium tracking-wide">DESIGN & EXPORT</p>
+              <h2 className="text-sm font-black text-slate-800 tracking-tight">Document Studio</h2>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Design & Export</p>
             </div>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => navigate('/view-notepad')}
-              className="p-2 text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors border border-slate-100"
+              className="h-9 px-2.5 text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors border border-slate-200/80 text-xs font-bold flex items-center gap-1 cursor-pointer"
               title="View History"
             >
-              <History size={18} />
+              <History size={15} />
+              <span className="hidden sm:inline">History</span>
             </button>
             <button
               onClick={() => setShowPreview(true)}
-              className="lg:hidden p-2 text-indigo-600 bg-indigo-50 rounded-lg"
+              className="lg:hidden size-9 text-indigo-600 bg-indigo-50 rounded-xl flex items-center justify-center cursor-pointer"
             >
-              <Eye size={20} />
+              <Eye size={18} />
             </button>
           </div>
         </div>
@@ -263,9 +264,9 @@ const BusinessNotepad: React.FC = () => {
           ))}
         </div>
 
-        <div className="p-5 border-t">
-          <button onClick={downloadPDF} disabled={isGenerating} className="w-full bg-[#4f46e5] hover:bg-[#4338ca] text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50">
-            {isGenerating ? "Processing..." : <><Download size={18} /> Download & Save</>}
+        <div className="p-4 border-t border-slate-100">
+          <button onClick={downloadPDF} disabled={isGenerating} className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm shadow-indigo-600/25 disabled:opacity-50 cursor-pointer active:scale-95">
+            {isGenerating ? "Processing..." : <><Download size={15} /> Download & Save</>}
           </button>
         </div>
       </aside>

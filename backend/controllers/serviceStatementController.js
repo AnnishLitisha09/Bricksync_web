@@ -50,15 +50,40 @@ exports.createServiceStatement = async (req, res) => {
  * GET ALL
  */
 exports.getAllServiceStatements = async (req, res) => {
-  const data = await ServiceStatement.findAll({
-    include: [
-      { model: BankTable, as: "bank" },
-      { model: ServiceShop, as: "shop" },
-    ],
-    order: [["createdAt", "DESC"]],
-  });
+  try {
+    const page = req.query.page ? parseInt(req.query.page) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
 
-  res.json({ success: true, data });
+    const queryOptions = {
+      include: [
+        { model: BankTable, as: "bank" },
+        { model: ServiceShop, as: "shop" },
+      ],
+      order: [["createdAt", "DESC"]],
+      distinct: true,
+    };
+
+    if (page) {
+      queryOptions.limit = limit;
+      queryOptions.offset = (page - 1) * limit;
+      const { count, rows } = await ServiceStatement.findAndCountAll(queryOptions);
+      return res.json({
+        success: true,
+        data: rows,
+        pagination: {
+          total: count,
+          page,
+          limit,
+          totalPages: Math.ceil(count / limit),
+        },
+      });
+    }
+
+    const data = await ServiceStatement.findAll(queryOptions);
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 

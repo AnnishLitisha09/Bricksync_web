@@ -39,8 +39,9 @@ export const createOrder = async (data: OrderData) => {
         },
         body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error("Failed to create order");
-    return await res.json();
+    const result = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(result?.error || result?.message || "Failed to create order");
+    return result;
 };
 export const updateOrder = async (id: number, data: any) => {
     const res = await fetch(`${BASE_URL}/orders/${id}`, {
@@ -51,8 +52,9 @@ export const updateOrder = async (id: number, data: any) => {
         },
         body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error("Failed to update order");
-    return await res.json();
+    const result = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(result?.error || result?.message || "Failed to update order");
+    return result;
 };
 
 export const deleteOrder = async (id: number) => {

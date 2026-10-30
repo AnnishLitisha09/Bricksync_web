@@ -35,6 +35,10 @@ module.exports = (sequelize, DataTypes) => {
             foreignKey: "office_id",
             as: "productionLogs",
         });
+        Office.hasMany(models.ProductionRecipe, {
+            foreignKey: "office_id",
+            as: "recipes",
+        });
     };
 
     return Office;

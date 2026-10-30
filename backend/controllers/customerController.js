@@ -1,4 +1,4 @@
-const { Customer, Order, OrderItem, CustomerStatement, CallLog, Office, Vehicle, OrderEmployee, Employee, Product, User } = require("../models");
+const { Customer, Order, OrderItem, CustomerStatement, CallLog, Office, Vehicle, OrderEmployee, Employee, Product, User, sequelize } = require("../models");
 
 // Create a new Customer
 exports.createCustomer = async (req, res) => {
@@ -62,10 +62,48 @@ exports.getAllCustomers = async (req, res) => {
             distinct: true
         });
 
+        // Compute sales and payments per customer
+        const [salesRows] = await sequelize.query(`
+            SELECT 
+                o.cus_id,
+                COALESCE(SUM(o.transport_charge), 0) + COALESCE(SUM(items.item_total), 0) AS total_sales
+            FROM orders o
+            LEFT JOIN (
+                SELECT order_id, SUM(quantity * price) AS item_total 
+                FROM order_items 
+                GROUP BY order_id
+            ) items ON o.order_id = items.order_id
+            WHERE o.is_deleted = 0
+            GROUP BY o.cus_id
+        `);
+
+        const [paidRows] = await sequelize.query(`
+            SELECT 
+                cus_id, 
+                COALESCE(SUM(amount), 0) AS total_paid
+            FROM customer_statements
+            WHERE is_deleted = 0
+            GROUP BY cus_id
+        `);
+
+        const salesMap = {};
+        salesRows.forEach(r => { salesMap[r.cus_id] = parseFloat(r.total_sales) || 0; });
+
+        const paidMap = {};
+        paidRows.forEach(r => { paidMap[r.cus_id] = parseFloat(r.total_paid) || 0; });
+
         const dataWithLastCall = rows.map(customer => {
             const raw = customer.toJSON();
             raw.last_called_date = raw.callLogs && raw.callLogs.length > 0 ? raw.callLogs[0].date : null;
             delete raw.callLogs;
+
+            const ordersSales = salesMap[raw.id] || 0;
+            const paid = paidMap[raw.id] || 0;
+            const balanceNum = parseFloat(raw.balance) || 0;
+            const sales = ordersSales > 0 ? ordersSales : Math.max(0, balanceNum + paid);
+
+            raw.total_sales = sales;
+            raw.total_paid = paid;
             return raw;
         });
 

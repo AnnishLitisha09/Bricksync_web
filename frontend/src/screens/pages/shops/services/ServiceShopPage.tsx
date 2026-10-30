@@ -1,17 +1,14 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowUpRight,
   ChevronRight,
   Filter,
-  Hammer,
   MapPin,
   Phone,
   Plus,
   Search,
-  Settings,
   User,
   Wrench,
-  X
+  ChevronLeft
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -45,75 +42,85 @@ export default function ServiceShopPage() {
   });
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen bg-gray-50/50 p-4 md:p-8 space-y-10"
-    >
-      {/* PREMIUM HEADER SECTION */}
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-600 rounded-xl shadow-lg shadow-emerald-100">
-              <Wrench className="text-white" size={24} />
-            </div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-              SERVICE <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 italic">HUBS</span>
-            </h1>
+    <div className="space-y-6 animate-in font-sans">
+      {/* ─── HEADER ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate("/shop")}
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 rounded-full font-bold text-[10px] uppercase tracking-wider transition-colors cursor-pointer"
+            >
+              <ChevronLeft size={12} /> Partner Network
+            </button>
+            <span className="text-xs font-bold text-slate-400">• {shops.length} Workshops</span>
           </div>
-          <p className="text-slate-400 text-xs font-black uppercase tracking-[0.3em] pl-1">Maintenance & Workshop Network</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Service <span className="text-indigo-600">Workshops</span>
+          </h1>
+          <p className="text-xs font-medium text-slate-500">
+            Mechanics, maintenance shops, and repair ledger settlements
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" size={18} />
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={15} />
             <input
               type="text"
-              placeholder="Search workshops..."
+              placeholder="Search workshop or owner..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="backdrop-blur-md border border-slate-200 rounded-2xl py-3.5 pl-12 pr-6 shadow-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none font-bold text-slate-600 w-full md:w-72"
+              className="h-10 pl-9 pr-4 bg-white border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-2xs w-48 sm:w-60"
             />
           </div>
 
           <button
             onClick={() => setShowFilter(!showFilter)}
-            className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl border font-black uppercase tracking-widest text-[10px] transition-all ${showFilter ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+            className={`h-10 px-3.5 rounded-xl border font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+              showFilter
+                ? "bg-indigo-600 border-indigo-600 text-white"
+                : "bg-white border-slate-200/80 text-slate-700 hover:bg-slate-50"
+            }`}
           >
-            <Filter size={16} />
-            Filter
+            <Filter size={14} />
+            <span>Filter</span>
           </button>
 
           <button
             onClick={() => navigate("/shop/services/add")}
-            className="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-slate-300 hover:bg-emerald-600 hover:shadow-emerald-200 transition-all active:scale-95 group"
+            className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm shadow-indigo-600/25 transition-all cursor-pointer active:scale-95"
           >
-            <Plus size={18} className="group-hover:rotate-90 transition-transform" />
-            Add Workshop
+            <Plus size={16} />
+            <span>Add Workshop</span>
           </button>
         </div>
       </div>
 
-      {/* GLASSMOPHISM FILTER CHIPS */}
+      {/* ─── FILTER CHIPS ─── */}
       <AnimatePresence>
         {showFilter && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="max-w-7xl mx-auto overflow-hidden"
+            className="overflow-hidden"
           >
-            <div className="bg-white/40 backdrop-blur-sm p-4 rounded-3xl border border-white flex flex-wrap gap-3">
+            <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-wrap gap-2">
               {[
                 { label: "All Hubs", value: "ALL" },
-                { label: "> ₹10,000", value: "10000" },
-                { label: "> ₹20,000", value: "20000" },
-                { label: "> ₹50,000", value: "50000" },
+                { label: "> ₹10,000 Dues", value: "10000" },
+                { label: "> ₹20,000 Dues", value: "20000" },
+                { label: "> ₹50,000 Dues", value: "50000" },
               ].map((f) => (
                 <button
                   key={f.value}
                   onClick={() => setAmountFilter(f.value as AmountFilter)}
-                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] transition-all border ${amountFilter === f.value ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-white border-slate-100 text-slate-400 hover:border-emerald-200'}`}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                    amountFilter === f.value
+                      ? "bg-indigo-600 border-indigo-600 text-white shadow-2xs"
+                      : "bg-white border-slate-200/80 text-slate-600 hover:border-indigo-300"
+                  }`}
                 >
                   {f.label}
                 </button>
@@ -123,115 +130,95 @@ export default function ServiceShopPage() {
         )}
       </AnimatePresence>
 
-      {/* SHOP LISTING */}
-      <div className="max-w-7xl mx-auto">
-        {error && <div className="p-8 bg-red-50 text-red-500 rounded-3xl font-bold text-center border-2 border-red-100 uppercase tracking-widest text-xs">{error}</div>}
+      {/* ─── SHOP LISTING ─── */}
+      <div>
+        {error && (
+          <div className="p-4 bg-rose-50 text-rose-700 rounded-xl font-bold text-xs border border-rose-200 mb-4">
+            {error}
+          </div>
+        )}
 
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {loading ? (
-            [1, 2, 3].map(i => <div key={i} className="h-44 bg-white/50 animate-pulse rounded-[3rem]" />)
+            [1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-44 bg-white rounded-2xl border border-slate-200/80 animate-pulse" />
+            ))
           ) : (
             <AnimatePresence mode="popLayout">
               {filteredShops.map((s, idx) => (
                 <motion.div
                   layout
                   key={s.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: idx * 0.05 }}
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ delay: idx * 0.03 }}
                   onClick={() => navigate(`/shop/services/history?shopId=${s.id}&shopName=${encodeURIComponent(s.shop_name)}`)}
-                  className="group relative bg-white rounded-[2.5rem] p-2 pr-8 shadow-sm border border-slate-100 hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-1 transition-all cursor-pointer overflow-hidden"
+                  className="group bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 hover:border-indigo-300 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
                 >
-                  <div className="flex flex-col md:flex-row items-center gap-8">
-                    {/* ICON BOX */}
-                    <div className="relative w-full md:w-48 h-40 bg-slate-50 rounded-[2rem] overflow-hidden border border-slate-100 flex items-center justify-center m-2 shrink-0">
-                      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <Wrench size={48} className="text-slate-200 group-hover:text-emerald-500 group-hover:scale-110 transition-all duration-500" />
-                      <div className="absolute bottom-3 flex gap-1">
-                        <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                        <div className="w-1 h-1 rounded-full bg-emerald-300" />
-                        <div className="w-1 h-1 rounded-full bg-emerald-100" />
+                  <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="size-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 text-indigo-600">
+                          <Wrench size={22} />
+                        </div>
+                        <div className="min-w-0">
+                          <h2 className="text-base font-black text-slate-900 uppercase tracking-tight truncate group-hover:text-indigo-600 transition-colors">
+                            {s.shop_name}
+                          </h2>
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 mt-0.5">
+                            <User size={12} className="text-slate-400 shrink-0" />
+                            <span className="truncate">Managed by {s.owner}</span>
+                          </div>
+                        </div>
                       </div>
+
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[9px] font-black uppercase tracking-wider shrink-0">
+                        {s.type || "General"}
+                      </span>
                     </div>
 
-                    {/* DETAILS BOX */}
-                    <div className="flex-1 w-full py-4 space-y-6">
-                      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-3">
-                            <h2 className="text-2xl font-black text-slate-800 tracking-tight group-hover:text-emerald-600 transition-colors uppercase">
-                              {s.shop_name}
-                            </h2>
-                            <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">
-                              {s.type || 'General'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-slate-400">
-                            <User size={14} className="text-emerald-500" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">Managed by {s.owner}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-5">
-                          <div className="text-right">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Dues Outstanding</p>
-                            <div className="flex items-center gap-2">
-                              <Hammer size={16} className="text-slate-300" />
-                              <span className="text-3xl font-black text-slate-900 tabular-nums">
-                                ₹{s.amount.toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="p-4 bg-slate-50 rounded-2xl text-slate-300 group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                            <ArrowUpRight size={20} />
-                          </div>
-                        </div>
+                    {/* Contact & Location */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-xs font-semibold text-slate-600">
+                      <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <Phone size={13} className="text-indigo-600 shrink-0" />
+                        <span className="truncate">{s.phone || "No Contact"}</span>
                       </div>
-
-                      {/* INFO GRID */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 group-hover:bg-white transition-all">
-                          <div className="p-2 bg-white shadow-sm rounded-xl text-emerald-500">
-                            <Phone size={14} />
-                          </div>
-                          <span className="text-xs font-black text-slate-600 tracking-tight">{s.phone}</span>
-                        </div>
-
-                        <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 group-hover:bg-white transition-all">
-                          <div className="p-2 bg-white shadow-sm rounded-xl text-teal-500">
-                            <MapPin size={14} />
-                          </div>
-                          <span className="text-xs font-black text-slate-600 tracking-tight truncate max-w-[200px]">{s.address}</span>
-                        </div>
+                      <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <MapPin size={13} className="text-emerald-600 shrink-0" />
+                        <span className="truncate">{s.address || "No Address"}</span>
                       </div>
                     </div>
+                  </div>
 
-                    {/* HIDDEN ACTIONS ON DESKTOP */}
-                    <div className="hidden lg:flex flex-col gap-2">
-                      <div className="p-2 text-slate-200 group-hover:text-emerald-200 transition-colors">
-                        <Settings size={20} />
-                      </div>
-                      <div className="p-2 text-slate-200 group-hover:text-emerald-500 transition-colors">
-                        <ChevronRight size={24} />
-                      </div>
+                  {/* Dues Outstanding Footer */}
+                  <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Dues Outstanding</p>
+                      <p className="text-xl font-black text-slate-900 mt-0.5">₹{s.amount?.toLocaleString('en-IN')}</p>
+                    </div>
+
+                    <div className="flex items-center gap-1 text-xs font-bold text-indigo-600 group-hover:translate-x-0.5 transition-transform">
+                      <span>Service History</span>
+                      <ChevronRight size={14} />
                     </div>
                   </div>
                 </motion.div>
               ))}
             </AnimatePresence>
           )}
-
-          {filteredShops.length === 0 && !loading && (
-            <div className="text-center py-24 bg-white rounded-[3rem] border-4 border-dashed border-slate-100">
-              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <X size={32} className="text-slate-300" />
-              </div>
-              <p className="text-slate-400 font-black uppercase tracking-widest text-sm">No workshops found</p>
-            </div>
-          )}
         </div>
+
+        {filteredShops.length === 0 && !loading && (
+          <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
+            <div className="size-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <Search size={20} className="text-slate-400" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-800">No Workshops Found</h3>
+            <p className="text-xs text-slate-400 mt-1">Try adjusting your search query or amount filter.</p>
+          </div>
+        )}
       </div>
-    </motion.div>
+    </div>
   );
 }

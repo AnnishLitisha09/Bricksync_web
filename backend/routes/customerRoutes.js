@@ -1,17 +1,24 @@
+"use strict";
+
 const express = require("express");
 const router = express.Router();
 const customerController = require("../controllers/customerController");
 const customerStatementController = require("../controllers/customerStatementController");
+const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 
-router.post("/", customerController.createCustomer);
-router.get("/", customerController.getAllCustomers);
-router.get("/:id", customerController.getCustomerById);
-router.put("/:id", customerController.updateCustomer);
-router.delete("/:id", customerController.deleteCustomer);
+router.use(authMiddleware);
 
-router.put("/statements/:id", customerStatementController.updateStatement);
-router.delete("/statements/:id", customerStatementController.deleteStatement);
+// Customer Management (Admin Only)
+router.post("/", roleMiddleware(1), customerController.createCustomer);
+router.get("/", roleMiddleware(1), customerController.getAllCustomers);
+router.get("/:id", roleMiddleware(1, 3), customerController.getCustomerById);
+router.put("/:id", roleMiddleware(1), customerController.updateCustomer);
+router.delete("/:id", roleMiddleware(1), customerController.deleteCustomer);
 
-router.post("/bulk-create", customerController.bulkCreateCustomers);
+router.put("/statements/:id", roleMiddleware(1), customerStatementController.updateStatement);
+router.delete("/statements/:id", roleMiddleware(1), customerStatementController.deleteStatement);
+
+router.post("/bulk-create", roleMiddleware(1), customerController.bulkCreateCustomers);
 
 module.exports = router;

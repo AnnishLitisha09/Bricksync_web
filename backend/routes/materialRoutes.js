@@ -1,6 +1,14 @@
+"use strict";
+
 const express = require("express");
 const router = express.Router();
 const materialController = require("../controllers/materialController");
+const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
+
+// Protected Raw Material & Vendor Payment Operations (Admin Only)
+router.use(authMiddleware);
+router.use(roleMiddleware(1));
 
 // Suppliers
 router.post("/suppliers", materialController.createSupplier);

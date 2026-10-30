@@ -4,11 +4,33 @@ const { SparesTitle, SparesImage, Vehicle } = require("../models");
 exports.getVehicleSpares = async (req, res) => {
   try {
     const { vehicle_id } = req.params;
-    const spares = await SparesTitle.findAll({
+    const page = req.query.page ? parseInt(req.query.page) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+
+    const queryOptions = {
       where: { vehicle_id },
       include: [{ model: SparesImage, as: "images" }],
       order: [["date", "DESC"]],
-    });
+      distinct: true,
+    };
+
+    if (page) {
+      queryOptions.limit = limit;
+      queryOptions.offset = (page - 1) * limit;
+      const { count, rows } = await SparesTitle.findAndCountAll(queryOptions);
+      return res.status(200).json({
+        success: true,
+        data: rows,
+        pagination: {
+          total: count,
+          page,
+          limit,
+          totalPages: Math.ceil(count / limit),
+        },
+      });
+    }
+
+    const spares = await SparesTitle.findAll(queryOptions);
     res.status(200).json({ success: true, data: spares });
   } catch (error) {
     console.error("Error fetching spares:", error);
@@ -19,13 +41,35 @@ exports.getVehicleSpares = async (req, res) => {
 // Get all spares titles from all vehicles
 exports.getAllSpares = async (req, res) => {
   try {
-    const spares = await SparesTitle.findAll({
+    const page = req.query.page ? parseInt(req.query.page) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+
+    const queryOptions = {
       include: [
         { model: SparesImage, as: "images" },
         { model: Vehicle, as: "vehicle" }
       ],
       order: [["date", "DESC"]],
-    });
+      distinct: true,
+    };
+
+    if (page) {
+      queryOptions.limit = limit;
+      queryOptions.offset = (page - 1) * limit;
+      const { count, rows } = await SparesTitle.findAndCountAll(queryOptions);
+      return res.status(200).json({
+        success: true,
+        data: rows,
+        pagination: {
+          total: count,
+          page,
+          limit,
+          totalPages: Math.ceil(count / limit),
+        },
+      });
+    }
+
+    const spares = await SparesTitle.findAll(queryOptions);
     res.status(200).json({ success: true, data: spares });
   } catch (error) {
     console.error("Error fetching all spares:", error);

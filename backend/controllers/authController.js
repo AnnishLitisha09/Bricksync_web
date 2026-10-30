@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const { User } = require("../models");
 const sendEmail = require("../utils/sendEmail");
 const { Op } = require("sequelize");
+const { recordFailedAuth, clearFailedAuth } = require("../utils/securityLogger");
 
 /* ================= REGISTER ================= */
 exports.register = async (req, res) => {
@@ -34,19 +35,26 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      recordFailedAuth(req, `User not found: ${email}`);
+      return res.status(404).json({ message: "Invalid credentials" });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
+    if (!isMatch) {
+      recordFailedAuth(req, `Password mismatch for: ${email}`);
       return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    clearFailedAuth(req);
 
     const token = jwt.sign(
-      { userid: user.userid, email: user.email },
+      { userid: user.userid, email: user.email, userRole: user.userRole },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: "7d" }
     );
 
-    res.json({ message: "Login success", token });
+    res.json({ message: "Login success", token, role: user.userRole });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

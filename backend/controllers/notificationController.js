@@ -2,9 +2,29 @@ const { Notification } = require("../models");
 
 exports.getAllNotifications = async (req, res) => {
     try {
-        const notifications = await Notification.findAll({
+        const page = req.query.page ? parseInt(req.query.page) : null;
+        const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+        const queryOptions = {
             order: [['createdAt', 'DESC']]
-        });
+        };
+
+        if (page) {
+            queryOptions.limit = limit;
+            queryOptions.offset = (page - 1) * limit;
+            const { count, rows } = await Notification.findAndCountAll(queryOptions);
+            return res.json({
+                success: true,
+                data: rows,
+                pagination: {
+                    total: count,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(count / limit),
+                },
+            });
+        }
+
+        const notifications = await Notification.findAll(queryOptions);
         res.json({ success: true, data: notifications });
     } catch (error) {
         console.error("Get Notifications Error:", error);

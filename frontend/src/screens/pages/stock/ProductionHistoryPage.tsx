@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   Search,
@@ -7,22 +7,38 @@ import {
   Users,
   Layers,
   HardHat,
-  Filter,
   Trash2,
   AlertTriangle,
   X,
   Plus,
-  Save,
   Loader2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FlaskConical,
+  Eye,
+  CheckCircle2,
+  AlertCircle,
+  FileSpreadsheet
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
-import { AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { getProductionHistory, deleteProductionLog } from "../../../api/inventory";
 import toast from "react-hot-toast";
 import { useStockStore } from "../../../store/useStockStore";
+import ProductionEntryModal from "./ProductionEntryModal";
+
+interface RawMaterialSnapshot {
+  material_product_id?: number | null;
+  material_name: string;
+  unit: string;
+  is_cement: boolean;
+  standard_qty: number;
+  actual_qty: number;
+  qty_per_brick?: number;
+  variance?: number;
+  variance_status?: "HIGH" | "LOW" | "OPTIMAL";
+}
 
 interface ProductionLog {
   production_id: number;
@@ -31,11 +47,13 @@ interface ProductionLog {
   cement_used: string;
   number_of_stocks: string;
   price_per_stock: string;
+  raw_materials_used?: RawMaterialSnapshot[];
   cementProduct?: {
     product_name: string;
   };
   product: {
     product_name: string;
+    category?: string;
   };
   office: {
     office_name: string;
@@ -50,47 +68,107 @@ interface ProductionLog {
 export default function ProductionHistoryPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [selectedShopFilter, setSelectedShopFilter] = useState("all");
+  const [selectedProductFilter, setSelectedProductFilter] = useState("all");
+  const [dateRangeFilter, setDateRangeFilter] = useState<"all" | "today" | "week" | "month">("all");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "highest_units">("newest");
+
   const [history, setHistory] = useState<ProductionLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [selectedDetailLog, setSelectedDetailLog] = useState<ProductionLog | null>(null);
   const itemsPerPage = 10;
 
-  const { stock, offices, employees: staffList, logProduction, fetchStockData } = useStockStore();
+  const { offices, fetchStockData } = useStockStore();
   const [productionModal, setProductionModal] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [productionForm, setProductionForm] = useState({
-    shopId: "",
-    productId: "",
-    qty: "",
-    cementProductId: "",
-    cementBags: "",
-    number_of_stocks: "",
-    price_per_stock: "",
-    date: new Date().toISOString().split('T')[0],
-    selectedStaffIds: [] as number[]
-  });
 
   useEffect(() => {
     fetchStockData();
   }, []);
 
-  useEffect(() => {
+  const loadHistory = async () => {
     setLoading(true);
-    getProductionHistory()
-      .then(setHistory)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const data = await getProductionHistory();
+      setHistory(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load production logs");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadHistory();
   }, []);
 
-  const filteredHistory = useMemo(() => {
-    return history.filter(log =>
-      log.product.product_name.toLowerCase().includes(search.toLowerCase()) ||
-      log.office.office_name.toLowerCase().includes(search.toLowerCase()) ||
-      log.employees.some(e => e.employee?.name.toLowerCase().includes(search.toLowerCase()))
-    );
-  }, [search, history]);
+  // Filter products list for the filter dropdown
+  const uniqueProducts = useMemo(() => {
+    const set = new Set<string>();
+    history.forEach((h) => {
+      if (h.product?.product_name) set.add(h.product.product_name);
+    });
+    return Array.from(set);
+  }, [history]);
 
+  // Filtered & Sorted History
+  const filteredHistory = useMemo(() => {
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    return history
+      .filter((log) => {
+        // Search Filter
+        const query = search.toLowerCase();
+        const matchesSearch =
+          !query ||
+          log.product?.product_name.toLowerCase().includes(query) ||
+          log.office?.office_name.toLowerCase().includes(query) ||
+          log.production_date.includes(query) ||
+          log.employees?.some((e) => e.employee?.name.toLowerCase().includes(query));
+
+        // Shop Filter
+        const matchesShop =
+          selectedShopFilter === "all" || log.office?.office_name === selectedShopFilter;
+
+        // Product Filter
+        const matchesProduct =
+          selectedProductFilter === "all" || log.product?.product_name === selectedProductFilter;
+
+        // Date Range Filter
+        let matchesDate = true;
+        const logDate = new Date(log.production_date);
+        if (dateRangeFilter === "today") {
+          matchesDate = log.production_date === todayStr;
+        } else if (dateRangeFilter === "week") {
+          matchesDate = logDate >= startOfWeek;
+        } else if (dateRangeFilter === "month") {
+          matchesDate = logDate >= startOfMonth;
+        }
+
+        return matchesSearch && matchesShop && matchesProduct && matchesDate;
+      })
+      .sort((a, b) => {
+        if (sortBy === "newest") {
+          return new Date(b.production_date).getTime() - new Date(a.production_date).getTime();
+        } else if (sortBy === "oldest") {
+          return new Date(a.production_date).getTime() - new Date(b.production_date).getTime();
+        } else if (sortBy === "highest_units") {
+          return (parseFloat(b.unit_produced) || 0) - (parseFloat(a.unit_produced) || 0);
+        }
+        return 0;
+      });
+  }, [history, search, selectedShopFilter, selectedProductFilter, dateRangeFilter, sortBy]);
+
+  // Pagination
   const paginatedHistory = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredHistory.slice(startIndex, startIndex + itemsPerPage);
@@ -100,119 +178,16 @@ export default function ProductionHistoryPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, selectedShopFilter, selectedProductFilter, dateRangeFilter, sortBy]);
 
-  const weeklyEarnings = useMemo(() => {
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6); // Saturday
-    endOfWeek.setHours(23, 59, 59, 999);
-
-    const earnings: Record<string, number> = {};
-
-    history.forEach(log => {
-      const logDate = new Date(log.production_date);
-      if (logDate >= startOfWeek && logDate <= endOfWeek) {
-        const total = parseFloat(log.number_of_stocks || "0") * parseFloat(log.price_per_stock || "0");
-        const count = log.employees?.length || 1;
-        const perPerson = total / count;
-
-        log.employees?.forEach(e => {
-          const name = e.employee?.name || "Unknown";
-          earnings[name] = (earnings[name] || 0) + perPerson;
-        });
-      }
-    });
-
-    return Object.entries(earnings)
-      .map(([name, amount]) => ({ name, amount }))
-      .sort((a, b) => b.amount - a.amount);
-  }, [history]);
-
-  const productionProducts = useMemo(() => {
-    return stock.filter(p => p.office_id === Number(productionForm.shopId));
-  }, [productionForm.shopId, stock]);
-
-  const cementProducts = useMemo(() => {
-    return stock
-      .filter(p => p.office_id === Number(productionForm.shopId) && p.product.category === "cement")
-      .map(p => ({
-        product_id: p.product_id,
-        product_name: p.product.product_name
-      }));
-  }, [productionForm.shopId, stock]);
-
-  const handleStaffSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const id = Number(e.target.value);
-    if (id && !productionForm.selectedStaffIds.includes(id)) {
-      setProductionForm({
-        ...productionForm,
-        selectedStaffIds: [...productionForm.selectedStaffIds, id]
-      });
-    }
-  };
-
-  const removeStaff = (id: number) => {
-    setProductionForm({
-      ...productionForm,
-      selectedStaffIds: productionForm.selectedStaffIds.filter(s => s !== id)
-    });
-  };
-
-  const handleProductionSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (productionForm.selectedStaffIds.length === 0) {
-      toast.error("Please assign at least one staff member.");
-      return;
-    }
-
-    const qtyNum = parseFloat(productionForm.qty);
-    const cementBagsNum = parseFloat(productionForm.cementBags);
-    const stocksNum = parseFloat(productionForm.number_of_stocks);
-    const priceNum = parseFloat(productionForm.price_per_stock);
-
-    if (isNaN(qtyNum) || qtyNum <= 0) { toast.error("Units produced must be a positive number."); return; }
-    if (isNaN(cementBagsNum) || cementBagsNum < 0) { toast.error("Cement bags used cannot be negative."); return; }
-    if (isNaN(stocksNum) || stocksNum < 0) { toast.error("Number of stocks cannot be negative."); return; }
-    if (isNaN(priceNum) || priceNum < 0) { toast.error("Price per stock cannot be negative."); return; }
-
-    const payload = {
-      office_id: Number(productionForm.shopId),
-      product_id: Number(productionForm.productId),
-      unit_produced: qtyNum,
-      cement_used: cementBagsNum,
-      cement_product_id: Number(productionForm.cementProductId),
-      production_date: productionForm.date,
-      employee_ids: productionForm.selectedStaffIds,
-      number_of_stocks: stocksNum,
-      price_per_stock: priceNum
-    };
-
-    try {
-      setSubmitting(true);
-      await logProduction(payload);
-      getProductionHistory().then(setHistory);
-      toast.success("Production record saved!");
-      setProductionModal(false);
-      setProductionForm({ shopId: "", productId: "", qty: "", cementProductId: "", cementBags: "", number_of_stocks: "", price_per_stock: "", date: new Date().toISOString().split('T')[0], selectedStaffIds: [] });
-    } catch (err) {
-      toast.error("Failed to log production.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
+  // Delete production log handler
   const handleDelete = async () => {
     if (!deleteId) return;
     setLoading(true);
     try {
       await deleteProductionLog(deleteId);
-      toast.success("Production deleted and stock reversed");
-      setHistory(prev => prev.filter(log => log.production_id !== deleteId));
+      toast.success("Production log deleted and stock reversed!");
+      setHistory((prev) => prev.filter((log) => log.production_id !== deleteId));
       setDeleteId(null);
     } catch (error) {
       console.error("Delete error:", error);
@@ -222,522 +197,792 @@ export default function ProductionHistoryPage() {
     }
   };
 
+  // Export to CSV
+  const handleExportCSV = () => {
+    if (filteredHistory.length === 0) {
+      toast.error("No production records to export");
+      return;
+    }
+
+    const headers = [
+      "Log ID",
+      "Production Date",
+      "Plant Location",
+      "Brick Product",
+      "Units Produced",
+      "No. of Stocks",
+      "Price Per Stock (Rs)",
+      "Cement Bags Used",
+      "Cement Product",
+      "Assigned Operators",
+      "Total Wage (Rs)"
+    ];
+
+    const rows = filteredHistory.map((log) => {
+      const stocks = parseFloat(log.number_of_stocks) || 0;
+      const price = parseFloat(log.price_per_stock) || 0;
+      const totalWage = (stocks * price).toFixed(2);
+      const staffNames = log.employees?.map((e) => e.employee?.name).join("; ") || "None";
+
+      return [
+        `#PROD-${log.production_id}`,
+        log.production_date,
+        `"${log.office?.office_name || ""}"`,
+        `"${log.product?.product_name || ""}"`,
+        log.unit_produced,
+        stocks,
+        price,
+        log.cement_used,
+        `"${log.cementProduct?.product_name || "OPC Cement"}"`,
+        `"${staffNames}"`,
+        totalWage
+      ];
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `production_logs_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Exported production history to CSV");
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="min-h-screen bg-gray-50/50 p-3 md:p-8 space-y-4 md:space-y-6"
-    >
-      {/* HEADER */}
-      <div className="flex items-center justify-between mb-4 md:mb-8">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 md:p-3 bg-white rounded-xl md:rounded-2xl shadow-sm text-slate-400 hover:text-orange-600 transition-all border border-gray-100"
-        >
-          <ArrowLeft size={18} />
-        </button>
-        <div className="text-center">
-          <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">
-            Production <span className="text-orange-600">History</span>
+    <div className="space-y-6 pb-12 animate-in font-sans">
+      {/* 1. TOP COMMAND BAR & NAVIGATION */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate(-1)}
+              className="size-8 rounded-xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+              title="Go Back"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full font-bold text-[10px] uppercase tracking-wider">
+              <span className="size-1.5 rounded-full bg-indigo-600 animate-pulse"></span>
+              Manufacturing Intelligence
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Production <span className="text-indigo-600">History</span>
           </h1>
-          <p className="text-slate-400 text-[9px] md:text-[10px] font-bold uppercase tracking-widest">Manufacturing Logs</p>
+          <p className="text-xs font-medium text-slate-500">
+            Historical manufacturing records, material consumption logs & operator piece-rate wages
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Action CTAs */}
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
+          <button
+            onClick={() => navigate("/production/mix-ratio")}
+            className="h-10 px-3.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-2xs cursor-pointer active:scale-95"
+            title="Configure Mix Ratios"
+          >
+            <FlaskConical size={14} className="text-indigo-600" />
+            <span>Plant Mix Ratios</span>
+          </button>
+
+          <button
+            onClick={handleExportCSV}
+            className="h-10 px-3.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-2xs cursor-pointer active:scale-95"
+            title="Export filtered logs to CSV"
+          >
+            <FileSpreadsheet size={14} className="text-emerald-600" />
+            <span>Export CSV</span>
+          </button>
+
           <button
             onClick={() => setProductionModal(true)}
-            className="p-2 md:p-3 bg-slate-900 rounded-xl md:rounded-2xl shadow-sm text-white hover:bg-orange-600 transition-all border border-slate-800 flex items-center gap-2"
+            className="h-10 px-4.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-md shadow-indigo-600/20 cursor-pointer active:scale-95"
           >
-            <Plus size={18} />
-            <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">New Entry</span>
+            <Plus size={16} />
+            <span>New Production</span>
           </button>
-          <div className="p-2 md:p-3 bg-white rounded-xl md:rounded-2xl shadow-sm text-orange-600 border border-gray-100">
-            <Filter size={18} />
-          </div>
         </div>
       </div>
 
-      {/* WEEKLY EARNINGS CARDS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-6">
-        {weeklyEarnings.length > 0 ? (
-          weeklyEarnings.slice(0, 5).map((staff, idx) => (
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: idx * 0.1 }}
-              key={idx}
-              className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between"
+      {/* 2. SEARCH & OPERATIONS CONTROL TOOLBAR */}
+      <div className="bg-white p-4 sm:p-5 rounded-3xl shadow-2xs border border-slate-200/80 space-y-3.5">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          {/* Main Search Input */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+            <input
+              type="text"
+              placeholder="Search by brick product, plant yard, staff name, or date (YYYY-MM-DD)..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-11 pl-10 pr-4 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 transition-all shadow-2xs"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Plant Location Filter */}
+          <div className="w-full sm:w-48 shrink-0">
+            <select
+              value={selectedShopFilter}
+              onChange={(e) => setSelectedShopFilter(e.target.value)}
+              className="w-full h-11 bg-slate-50 hover:bg-white border border-slate-200 rounded-2xl px-3.5 text-xs font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all cursor-pointer shadow-2xs"
             >
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-2 bg-orange-50 text-orange-600 rounded-xl">
-                  <Users size={14} />
-                </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter truncate">{staff.name}</span>
-              </div>
-              <div>
-                <span className="text-xs font-bold text-slate-300 uppercase tracking-widest block">This Week</span>
-                <span className="text-lg font-black text-slate-800 tracking-tight">₹{staff.amount.toLocaleString()}</span>
-              </div>
-            </motion.div>
-          ))
-        ) : (
-          <div className="col-span-full py-4 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No earnings data for this week</p>
+              <option value="all">All Plant Locations</option>
+              {offices.map((o) => (
+                <option key={o.office_id} value={o.office_name}>
+                  {o.office_name}
+                </option>
+              ))}
+            </select>
           </div>
-        )}
-      </div>
 
-      {/* SEARCH BAR */}
-      <div className="bg-white p-3 md:p-4 rounded-3xl md:rounded-4xl shadow-sm border border-gray-100">
-        <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={18} />
-          <input
-            type="text"
-            placeholder="Search logs..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 md:py-4 border-none rounded-xl md:rounded-2xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-orange-500 transition-all outline-none"
-          />
+          {/* Product Filter */}
+          <div className="w-full sm:w-48 shrink-0">
+            <select
+              value={selectedProductFilter}
+              onChange={(e) => setSelectedProductFilter(e.target.value)}
+              className="w-full h-11 bg-slate-50 hover:bg-white border border-slate-200 rounded-2xl px-3.5 text-xs font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all cursor-pointer shadow-2xs"
+            >
+              <option value="all">All Brick Products</option>
+              {uniqueProducts.map((p, idx) => (
+                <option key={idx} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sort By Dropdown */}
+          <div className="w-full sm:w-44 shrink-0">
+            <select
+              value={sortBy}
+              onChange={(e: any) => setSortBy(e.target.value)}
+              className="w-full h-11 bg-slate-50 hover:bg-white border border-slate-200 rounded-2xl px-3.5 text-xs font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all cursor-pointer shadow-2xs"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="highest_units">Highest Production</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Date Quick Filter Pills */}
+        <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-slate-100">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">Time Range:</span>
+            {(["all", "today", "week", "month"] as const).map((range) => (
+              <button
+                key={range}
+                onClick={() => setDateRangeFilter(range)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer capitalize ${
+                  dateRangeFilter === range
+                    ? "bg-indigo-600 text-white shadow-xs"
+                    : "bg-slate-100 hover:bg-slate-200/80 text-slate-600 border border-slate-200/60"
+                }`}
+              >
+                {range === "all" ? "All Time" : range === "week" ? "This Week" : range === "month" ? "This Month" : "Today"}
+              </button>
+            ))}
+          </div>
+
+          <div className="text-[11px] font-bold text-slate-400">
+            Showing <span className="text-slate-800 font-black">{filteredHistory.length}</span> of {history.length} records
+          </div>
         </div>
       </div>
 
-      {/* LOADING STATE */}
+      {/* 5. LOADING SPINNER */}
       {loading && (
-        <div className="flex flex-col items-center justify-center py-12 gap-3 bg-white/50 backdrop-blur-sm rounded-3xl border border-gray-100 shadow-sm animate-pulse">
-          <div className="h-10 w-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bridging Logs...</p>
+        <div className="flex flex-col items-center justify-center py-16 gap-3 bg-white rounded-3xl border border-slate-200/80 shadow-2xs">
+          <div className="size-10 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading production logs...</p>
         </div>
       )}
 
-      {/* TABLE CONTAINER */}
-      <div className={`bg-white rounded-3xl md:rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
-        {/* Horizontal Scroll Wrapper */}
-        <div className="overflow-x-auto scrollbar-hide">
-          <table className="w-full min-w-[800px]"> {/* Ensures table doesn't squish too much on mobile */}
-            <thead className="bg-slate-50/50 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
-              <tr>
-                <th className="px-6 py-5 text-left">Date</th>
-                <th className="px-6 py-5 text-left">Shop ID</th>
-                <th className="px-6 py-5 text-left">Material</th>
-                <th className="px-6 py-5 text-center">Qty</th>
-                <th className="px-6 py-5 text-center">Cement</th>
-                <th className="px-6 py-5 text-center">Earnings/Person</th>
-                <th className="px-6 py-5 text-center">Staff Assigned</th>
-                <th className="px-6 py-5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {paginatedHistory.map((log) => (
-                <tr key={log.production_id} className="group hover:bg-orange-50/30 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2 text-slate-600 font-bold text-xs">
-                      <Calendar size={14} className="text-orange-500" />
-                      {new Date(log.production_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="flex items-center gap-1.5 font-black text-[11px] text-slate-500 uppercase">
-                      <Store size={14} className="text-slate-400" />
-                      {log.office.office_name}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="font-black text-slate-800 text-sm uppercase flex items-center gap-2">
-                      <Layers size={14} className="text-orange-500" />
-                      {log.product.product_name}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-xl text-xs font-black">
-                      {log.unit_produced}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    {log.cementProduct ? (
-                      <div className="flex flex-col items-center gap-0.5">
-                        <div className="flex items-center gap-1.5 text-slate-700 font-black text-xs">
-                          <HardHat size={12} className="text-orange-600" />
-                          {log.cement_used}
-                        </div>
-                        <div className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
-                          {log.cementProduct.product_name.split(' ')[0]}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-slate-300 text-[10px] font-bold uppercase italic">None</div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <div className="flex flex-col items-center gap-1 w-full max-w-[200px] mx-auto">
-                      {(() => {
-                        const totalAmount = parseFloat(log.number_of_stocks || "0") * parseFloat(log.price_per_stock || "0");
-                        const empCount = log.employees?.length || 1;
-                        const perPerson = totalAmount / empCount;
-                        return log.employees?.map((emp, idx) => (
-                          <div key={idx} className="text-[10px] font-bold text-slate-600 uppercase flex justify-between w-full border-b border-gray-100 pb-1 last:border-0">
-                            <span>{emp.employee?.name.split(' ')[0]}</span>
-                            <span className="text-orange-600">₹{perPerson.toFixed(2)}</span>
-                          </div>
-                        )) || <span className="text-slate-300">N/A</span>;
-                      })()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex flex-wrap justify-end gap-1 ml-auto">
-                      {log.employees?.map((emp, idx) => (
-                        <span
-                          key={idx}
-                          className="bg-white border border-gray-100 text-[9px] font-bold text-slate-500 px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1"
-                        >
-                          <Users size={10} />
-                          {emp.employee?.name.split(' ')[0]}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => setDeleteId(log.production_id)}
-                      className="p-2 text-slate-400 hover:text-red-500 transition-colors bg-slate-50 hover:bg-red-50 rounded-xl"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="bg-slate-50/50 px-4 md:px-8 py-4 border-t border-gray-50 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              {filteredHistory.length} Logs Found
-            </p>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="p-2 bg-white rounded-lg border border-gray-100 text-slate-400 disabled:opacity-30"
-              >
-                <ChevronLeft size={14} />
-              </button>
-
-              <div className="flex gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-                  .map((page, idx, array) => (
-                    <div key={page} className="flex items-center gap-1">
-                      {idx > 0 && array[idx - 1] !== page - 1 && <span className="text-slate-300">...</span>}
-                      <button
-                        onClick={() => setCurrentPage(page)}
-                        className={`w-7 h-7 rounded-lg text-[10px] font-black transition-all ${currentPage === page
-                          ? "bg-orange-600 text-white shadow-md"
-                          : "bg-white text-slate-400 border border-gray-100"
-                          }`}
-                      >
-                        {page}
-                      </button>
-                    </div>
-                  ))}
+      {/* 6. PRODUCTION LOGS TABLE */}
+      {!loading && (
+        <div className="bg-white rounded-3xl shadow-2xs border border-slate-200/80 overflow-hidden">
+          {filteredHistory.length === 0 ? (
+            /* Empty State */
+            <div className="py-16 px-4 text-center space-y-4">
+              <div className="size-16 rounded-3xl bg-indigo-50 border border-indigo-100 text-indigo-500 flex items-center justify-center mx-auto shadow-2xs">
+                <Layers size={28} />
               </div>
-
+              <div className="space-y-1">
+                <h3 className="text-base font-black text-slate-800">No production logs found</h3>
+                <p className="text-xs text-slate-500 font-medium max-w-sm mx-auto">
+                  {search || selectedShopFilter !== "all" || selectedProductFilter !== "all" || dateRangeFilter !== "all"
+                    ? "No manufacturing entries match your current search and filter criteria."
+                    : "Start recording daily brick manufacturing logs to track finished output and cement consumption."}
+                </p>
+              </div>
               <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="p-2 bg-white rounded-lg border border-gray-100 text-slate-400 disabled:opacity-30"
+                onClick={() => setProductionModal(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-md shadow-indigo-600/20 cursor-pointer active:scale-95 transition-all"
               >
-                <ChevronRight size={14} />
+                <Plus size={15} />
+                <span>Log Production Entry</span>
               </button>
             </div>
-          </div>
-        )}
-      </div>
-      {/* PRODUCTION ENTRY MODAL */}
-      <AnimatePresence>
-        {productionModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ y: 50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 50, opacity: 0 }}
-              className="bg-white rounded-[2.5rem] p-8 w-full max-w-lg shadow-2xl overflow-y-auto max-h-[90vh]"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
-                  <Calendar size={24} />
-                </div>
-                <button onClick={() => setProductionModal(false)} className="text-slate-400 hover:text-red-500 transition-colors">
-                  <X size={24} />
+          ) : (
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full min-w-[950px] text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                    <th className="px-5 py-3.5">Log / Date</th>
+                    <th className="px-5 py-3.5">Plant Location</th>
+                    <th className="px-5 py-3.5">Brick Product</th>
+                    <th className="px-5 py-3.5 text-center">Volume Produced</th>
+                    <th className="px-5 py-3.5 text-center">Cement Used & Variance</th>
+                    <th className="px-5 py-3.5 text-center">BOM Deductions</th>
+                    <th className="px-5 py-3.5 text-center">Labor Piece-Rate</th>
+                    <th className="px-5 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-slate-100">
+                  {paginatedHistory.map((log) => {
+                    const cementItem = log.raw_materials_used?.find((m) => m.is_cement);
+                    const otherMaterials = log.raw_materials_used?.filter((m) => !m.is_cement) || [];
+                    const stocks = parseFloat(log.number_of_stocks) || 0;
+                    const pricePerStock = parseFloat(log.price_per_stock) || 0;
+                    const totalWage = stocks * pricePerStock;
+                    const staffCount = log.employees?.length || 1;
+                    const wagePerPerson = totalWage / staffCount;
+
+                    return (
+                      <tr
+                        key={log.production_id}
+                        className="group hover:bg-slate-50/80 transition-colors"
+                      >
+                        {/* 1. Date & Log ID */}
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5 font-black text-xs text-slate-900">
+                              <Calendar size={13} className="text-indigo-600" />
+                              <span>
+                                {new Date(log.production_date).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric"
+                                })}
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-400 block pl-4.5">
+                              #PROD-{log.production_id}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* 2. Plant / Store */}
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="size-7 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 flex items-center justify-center shrink-0">
+                              <Store size={13} />
+                            </div>
+                            <span className="font-bold text-xs text-slate-800">
+                              {log.office?.office_name || "Factory Main"}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* 3. Finished Brick Product */}
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2.5">
+                            <div className="size-8 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                              <Layers size={15} />
+                            </div>
+                            <div>
+                              <div className="font-black text-xs uppercase text-slate-900 tracking-tight">
+                                {log.product?.product_name}
+                              </div>
+                              {stocks > 0 && (
+                                <span className="inline-block text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-100 mt-0.5">
+                                  {stocks} Stocks
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* 4. Units Made */}
+                        <td className="px-5 py-4 whitespace-nowrap text-center">
+                          <div className="inline-flex flex-col items-center">
+                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-800 border border-indigo-100/90 rounded-xl font-black text-xs shadow-2xs whitespace-nowrap">
+                              <span className="text-sm">{Number(log.unit_produced).toLocaleString("en-IN")}</span>
+                              <span className="text-[10px] uppercase text-indigo-600 font-extrabold">Units</span>
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* 5. Cement Used & Variance */}
+                        <td className="px-5 py-4 whitespace-nowrap text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="inline-flex items-center gap-1.5 text-xs font-black text-slate-800">
+                              <HardHat size={14} className="text-amber-500" />
+                              <span>{log.cement_used} Bags</span>
+                            </div>
+
+                            {/* Variance Status Pill */}
+                            {cementItem ? (
+                              cementItem.variance_status === "HIGH" ? (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                                  <AlertTriangle size={10} /> +{cementItem.variance} Bags High
+                                </span>
+                              ) : cementItem.variance_status === "LOW" ? (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                                  <AlertCircle size={10} /> {cementItem.variance} Bags Lean
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                  <CheckCircle2 size={10} /> Optimal Formula
+                                </span>
+                              )
+                            ) : log.cementProduct ? (
+                              <span className="text-[10px] font-bold text-slate-400 uppercase">
+                                {log.cementProduct.product_name.split(" ")[0]}
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+
+                        {/* 6. Raw Materials (BOM) */}
+                        <td className="px-5 py-4 text-center">
+                          {otherMaterials.length > 0 ? (
+                            <div className="flex flex-wrap justify-center gap-1 max-w-[180px] mx-auto">
+                              {otherMaterials.map((mat, i) => (
+                                <span
+                                  key={i}
+                                  className="inline-flex items-center gap-1 text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-200 px-1.5 py-0.5 rounded-md"
+                                >
+                                  <span className="text-slate-400 font-medium">{mat.material_name.split(" ")[0]}:</span>
+                                  <span className="text-indigo-700">{mat.standard_qty} {mat.unit}</span>
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-[10px] font-semibold italic">
+                              Standard Recipe
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 7. Operator Labor Wage Breakdown */}
+                        <td className="px-5 py-4 text-center whitespace-nowrap">
+                          {log.employees && log.employees.length > 0 ? (
+                            <div className="flex flex-col items-center gap-1">
+                              <div className="flex items-center gap-1">
+                                {log.employees.slice(0, 3).map((emp, i) => (
+                                  <span
+                                    key={i}
+                                    className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded-md text-[10px] font-bold text-slate-700"
+                                    title={`${emp.employee?.name}: ₹${wagePerPerson.toFixed(2)}`}
+                                  >
+                                    {emp.employee?.name.split(" ")[0]}
+                                  </span>
+                                ))}
+                                {log.employees.length > 3 && (
+                                  <span className="text-[9px] font-bold text-slate-400">
+                                    +{log.employees.length - 3}
+                                  </span>
+                                )}
+                              </div>
+                              {totalWage > 0 && (
+                                <span className="text-[10px] font-black text-emerald-700">
+                                  ₹{totalWage.toFixed(2)} Total
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-300 text-xs font-semibold">Unassigned</span>
+                          )}
+                        </td>
+
+                        {/* 8. Row Action Buttons */}
+                        <td className="px-5 py-4 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedDetailLog(log)}
+                              className="size-8 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 transition-colors flex items-center justify-center cursor-pointer shadow-2xs"
+                              title="View Full Production Breakdown"
+                            >
+                              <Eye size={14} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setDeleteId(log.production_id)}
+                              className="size-8 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors flex items-center justify-center cursor-pointer shadow-2xs"
+                              title="Delete log & reverse stock levels"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="bg-slate-50/80 px-6 py-4 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-xs font-bold text-slate-400">
+                Page <span className="text-slate-800 font-black">{currentPage}</span> of{" "}
+                <span className="text-slate-800 font-black">{totalPages}</span> ({filteredHistory.length} total entries)
+              </p>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="size-8 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors flex items-center justify-center disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed shadow-2xs"
+                >
+                  <ChevronLeft size={15} />
                 </button>
-              </div>
 
-              <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Production <span className="text-orange-600">Entry</span></h3>
-              <p className="text-slate-500 text-[10px] font-bold mb-4 uppercase tracking-widest">Daily Log for manufacturing units</p>
-
-              <div className="mb-6 p-4 bg-orange-50/50 border border-orange-100 rounded-2xl flex items-center justify-between">
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Production Date</label>
-                  <input
-                    type="date"
-                    value={productionForm.date}
-                    onChange={(e) => setProductionForm({ ...productionForm, date: e.target.value })}
-                    className="bg-transparent text-sm font-black text-slate-700 outline-none border-b-2 border-orange-200 focus:border-orange-500 transition-all cursor-pointer"
-                  />
-                </div>
-                <div className="p-2 bg-white rounded-xl shadow-sm text-orange-600">
-                  <Calendar size={20} />
-                </div>
-              </div>
-
-              <form onSubmit={handleProductionSubmit} className="space-y-5">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">1. Store</label>
-                    <select
-                      required
-                      value={productionForm.shopId}
-                      onChange={(e) => setProductionForm({ ...productionForm, shopId: e.target.value, productId: "" })}
-                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
-                    >
-                      <option value="">Select Shop</option>
-                      {offices.map(o => (
-                        <option key={o.office_id} value={o.office_id}>{o.office_name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">2. Units Produced</label>
-                    <input
-                      required
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="0.00"
-                      value={productionForm.qty}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "" || /^\d*\.?\d*$/.test(val)) {
-                          setProductionForm({ ...productionForm, qty: val });
-                        }
-                      }}
-                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">3. Material</label>
-                    <select
-                      required
-                      disabled={!productionForm.shopId}
-                      value={productionForm.productId}
-                      onChange={(e) => setProductionForm({ ...productionForm, productId: e.target.value })}
-                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none disabled:opacity-50"
-                    >
-                      <option value="">{productionForm.shopId ? "Choose Item" : "Select Store"}</option>
-                      {productionProducts
-                        .filter(p => p.product.category === "bricks")
-                        .map(p => (
-                          <option key={p.stock_id} value={p.product_id}>{p.product.product_name}</option>
-                        ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">4. Cement Type</label>
-                    <select
-                      required
-                      disabled={!productionForm.shopId}
-                      value={productionForm.cementProductId}
-                      onChange={(e) => setProductionForm({ ...productionForm, cementProductId: e.target.value })}
-                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none disabled:opacity-50"
-                    >
-                      <option value="">{productionForm.shopId ? "Select Cement" : "Select Store"}</option>
-                      {cementProducts.map(p => (
-                        <option key={p.product_id} value={p.product_id}>{p.product_name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="flex justify-between items-center ml-1 mb-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">5. Cement Bags</label>
-                    </div>
-                    <div className="relative">
-                      <HardHat className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-                      <input
-                        required
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="Qty Used"
-                        value={productionForm.cementBags}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === "" || /^\d*\.?\d*$/.test(val)) {
-                            setProductionForm({ ...productionForm, cementBags: val });
-                          }
-                        }}
-                        className="w-full pl-11 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">6. Assign Staff</label>
-                    <select
-                      onChange={handleStaffSelect}
-                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
-                    >
-                      <option value="">Select Staff Members</option>
-                      {staffList.map(emp => (
-                        <option key={emp.employee_id} value={emp.employee_id}>{emp.employee_name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* STAFF SELECTED LIST */}
-                <div>
-                  <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
-                    {productionForm.selectedStaffIds.length === 0 && (
-                      <span className="text-[10px] text-red-400 font-black uppercase p-2">* Select at least one staff member</span>
-                    )}
-                    {productionForm.selectedStaffIds.map(id => {
-                      const staff = staffList.find(s => s.employee_id === id);
-                      return (
-                        <motion.span
-                          layout
-                          initial={{ scale: 0.8 }}
-                          animate={{ scale: 1 }}
-                          key={id}
-                          className="flex items-center gap-1.5 bg-white border border-slate-100 text-slate-700 px-3 py-1.5 rounded-xl text-[11px] font-black shadow-sm"
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                    .map((page, idx, array) => (
+                      <div key={page} className="flex items-center gap-1">
+                        {idx > 0 && array[idx - 1] !== page - 1 && (
+                          <span className="text-slate-300 px-1 font-bold">...</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage(page)}
+                          className={`size-8 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                            currentPage === page
+                              ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/30"
+                              : "bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                          }`}
                         >
-                          <Users size={12} className="text-orange-500" />
-                          {staff?.employee_name}
-                          <button type="button" onClick={() => removeStaff(id)} className="hover:text-red-500 ml-1">
-                            <X size={14} />
-                          </button>
-                        </motion.span>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">7. No. of Stocks</label>
-                    <input
-                      required
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="0"
-                      value={productionForm.number_of_stocks}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "" || /^\d*$/.test(val)) {
-                          setProductionForm({ ...productionForm, number_of_stocks: val });
-                        }
-                      }}
-                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">8. Price Per Stock</label>
-                    <input
-                      required
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="0.00"
-                      value={productionForm.price_per_stock}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "" || /^\d*\.?\d*$/.test(val)) {
-                          setProductionForm({ ...productionForm, price_per_stock: val });
-                        }
-                      }}
-                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
-                    />
-                  </div>
+                          {page}
+                        </button>
+                      </div>
+                    ))}
                 </div>
 
                 <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:bg-orange-600 transition-all active:scale-95 flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
+                  type="button"
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="size-8 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors flex items-center justify-center disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed shadow-2xs"
                 >
-                  {submitting ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /> Save Daily Record</>}
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* DELETE CONFIRMATION MODAL */}
-      <AnimatePresence>
-        {deleteId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setDeleteId(null)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl border border-slate-100 p-8 overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-6">
-                <button
-                  onClick={() => setDeleteId(null)}
-                  className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
-                >
-                  <X size={20} />
+                  <ChevronRight size={15} />
                 </button>
               </div>
+            </div>
+          )}
+        </div>
+      )}
 
-              <div className="flex flex-col items-center text-center space-y-6">
-                <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center text-red-500 animate-pulse">
-                  <AlertTriangle size={40} />
-                </div>
+      {/* 7. PRODUCTION LOG DETAIL DRAWER / MODAL */}
+      {selectedDetailLog &&
+        createPortal(
+          <AnimatePresence>
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedDetailLog(null)}
+                className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
+              />
 
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-black text-slate-800 tracking-tight">Reverse Logs?</h3>
-                  <p className="text-slate-500 font-bold text-sm leading-relaxed px-4">
-                    Are you sure you want to delete this production log? This action will <span className="text-red-500">reverse the stock levels</span> immediately.
-                  </p>
-                </div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white w-full max-w-2xl max-h-[92vh] flex flex-col rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-10"
+              >
+                {/* Header */}
+                <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+                  <div className="flex items-center gap-3">
+                    <div className="size-11 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shadow-xs shrink-0">
+                      <Layers size={22} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                          #PROD-{selectedDetailLog.production_id}
+                        </span>
+                        <span className="text-xs text-slate-400 font-semibold">
+                          {selectedDetailLog.production_date}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-black text-slate-800 tracking-tight mt-0.5">
+                        {selectedDetailLog.product?.product_name}
+                      </h3>
+                    </div>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-4 w-full pt-4">
                   <button
-                    onClick={() => setDeleteId(null)}
-                    className="py-4 rounded-2xl font-black text-slate-400 hover:bg-slate-50 transition-all border border-slate-100 text-xs uppercase tracking-widest"
+                    type="button"
+                    onClick={() => setSelectedDetailLog(null)}
+                    className="size-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
                   >
-                    Cancel
+                    <X size={18} />
                   </button>
-                  <button
-                    onClick={handleDelete}
-                    disabled={loading}
-                    className="py-4 bg-red-500 text-white rounded-2xl font-black hover:bg-red-600 transition-all shadow-lg shadow-red-200 text-xs uppercase tracking-widest flex items-center justify-center gap-2"
-                  >
-                    {loading ? (
-                      <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                </div>
+
+                {/* Body Details */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-5">
+                  {/* Summary Banner */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                        Volume Manufactured
+                      </span>
+                      <div className="text-xl font-black text-indigo-600">
+                        {Number(selectedDetailLog.unit_produced).toLocaleString("en-IN")}{" "}
+                        <span className="text-xs font-bold text-slate-600">Pcs</span>
+                      </div>
+                      <span className="text-[11px] text-slate-500 font-bold block mt-0.5">
+                        {selectedDetailLog.number_of_stocks} Stocks
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                        Cement Consumed
+                      </span>
+                      <div className="text-xl font-black text-amber-600">
+                        {selectedDetailLog.cement_used}{" "}
+                        <span className="text-xs font-bold text-slate-600">Bags</span>
+                      </div>
+                      <span className="text-[11px] text-slate-500 font-bold block mt-0.5">
+                        {selectedDetailLog.cementProduct?.product_name || "OPC 53 Grade"}
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 col-span-2 sm:col-span-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                        Total Labor Wage
+                      </span>
+                      <div className="text-xl font-black text-emerald-600">
+                        ₹
+                        {(
+                          (parseFloat(selectedDetailLog.number_of_stocks) || 0) *
+                          (parseFloat(selectedDetailLog.price_per_stock) || 0)
+                        ).toFixed(2)}
+                      </div>
+                      <span className="text-[11px] text-slate-500 font-bold block mt-0.5">
+                        ₹{selectedDetailLog.price_per_stock} / stock
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Plant Location & Operators */}
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-600">
+                        Assigned Operators ({selectedDetailLog.employees?.length || 0})
+                      </span>
+                      <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                        <Store size={13} /> {selectedDetailLog.office?.office_name}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {selectedDetailLog.employees?.map((emp, idx) => {
+                        const total =
+                          (parseFloat(selectedDetailLog.number_of_stocks) || 0) *
+                          (parseFloat(selectedDetailLog.price_per_stock) || 0);
+                        const count = selectedDetailLog.employees?.length || 1;
+                        const perPerson = total / count;
+
+                        return (
+                          <div
+                            key={idx}
+                            className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between shadow-2xs"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="size-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                                <Users size={12} />
+                              </div>
+                              <span className="text-xs font-bold text-slate-800">
+                                {emp.employee?.name}
+                              </span>
+                            </div>
+                            <span className="text-xs font-black text-emerald-600">
+                              ₹{perPerson.toFixed(2)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* BOM Materials Deductions Table */}
+                  <div className="space-y-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-600 block">
+                      Physical Stock Deductions (Plant BOM Snapshot)
+                    </span>
+
+                    {selectedDetailLog.raw_materials_used && selectedDetailLog.raw_materials_used.length > 0 ? (
+                      <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-100 text-[10px] font-black uppercase text-slate-500">
+                            <tr>
+                              <th className="px-3.5 py-2.5">Material</th>
+                              <th className="px-3.5 py-2.5 text-center">Actual Used</th>
+                              <th className="px-3.5 py-2.5 text-center">Standard Ratio</th>
+                              <th className="px-3.5 py-2.5 text-right">Variance</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {selectedDetailLog.raw_materials_used.map((mat, i) => (
+                              <tr key={i} className="hover:bg-slate-50/50">
+                                <td className="px-3.5 py-2 font-bold text-slate-800">
+                                  {mat.material_name}
+                                </td>
+                                <td className="px-3.5 py-2 text-center font-black text-slate-900">
+                                  {mat.actual_qty} {mat.unit}
+                                </td>
+                                <td className="px-3.5 py-2 text-center text-slate-500 font-semibold">
+                                  {mat.standard_qty} {mat.unit}
+                                </td>
+                                <td className="px-3.5 py-2 text-right">
+                                  {mat.variance !== undefined && mat.variance !== 0 ? (
+                                    <span
+                                      className={`font-black text-[11px] ${
+                                        mat.variance > 0 ? "text-amber-600" : "text-blue-600"
+                                      }`}
+                                    >
+                                      {mat.variance > 0 ? `+${mat.variance}` : mat.variance} {mat.unit}
+                                    </span>
+                                  ) : (
+                                    <span className="text-emerald-600 font-black text-[11px]">Optimal</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     ) : (
-                      <>
-                        <Trash2 size={14} /> Delete
-                      </>
+                      <p className="text-xs text-slate-400 italic bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        No custom BOM ratio was recorded for this entry.
+                      </p>
                     )}
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 sm:px-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
+                  <span className="text-[11px] text-slate-400 font-semibold">
+                    Entry verified by Manufacturing Supervisor
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDetailLog(null)}
+                    className="h-9 px-5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
+                  >
+                    Done
                   </button>
                 </div>
-              </div>
-            </motion.div>
-          </div>
+              </motion.div>
+            </div>
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
-    </motion.div>
+
+      {/* 8. PRODUCTION ENTRY MODAL */}
+      <ProductionEntryModal
+        isOpen={productionModal}
+        onClose={() => setProductionModal(false)}
+        onSuccess={loadHistory}
+      />
+
+      {/* 9. DELETE CONFIRMATION MODAL */}
+      {deleteId &&
+        createPortal(
+          <AnimatePresence>
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setDeleteId(null)}
+                className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-200/80 p-6 md:p-8 overflow-hidden z-10"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="absolute top-0 right-0 p-5">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteId(null)}
+                    className="size-8 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="flex flex-col items-center text-center space-y-5">
+                  <div className="size-16 bg-red-50 rounded-3xl flex items-center justify-center text-red-500 border border-red-100 shadow-2xs">
+                    <AlertTriangle size={32} />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Reverse Production Log?</h3>
+                    <p className="text-slate-500 font-semibold text-xs leading-relaxed px-2">
+                      Are you sure you want to delete this log? This will automatically{" "}
+                      <span className="text-red-600 font-bold">deduct the manufactured finished bricks</span> and{" "}
+                      <span className="text-emerald-600 font-bold">restore the consumed cement & raw materials</span> back into physical stock.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 w-full pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setDeleteId(null)}
+                      className="py-3.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-all border border-slate-200 text-xs uppercase tracking-wider cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      disabled={loading}
+                      className="py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all shadow-md shadow-red-200 text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <Loader2 className="animate-spin" size={16} />
+                      ) : (
+                        <>
+                          <Trash2 size={15} /> Delete & Reverse
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </AnimatePresence>,
+          document.body
+        )}
+    </div>
   );
 }

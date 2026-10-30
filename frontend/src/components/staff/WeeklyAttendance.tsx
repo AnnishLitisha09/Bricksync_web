@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { ChevronLeft, ChevronRight, CalendarDays, Loader2, Save } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Loader2, Save, CheckCircle2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { BASE_URL, getAuthHeader } from "../../api/base";
 import { deobfuscate } from "../../utils/encryption";
@@ -19,6 +19,7 @@ const WeeklyAttendance: React.FC<WeeklyAttendanceProps> = ({ userId }) => {
   const [currentWeekOffset, setCurrentWeekOffset] = useState<number>(0);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [saving, setSaving] = useState<boolean>(false);
+  const [fetching, setFetching] = useState<boolean>(false);
 
   const realUserId = useMemo(() => deobfuscate(userId), [userId]);
 
@@ -26,15 +27,12 @@ const WeeklyAttendance: React.FC<WeeklyAttendanceProps> = ({ userId }) => {
   const getStartOfWeek = useCallback((offset: number) => {
     const date = new Date();
     const day = date.getDay();
-    // Adjust to Monday: Monday is 1, Sunday is 0. 
-    // If Sunday(0), we want to go back 6 days to Monday.
     const diff = date.getDate() - day + (day === 0 ? -6 : 1) + (offset * 7);
     return new Date(date.setDate(diff));
   }, []);
 
   const formatDateForAPI = (date: Date) => date.toISOString().split('T')[0];
 
-  // Logic to display the date range (e.g., "16 Feb - 22 Feb")
   const weekDisplayRange = useMemo(() => {
     const start = getStartOfWeek(currentWeekOffset);
     const end = new Date(start);
@@ -45,6 +43,7 @@ const WeeklyAttendance: React.FC<WeeklyAttendanceProps> = ({ userId }) => {
   }, [currentWeekOffset, getStartOfWeek]);
 
   const fetchWeeklyAttendance = useCallback(async () => {
+    setFetching(true);
     const start = getStartOfWeek(currentWeekOffset);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
@@ -72,8 +71,10 @@ const WeeklyAttendance: React.FC<WeeklyAttendanceProps> = ({ userId }) => {
     } catch (error) {
       console.error("Attendance fetch error:", error);
       toast.error("Could not load attendance data");
+    } finally {
+      setFetching(false);
     }
-  }, [userId, currentWeekOffset, getStartOfWeek]);
+  }, [userId, currentWeekOffset, getStartOfWeek, realUserId]);
 
   useEffect(() => {
     fetchWeeklyAttendance();
@@ -87,7 +88,7 @@ const WeeklyAttendance: React.FC<WeeklyAttendanceProps> = ({ userId }) => {
 
   const handleSaveAttendance = async () => {
     setSaving(true);
-    const loadingToast = toast.loading("Syncing attendance...");
+    const loadingToast = toast.loading("Syncing attendance roster...");
     try {
       const res = await fetch(`${BASE_URL}/attendance/save`, {
         method: "POST",
@@ -97,111 +98,180 @@ const WeeklyAttendance: React.FC<WeeklyAttendanceProps> = ({ userId }) => {
           records: attendance.map(rec => ({ date: rec.date, forenoon: rec.fn, afternoon: rec.an }))
         })
       });
-      if (res.ok) toast.success("Attendance updated!", { id: loadingToast });
+      if (res.ok) toast.success("Attendance roster updated successfully!", { id: loadingToast });
       else throw new Error();
     } catch {
-      toast.error("Failed to save", { id: loadingToast });
+      toast.error("Failed to save attendance", { id: loadingToast });
     } finally {
       setSaving(false);
     }
   };
 
+  // Quick weekly total days present
+  const totalDaysPresent = useMemo(() => {
+    return attendance.reduce((sum, r) => {
+      if (r.fn && r.an) return sum + 1;
+      if (r.fn || r.an) return sum + 0.5;
+      return sum;
+    }, 0);
+  }, [attendance]);
+
   return (
-    <div className="bg-white rounded-[3rem] border border-slate-100 p-8 shadow-sm h-full flex flex-col">
-      {/* Header with Date Range Display */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-        <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
-          <div className="p-2 bg-indigo-50 rounded-xl">
-            <CalendarDays size={20} className="text-indigo-600" />
+    <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-2xs h-full flex flex-col justify-between">
+      <div>
+        {/* Header with Navigation */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100">
+                <CalendarDays size={11} /> Shift Roster
+              </span>
+              <span className="text-xs font-bold text-slate-400">
+                • {totalDaysPresent} Days Logged
+              </span>
+            </div>
+            <h3 className="text-lg font-black text-slate-900 tracking-tight mt-1">
+              Weekly Attendance Log
+            </h3>
           </div>
-          Weekly Attendance
-        </h3>
 
-        {/* Navigation with Date Range */}
-        <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100 shadow-sm">
-          <button
-            onClick={() => setCurrentWeekOffset(o => o - 1)}
-            className="p-2 hover:bg-white hover:text-indigo-600 rounded-xl transition-all border border-transparent hover:border-slate-200"
-          >
-            <ChevronLeft size={18} />
-          </button>
+          {/* Week Selector */}
+          <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200/80 shadow-2xs">
+            <button
+              onClick={() => setCurrentWeekOffset(o => o - 1)}
+              className="w-7 h-7 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-colors cursor-pointer"
+              title="Previous Week"
+            >
+              <ChevronLeft size={15} />
+            </button>
 
-          <span className="text-[11px] font-black text-slate-600 uppercase px-3 min-w-[120px] text-center tracking-tighter">
-            {weekDisplayRange}
-          </span>
+            <span className="text-[11px] font-bold text-slate-700 px-2 min-w-[110px] text-center tracking-tight">
+              {weekDisplayRange}
+            </span>
 
-          <button
-            onClick={() => setCurrentWeekOffset(o => o + 1)}
-            className="p-2 hover:bg-white hover:text-indigo-600 rounded-xl transition-all border border-transparent hover:border-slate-200"
-          >
-            <ChevronRight size={18} />
-          </button>
+            <button
+              onClick={() => setCurrentWeekOffset(o => o + 1)}
+              className="w-7 h-7 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-colors cursor-pointer"
+              title="Next Week"
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          {fetching ? (
+            <div className="py-12 flex flex-col items-center justify-center">
+              <Loader2 className="animate-spin text-indigo-600 mb-2" size={24} />
+              <p className="text-xs font-semibold text-slate-400">Loading week roster...</p>
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  <th className="py-2.5 px-3">Day & Date</th>
+                  <th className="py-2.5 px-3 text-center">Morning (FN)</th>
+                  <th className="py-2.5 px-3 text-center">Afternoon (AN)</th>
+                  <th className="py-2.5 px-3 text-right">Day Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100/70">
+                {attendance.map((row, index) => {
+                  const isWeekend = row.day === "Sunday";
+                  return (
+                    <tr key={row.date} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-8 h-8 rounded-lg flex flex-col items-center justify-center text-[10px] font-black shrink-0 ${
+                            isWeekend ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-700"
+                          }`}>
+                            <span>{new Date(row.date).getDate()}</span>
+                          </div>
+                          <div>
+                            <span className="font-bold text-xs text-slate-800 block">{row.day}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              {new Date(row.date).toLocaleDateString('en-GB', { month: 'short' })}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => toggleAttendance(index, "fn")}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 ${
+                            row.fn
+                              ? "bg-indigo-600 text-white shadow-2xs"
+                              : "bg-slate-100 text-slate-400 hover:bg-slate-200/80"
+                          }`}
+                        >
+                          {row.fn && <CheckCircle2 size={12} />}
+                          <span>FN</span>
+                        </button>
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => toggleAttendance(index, "an")}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 ${
+                            row.an
+                              ? "bg-indigo-600 text-white shadow-2xs"
+                              : "bg-slate-100 text-slate-400 hover:bg-slate-200/80"
+                          }`}
+                        >
+                          {row.an && <CheckCircle2 size={12} />}
+                          <span>AN</span>
+                        </button>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <StatusBadge fn={row.fn} an={row.an} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
-      <div className="overflow-x-auto flex-grow">
-        <table className="w-full border-separate border-spacing-y-2">
-          <thead>
-            <tr className="text-[10px] font-black text-slate-400 uppercase text-left tracking-widest">
-              <th className="px-6 py-2">Day & Date</th>
-              <th className="px-6 py-2 text-center">Forenoon</th>
-              <th className="px-6 py-2 text-center">Afternoon</th>
-              <th className="px-6 py-2 text-right">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {attendance.map((row, index) => (
-              <tr key={row.date} className="group hover:bg-slate-50/50 transition-colors">
-                <td className="px-6 py-4 rounded-l-2xl border-l border-y border-transparent group-hover:border-slate-100 font-bold text-slate-700">
-                  <div className="flex flex-col">
-                    <span className="text-sm">{row.day}</span>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      {new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                    </span>
-                  </div>
-                </td>
-                <td className="border-y border-transparent group-hover:border-slate-100">
-                  <AttendanceCheckbox checked={row.fn} onChange={() => toggleAttendance(index, "fn")} />
-                </td>
-                <td className="border-y border-transparent group-hover:border-slate-100">
-                  <AttendanceCheckbox checked={row.an} onChange={() => toggleAttendance(index, "an")} />
-                </td>
-                <td className="px-6 py-4 rounded-r-2xl border-r border-y border-transparent group-hover:border-slate-100 text-right">
-                  <StatusBadge fn={row.fn} an={row.an} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Save Button */}
+      <div className="mt-6 pt-4 border-t border-slate-100">
+        <button
+          onClick={handleSaveAttendance}
+          disabled={saving}
+          className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-sm shadow-indigo-600/25 cursor-pointer disabled:opacity-50 active:scale-98"
+        >
+          {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+          <span>Save Weekly Attendance</span>
+        </button>
       </div>
-
-      <button
-        onClick={handleSaveAttendance}
-        disabled={saving}
-        className="w-full mt-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-indigo-600 disabled:bg-slate-400 transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-200"
-      >
-        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-        Update Records
-      </button>
     </div>
   );
 };
 
 /* Internal Helpers */
-const AttendanceCheckbox = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
-  <div
-    onClick={onChange}
-    className={`mx-auto w-6 h-6 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-center ${checked ? "bg-indigo-600 border-indigo-600 shadow-md shadow-indigo-100" : "border-slate-200 bg-white hover:border-indigo-300"
-      }`}
-  >
-    {checked && <div className="w-1.5 h-1.5 bg-white rounded-full animate-in zoom-in" />}
-  </div>
-);
-
 const StatusBadge = ({ fn, an }: { fn: boolean; an: boolean }) => {
-  if (fn && an) return <span className="text-[9px] font-black uppercase px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">Full Day</span>;
-  if (fn || an) return <span className="text-[9px] font-black uppercase px-3 py-1.5 rounded-lg bg-amber-50 text-amber-600 border border-amber-100">Half Day</span>;
-  return <span className="text-[9px] font-black uppercase px-3 py-1.5 rounded-lg bg-slate-100 text-slate-400 border border-slate-200">Absent</span>;
+  if (fn && an) {
+    return (
+      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100 inline-block">
+        Full Day (1.0)
+      </span>
+    );
+  }
+  if (fn || an) {
+    return (
+      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-100 inline-block">
+        Half Day (0.5)
+      </span>
+    );
+  }
+  return (
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-400 border border-slate-200 inline-block">
+      Absent (0)
+    </span>
+  );
 };
 
 export default WeeklyAttendance;

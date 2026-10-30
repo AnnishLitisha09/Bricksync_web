@@ -221,11 +221,20 @@ export default function TodaysEntry() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Today's Entry</h1>
-          <p className="text-slate-500 mt-1">Upload a daily entry notebook page for AI-powered extraction.</p>
+    <div className="space-y-6 animate-in font-sans">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full font-bold text-[10px] uppercase tracking-wider">
+              OCR Engine
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Today's <span className="text-indigo-600">Entry</span>
+          </h1>
+          <p className="text-xs font-medium text-slate-500">
+            Upload a daily entry notebook page for AI-powered OCR digitization & auto-ledger sync.
+          </p>
         </div>
       </div>
 
@@ -265,15 +274,15 @@ export default function TodaysEntry() {
           <button
             disabled={!selectedFile || isProcessing}
             onClick={processImage}
-            className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2"
+            className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl transition-all shadow-sm shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
           >
             {isProcessing ? (
               <>
-                <Loader2 size={20} className="animate-spin" /> Processing with AI...
+                <Loader2 size={16} className="animate-spin" /> Processing with AI...
               </>
             ) : (
               <>
-                <Play size={20} /> Extract Data
+                <Play size={16} /> Extract Data
               </>
             )}
           </button>
@@ -295,7 +304,7 @@ export default function TodaysEntry() {
               className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col gap-6"
             >
               <div className="flex items-center gap-2 pb-4 border-b border-slate-100">
-                <FileText className="text-orange-500" size={24} />
+                <FileText className="text-indigo-600" size={24} />
                 <h2 className="text-xl font-bold text-slate-800">Extracted Details</h2>
               </div>
 
@@ -343,7 +352,7 @@ export default function TodaysEntry() {
                   {result.entries.map((entry, idx) => (
                     <div key={idx} className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex flex-col gap-2 relative">
                       <div className="flex items-center gap-3">
-                        <div className="bg-orange-100 text-orange-600 font-black h-8 w-8 rounded-xl flex items-center justify-center shrink-0">
+                        <div className="bg-indigo-50 text-indigo-600 border border-indigo-100 font-black h-8 w-8 rounded-xl flex items-center justify-center shrink-0">
                           {entry.sl_no || idx + 1}
                         </div>
                         <div className="w-full">
@@ -379,7 +388,7 @@ export default function TodaysEntry() {
                              <MapPin size={14} className="text-slate-300 shrink-0" />
                              <input 
                                type="text"
-                               className="text-sm font-bold text-slate-800 bg-transparent border-b border-dashed border-slate-300 focus:border-orange-500 outline-none w-full"
+                               className="text-sm font-bold text-slate-800 bg-transparent border-b border-dashed border-slate-300 focus:border-indigo-600 outline-none w-full"
                                value={entry.place_of_delivery || ""}
                                onChange={(e) => updateEntry(idx, 'place_of_delivery', e.target.value)}
                                placeholder="Place of Delivery"
@@ -394,7 +403,7 @@ export default function TodaysEntry() {
                           <div className="flex items-center gap-2">
                             <Building2 size={14} className="text-slate-300 shrink-0" />
                             <select 
-                              className="text-xs font-bold text-slate-700 bg-transparent border-b border-dashed border-slate-300 focus:border-orange-500 outline-none w-full"
+                              className="text-xs font-bold text-slate-700 bg-transparent border-b border-dashed border-slate-300 focus:border-indigo-600 outline-none w-full"
                               value={entry.office_id}
                               onChange={(e) => updateEntry(idx, 'office_id' as any, e.target.value)}
                             >
@@ -422,7 +431,7 @@ export default function TodaysEntry() {
                             <Hash size={14} className="text-slate-300 shrink-0" />
                             <input 
                               type="text"
-                              className="text-xs font-bold text-slate-700 bg-transparent border-b border-dashed border-slate-300 focus:border-orange-500 outline-none w-full"
+                              className="text-xs font-bold text-slate-700 bg-transparent border-b border-dashed border-slate-300 focus:border-indigo-600 outline-none w-full"
                               value={entry.qty || ""}
                               onChange={(e) => updateEntry(idx, 'qty', e.target.value)}
                               placeholder="Qty"
@@ -435,7 +444,7 @@ export default function TodaysEntry() {
                             <IndianRupee size={14} className="text-slate-300 shrink-0" />
                             <input 
                               type="text"
-                              className="text-xs font-bold text-slate-700 bg-transparent border-b border-dashed border-slate-300 focus:border-orange-500 outline-none w-full"
+                              className="text-xs font-bold text-slate-700 bg-transparent border-b border-dashed border-slate-300 focus:border-indigo-600 outline-none w-full"
                               value={entry.rate || ""}
                               onChange={(e) => updateEntry(idx, 'rate' as any, e.target.value)}
                               placeholder="Rate"
@@ -446,7 +455,7 @@ export default function TodaysEntry() {
 
                       <div className="mt-4 pt-4 border-t border-slate-50">
                         <div className="flex items-center gap-2 mb-3">
-                          <Plus size={12} className="text-orange-500" />
+                          <Plus size={12} className="text-indigo-600" />
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Assign Staff & Charges</p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -551,7 +560,7 @@ export default function TodaysEntry() {
                       };
                       setResult({ ...result, entries: [...result.entries, newEntry] });
                     }}
-                    className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-xs uppercase tracking-widest hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-xs uppercase tracking-widest hover:border-indigo-600 hover:text-indigo-600 transition-all flex items-center justify-center gap-2"
                   >
                     <Plus size={16} /> Add Another Material
                   </button>

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/authMiddleware");
+const role = require("../middleware/roleMiddleware");
 
 const {
   createTransaction,
@@ -9,7 +10,9 @@ const {
   getSystemTransactions,
 } = require("../controllers/walletController");
 
+// Strictly Admin Only (Role 1) - Protected Financial Wallet Transactions
 router.use(auth);
+router.use(role(1));
 
 router.post("/transaction", createTransaction);
 router.get("/transaction", getTransactions);

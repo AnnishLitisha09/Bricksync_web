@@ -93,8 +93,17 @@ exports.createOrder = async (req, res) => {
 // Get all Orders
 exports.getAllOrders = async (req, res) => {
     try {
-        const orders = await Order.findAll({
-            where: { is_deleted: false },
+        const page = req.query.page ? parseInt(req.query.page) : null;
+        const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+        const customerId = req.query.cus_id || req.query.customer_id;
+
+        const where = { is_deleted: false };
+        if (customerId) {
+            where.cus_id = customerId;
+        }
+
+        const queryOptions = {
+            where,
             include: [
                 { model: Customer, as: "customer" },
                 {
@@ -113,7 +122,25 @@ exports.getAllOrders = async (req, res) => {
                 }
             ],
             order: [["createdAt", "DESC"]],
-        });
+            distinct: true,
+        };
+
+        if (page) {
+            queryOptions.limit = limit;
+            queryOptions.offset = (page - 1) * limit;
+            const { count, rows } = await Order.findAndCountAll(queryOptions);
+            return res.status(200).json({
+                data: rows,
+                pagination: {
+                    total: count,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(count / limit)
+                }
+            });
+        }
+
+        const orders = await Order.findAll(queryOptions);
         return res.status(200).json({ data: orders });
     } catch (error) {
         console.error("Error fetching orders:", error);

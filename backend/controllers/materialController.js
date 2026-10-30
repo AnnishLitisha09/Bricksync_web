@@ -52,10 +52,44 @@ exports.createSupplier = async (req, res) => {
 
 exports.getAllSuppliers = async (req, res) => {
     try {
-        const data = await MaterialSupplier.findAll({
+        const page = req.query.page ? parseInt(req.query.page) : null;
+        const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+        const search = req.query.search || "";
+        const { Op } = require("sequelize");
+
+        const where = {};
+        if (search) {
+            where[Op.or] = [
+                { shop_name: { [Op.like]: `%${search}%` } },
+                { owner_name: { [Op.like]: `%${search}%` } },
+                { phone_no: { [Op.like]: `%${search}%` } },
+            ];
+        }
+
+        const queryOptions = {
+            where,
             include: [{ model: MaterialSupplierField, as: "additionalFields" }],
             order: [["createdAt", "DESC"]],
-        });
+            distinct: true,
+        };
+
+        if (page) {
+            queryOptions.limit = limit;
+            queryOptions.offset = (page - 1) * limit;
+            const { count, rows } = await MaterialSupplier.findAndCountAll(queryOptions);
+            return res.json({
+                success: true,
+                data: rows,
+                pagination: {
+                    total: count,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(count / limit),
+                },
+            });
+        }
+
+        const data = await MaterialSupplier.findAll(queryOptions);
         res.json({ success: true, data });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -175,7 +209,10 @@ exports.createMaterialEntry = async (req, res) => {
 exports.getEntriesBySupplier = async (req, res) => {
     const { supplierId } = req.params;
     try {
-        const data = await MaterialEntry.findAll({
+        const page = req.query.page ? parseInt(req.query.page) : null;
+        const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+
+        const queryOptions = {
             where: { supplier_id: supplierId },
             include: [
                 { model: MaterialEntryField, as: "fields" },
@@ -183,7 +220,26 @@ exports.getEntriesBySupplier = async (req, res) => {
                 { model: db.Office, as: "office" },
             ],
             order: [["date", "DESC"]],
-        });
+            distinct: true,
+        };
+
+        if (page) {
+            queryOptions.limit = limit;
+            queryOptions.offset = (page - 1) * limit;
+            const { count, rows } = await MaterialEntry.findAndCountAll(queryOptions);
+            return res.json({
+                success: true,
+                data: rows,
+                pagination: {
+                    total: count,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(count / limit),
+                },
+            });
+        }
+
+        const data = await MaterialEntry.findAll(queryOptions);
         res.json({ success: true, data });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -317,11 +373,33 @@ exports.createMaterialStatement = async (req, res) => {
 exports.getStatementsBySupplier = async (req, res) => {
     const { supplierId } = req.params;
     try {
-        const data = await MaterialStatement.findAll({
+        const page = req.query.page ? parseInt(req.query.page) : null;
+        const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+
+        const queryOptions = {
             where: { supplier_id: supplierId },
             include: [{ model: BankTable, as: "bank" }],
             order: [["createdAt", "DESC"]],
-        });
+            distinct: true,
+        };
+
+        if (page) {
+            queryOptions.limit = limit;
+            queryOptions.offset = (page - 1) * limit;
+            const { count, rows } = await MaterialStatement.findAndCountAll(queryOptions);
+            return res.json({
+                success: true,
+                data: rows,
+                pagination: {
+                    total: count,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(count / limit),
+                },
+            });
+        }
+
+        const data = await MaterialStatement.findAll(queryOptions);
         res.json({ success: true, data });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });

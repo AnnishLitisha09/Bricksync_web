@@ -51,6 +51,10 @@ import SalaryPage from "../screens/pages/salary/SalaryPage";
 import SparesLogPage from "../screens/pages/Vehicles/SparesLogPage";
 import VehicleSparesDetail from "../screens/pages/Vehicles/VehicleSparesDetail";
 import AddSparesEntry from "../screens/pages/Vehicles/AddSparesEntry";
+import ExecutiveBiPage from "../screens/pages/analytics/ExecutiveBiPage";
+import BomForecastingPage from "../screens/pages/stock/BomForecastingPage";
+import FactoryKioskPage from "../screens/pages/kiosk/FactoryKioskPage";
+import ProductionMixRatioPage from "../screens/pages/stock/ProductionMixRatioPage";
 
 // --- CUSTOMER & LEDGER IMPORTS ---
 
@@ -243,6 +247,22 @@ const privateRoutes = [
   {
     path: "/vehicle/spares/add/:vehicleId",
     element: <AddSparesEntry />,
+  },
+  {
+    path: "/bi-analytics",
+    element: <ExecutiveBiPage />,
+  },
+  {
+    path: "/inventory/bom",
+    element: <BomForecastingPage />,
+  },
+  {
+    path: "/production/mix-ratio",
+    element: <ProductionMixRatioPage />,
+  },
+  {
+    path: "/kiosk",
+    element: <FactoryKioskPage />,
   },
   {
     path: "*",

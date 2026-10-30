@@ -1,5 +1,6 @@
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
+import { Trash2, X } from "lucide-react";
 
 interface DeleteConfirmationModalProps {
     isOpen: boolean;
@@ -16,46 +17,51 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
     title,
     message
 }) => {
-    return (
-        <AnimatePresence>
-            {isOpen && (
-                <div className="fixed inset-0 z-110 flex items-center justify-center p-4">
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-                    />
-                    <motion.div
-                        initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                        animate={{ scale: 1, opacity: 1, y: 0 }}
-                        exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                        className="relative bg-white w-full max-w-md p-8 rounded-[2.5rem] shadow-2xl space-y-6"
-                    >
-                        <div className="space-y-2">
-                            <h3 className="text-xl font-black uppercase italic tracking-tight text-slate-900">{title}</h3>
-                            <p className="text-slate-500 text-sm font-bold leading-relaxed">{message}</p>
-                        </div>
+    if (!isOpen) return null;
 
-                        <div className="flex gap-3">
-                            <button
-                                onClick={onClose}
-                                className="flex-1 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] text-slate-400 hover:bg-slate-50 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={onConfirm}
-                                className="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-red-100 hover:bg-red-700 transition-all active:scale-95"
-                            >
-                                Delete Now
-                            </button>
-                        </div>
-                    </motion.div>
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <div
+                className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in"
+                onClick={onClose}
+            />
+            <div
+                className="relative bg-white w-full max-w-md p-6 sm:p-7 rounded-3xl shadow-2xl space-y-5 z-10 animate-in zoom-in-95 duration-150 border border-slate-100"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-start gap-4">
+                    <div className="size-11 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                        <Trash2 size={20} />
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="text-base font-black text-slate-900">{title}</h3>
+                        <p className="text-slate-500 text-xs font-medium leading-relaxed mt-1">{message}</p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="size-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                        <X size={16} />
+                    </button>
                 </div>
-            )}
-        </AnimatePresence>
+
+                <div className="flex gap-2.5 pt-2">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 h-10 rounded-xl font-bold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="flex-1 h-10 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs shadow-md shadow-rose-600/20 transition-all active:scale-95 cursor-pointer"
+                    >
+                        Delete Now
+                    </button>
+                </div>
+            </div>
+        </div>,
+        document.body
     );
 };
 

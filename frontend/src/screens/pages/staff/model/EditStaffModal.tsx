@@ -76,40 +76,43 @@ const EditStaffModal: React.FC<Props> = ({ isOpen, onClose, staff, refresh }) =>
       {isOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-y-auto max-h-[90vh]">
-            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
-              <h2 className="text-2xl font-black text-slate-900 uppercase italic">Update Staff Profile</h2>
-              <button onClick={onClose} className="p-2 hover:bg-white rounded-full text-slate-400"><X size={24} /></button>
+          <motion.div initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} className="relative bg-white w-full max-w-2xl rounded-2xl sm:rounded-3xl shadow-xl overflow-y-auto max-h-[90vh] border border-slate-200/80">
+            <div className="p-5 md:p-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Update Staff Profile</h2>
+                <p className="text-xs font-medium text-slate-500 mt-0.5">Edit employee credentials & documentation</p>
+              </div>
+              <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors"><X size={16} /></button>
             </div>
 
-            <form className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleUpdateStaff}>
+            <form className="p-5 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleUpdateStaff}>
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Full Name</label>
-                <input type="text" required value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-800 outline-none" />
+                <label className="text-[11px] font-semibold text-slate-500 block">Full Name</label>
+                <input type="text" required value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3.5 font-medium text-xs text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Phone Number</label>
-                <input type="text" required value={editData.phoneNumber} onChange={(e) => setEditData({ ...editData, phoneNumber: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-800 outline-none" />
+                <label className="text-[11px] font-semibold text-slate-500 block">Phone Number</label>
+                <input type="text" required value={editData.phoneNumber} onChange={(e) => setEditData({ ...editData, phoneNumber: e.target.value })} className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3.5 font-medium text-xs text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Email Address</label>
-                <input type="email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-800 outline-none" />
+                <label className="text-[11px] font-semibold text-slate-500 block">Email Address</label>
+                <input type="email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3.5 font-medium text-xs text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">DL Expiry Date</label>
-                <input type="date" value={editData.drivingLicenceValidity} onChange={(e) => setEditData({ ...editData, drivingLicenceValidity: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 font-bold text-slate-800 outline-none" />
+                <label className="text-[11px] font-semibold text-slate-500 block">DL Expiry Date</label>
+                <input type="date" value={editData.drivingLicenceValidity} onChange={(e) => setEditData({ ...editData, drivingLicenceValidity: e.target.value })} className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3.5 font-medium text-xs text-slate-800 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20" />
               </div>
 
-              <div className="md:col-span-2 grid grid-cols-2 gap-4 mt-4">
+              <div className="md:col-span-2 grid grid-cols-2 gap-3 mt-2">
                 <FileUploadBox label="Profile Photo" onChange={(f) => setFiles({ ...files, image: f })} />
                 <FileUploadBox label="Aadhar Card" onChange={(f) => setFiles({ ...files, aadhar: f })} />
                 <FileUploadBox label="DL Front" onChange={(f) => setFiles({ ...files, drivingLicence: f })} />
                 <FileUploadBox label="DL Back" onChange={(f) => setFiles({ ...files, drivingLicenceBack: f })} />
               </div>
 
-              <div className="md:col-span-2 pt-6">
-                <button type="submit" disabled={modalLoading} className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-lg shadow-indigo-100">
-                  {modalLoading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+              <div className="md:col-span-2 pt-3">
+                <button type="submit" disabled={modalLoading} className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-2xs">
+                  {modalLoading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                   Save Changes
                 </button>
               </div>

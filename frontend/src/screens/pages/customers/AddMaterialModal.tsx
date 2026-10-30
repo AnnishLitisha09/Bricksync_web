@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import {
   X,
   Package,
-  Truck,
   FileText,
   Upload,
   CheckCircle2,
@@ -24,6 +23,7 @@ import { fetchVehicles } from "../../../api/vehicle";
 import { createOrder, updateOrder, bulkImportOrders } from "../../../api/order";
 import { parseLedgerPdf, type ParsedLedger, type ParsedOrder, type ParsedPayment } from "../../../utils/parseLedgerPdf";
 import { toast } from "react-hot-toast";
+import SearchableVehicleSelect from "../../../components/SearchableVehicleSelect";
 
 interface AddMaterialModalProps {
   isOpen: boolean;
@@ -63,8 +63,8 @@ function nameSimilarity(a: string, b: string): number {
 }
 
 
-const labelClass = "text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 mb-1 block";
-const inputClass = "w-full px-4 py-4 rounded-2xl border border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/5 focus:bg-white focus:border-indigo-500 outline-none transition-all appearance-none";
+const labelClass = "text-[11px] font-semibold text-slate-500 ml-0.5 mb-1 block";
+const inputClass = "w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white font-medium text-xs text-slate-800 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all appearance-none";
 
 const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, customerId, customerName, editData }) => {
   const [entryMode, setEntryMode] = useState<"today" | "bulk">("today");
@@ -385,49 +385,73 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
       />
 
       <motion.div
-        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        initial={{ scale: 0.98, opacity: 0, y: 12 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="bg-white rounded-[3rem] w-full max-w-2xl p-8 shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+        className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-2xl p-6 md:p-7 shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh] border border-slate-200/80"
       >
         {/* HEADER */}
         <div className="flex justify-between items-start mb-4 shrink-0">
           <div>
-            <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Material <span className="text-indigo-600">{editData ? "Edit" : "Entry"}</span></h3>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Customer: {customerId}</p>
+            <div className="flex items-center gap-2.5">
+              <h3 className="text-xl font-black text-slate-900">
+                Material {editData ? "Edit" : "Entry"}
+              </h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                #{customerId}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Customer: <span className="font-semibold text-slate-700">{customerName || customerId}</span>
+            </p>
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="p-3 bg-slate-100 rounded-2xl text-slate-400 hover:text-red-500 transition-colors"
+            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors"
           >
-            <X size={20} />
+            <X size={16} />
           </button>
         </div>
 
         {/* DATE & MODE SELECTOR */}
-        <div className="flex gap-3 mb-6 shrink-0">
-          <div className="flex-1 flex p-1.5 bg-slate-100 rounded-4xl relative">
-            <button type="button" onClick={() => !editData && setEntryMode("today")} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[1.6rem] text-xs font-black uppercase tracking-widest transition-all z-10 ${entryMode === "today" ? "text-indigo-600" : "text-slate-400"} ${editData ? "opacity-50 cursor-not-allowed" : ""}`}>Today</button>
-            <button type="button" onClick={() => !editData && setEntryMode("bulk")} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[1.6rem] text-xs font-black uppercase tracking-widest transition-all z-10 ${entryMode === "bulk" ? "text-indigo-600" : "text-slate-400"} ${editData ? "opacity-50 cursor-not-allowed" : ""}`}>Bulk</button>
-            <motion.div className="absolute inset-1.5 bg-white rounded-[1.6rem] shadow-sm" animate={{ x: entryMode === "today" ? "0%" : "100%" }} style={{ width: "calc(50% - 12px)" }} />
+        <div className="flex gap-2.5 mb-5 shrink-0">
+          <div className="flex-1 flex p-1 bg-slate-100 rounded-xl border border-slate-200/60 relative">
+            <button 
+              type="button" 
+              onClick={() => !editData && setEntryMode("today")} 
+              className={`flex-1 flex items-center justify-center h-8 rounded-lg text-xs font-bold transition-all z-10 ${entryMode === "today" ? "bg-white text-indigo-700 shadow-2xs font-extrabold" : "text-slate-500 hover:text-slate-900"} ${editData ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              Today
+            </button>
+            <button 
+              type="button" 
+              onClick={() => !editData && setEntryMode("bulk")} 
+              className={`flex-1 flex items-center justify-center h-8 rounded-lg text-xs font-bold transition-all z-10 ${entryMode === "bulk" ? "bg-white text-indigo-700 shadow-2xs font-extrabold" : "text-slate-500 hover:text-slate-900"} ${editData ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              Bulk
+            </button>
           </div>
-          <div className="w-1/3">
-            <input type="date" value={globalDate} onChange={(e) => setGlobalDate(e.target.value)} className={`${inputClass} py-2.5! text-sm`} />
+          <div className="w-40">
+            <input 
+              type="date" 
+              value={globalDate} 
+              onChange={(e) => setGlobalDate(e.target.value)} 
+              className={inputClass} 
+            />
           </div>
         </div>
 
-
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1 space-y-4 custom-scrollbar">
           <AnimatePresence mode="wait">
             {entryMode === "today" ? (
-              <motion.div key="today" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <motion.div key="today" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
 
                 {materials.map((mat, index) => (
-                  <div key={mat.id} className="p-6 border-2 border-slate-100 rounded-[2.5rem] space-y-4 bg-white hover:border-indigo-100 transition-colors relative">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="bg-slate-900 text-white text-[10px] px-4 py-1.5 rounded-full font-black uppercase tracking-widest">Item #{index + 1}</span>
+                  <div key={mat.id} className="p-4 md:p-5 border border-slate-200/80 rounded-2xl space-y-3.5 bg-white relative">
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                      <span className="bg-indigo-600 text-white text-[10px] px-2.5 py-0.5 rounded-md font-bold tracking-wider">Item #{index + 1}</span>
                       {index > 0 && (
-                        <button type="button" onClick={() => removeMaterialRow(mat.id)} className="text-red-400 hover:text-red-600 transition-colors flex items-center gap-1 text-[10px] font-black uppercase">
-                          <Trash2 size={14} /> Remove
+                        <button type="button" onClick={() => removeMaterialRow(mat.id)} className="text-rose-600 hover:text-rose-700 transition-colors flex items-center gap-1 text-[11px] font-semibold">
+                          <Trash2 size={13} /> Remove
                         </button>
                       )}
                     </div>
@@ -435,8 +459,8 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
                     {/* OFFICE DROPDOWN */}
                     <div className="relative">
                       <label className={labelClass}>Dispatch Office</label>
-                      <Building2 className="absolute left-4 bottom-4 text-slate-300 pointer-events-none" size={18} />
-                      <select className={`${inputClass} pl-12`} value={mat.office_id} onChange={(e) => updateMaterial(index, { office_id: e.target.value })} required>
+                      <Building2 className="absolute left-3.5 bottom-2.5 text-slate-400 pointer-events-none" size={16} />
+                      <select className={`${inputClass} pl-10`} value={mat.office_id} onChange={(e) => updateMaterial(index, { office_id: e.target.value })} required>
                         <option value="">Office...</option>
                         {options.offices.map(o => <option key={o.office_id} value={o.office_id}>{o.office_name}</option>)}
                       </select>
@@ -480,13 +504,14 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
                       </select>
                     </div>
 
-                    <div className="relative">
+                    <div>
                       <label className={labelClass}>Vehicle Number</label>
-                      <Truck className="absolute left-4 bottom-4 text-slate-300 pointer-events-none" size={18} />
-                      <select className={`${inputClass} pl-12`} value={mat.vehicle_id} onChange={(e) => updateMaterial(index, { vehicle_id: e.target.value })} required>
-                        <option value="">Vehicle...</option>
-                        {options.vehicles.map(v => <option key={v.id} value={v.id}>{v.vehicleNumber}</option>)}
-                      </select>
+                      <SearchableVehicleSelect
+                        vehicles={options.vehicles}
+                        value={mat.vehicle_id}
+                        onChange={(vId) => updateMaterial(index, { vehicle_id: vId })}
+                        placeholder="Select or search vehicle..."
+                      />
                     </div>
 
                     <div className="grid grid-cols-3 gap-4">
@@ -611,9 +636,9 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
                   <button
                     type="button"
                     onClick={addMaterialRow}
-                    className="w-full py-4 border-2 border-dashed border-slate-200 rounded-4xl text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em] hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all flex items-center justify-center gap-2"
+                    className="w-full h-10 border border-dashed border-indigo-200 bg-indigo-50/40 hover:bg-indigo-50/80 rounded-xl text-indigo-700 font-bold text-xs transition-colors flex items-center justify-center gap-2"
                   >
-                    <Plus size={16} /> Add Another Material
+                    <Plus size={15} /> Add Another Material
                   </button>
                 )}
               </motion.div>
@@ -622,15 +647,15 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
                 {/* Drop zone */}
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="group w-full py-8 bg-slate-50 border-4 border-dashed border-slate-100 rounded-4xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500/30 hover:bg-indigo-50/30 transition-all"
+                  className="group w-full py-8 bg-slate-50 border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all"
                 >
-                  <div className="p-5 bg-white rounded-3xl shadow-xl text-indigo-600 group-hover:scale-110 transition-transform">
-                    {isParsing ? <Loader2 size={32} className="animate-spin" /> : bulkFile ? <CheckCircle2 size={32} /> : <Upload size={32} />}
+                  <div className="w-12 h-12 bg-white rounded-xl shadow-2xs border border-slate-100 flex items-center justify-center text-indigo-600 group-hover:scale-105 transition-transform">
+                    {isParsing ? <Loader2 size={24} className="animate-spin" /> : bulkFile ? <CheckCircle2 size={24} className="text-emerald-500" /> : <Upload size={24} />}
                   </div>
-                  <p className="mt-4 text-sm font-black text-slate-700 uppercase tracking-tighter px-6 text-center truncate w-full">
+                  <p className="mt-3 text-xs font-bold text-slate-800 px-6 text-center truncate w-full">
                     {isParsing ? "Parsing PDF..." : bulkFile ? bulkFile.name : "Upload Ledger PDF"}
                   </p>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">M.ASWATH format supported</p>
+                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">M.ASWATH format supported</p>
                   <input type="file" ref={fileInputRef} hidden accept=".pdf" onChange={handleBulkFileChange} />
                 </div>
 
@@ -752,38 +777,38 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
         </form>
 
         {/* SUMMARY & SUBMIT */}
-        <div className="pt-6 shrink-0 bg-white border-t border-slate-50 mt-4 space-y-4">
+        <div className="pt-4 shrink-0 bg-white border-t border-slate-100 mt-2 space-y-3">
           {/* Bulk submit — only shown in bulk mode with parsed data */}
           {entryMode === "bulk" && parsedLedger && (
             <button
               type="button"
               onClick={handleBulkSubmit}
               disabled={isSubmitting}
-              className="w-full py-5 bg-indigo-600 text-white rounded-[1.8rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-indigo-700 transition-all shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
+              className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs transition-colors shadow-2xs flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50"
             >
-              {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
-              {isSubmitting ? "Importing..." : `Import ${parsedLedger.orders.length} Orders & ${parsedLedger.payments.length} Payments`}
+              {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
+              <span>{isSubmitting ? "Importing..." : `Import ${parsedLedger.orders.length} Orders & ${parsedLedger.payments.length} Payments`}</span>
             </button>
           )}
 
           {/* TRANSPORT CHARGE INPUT — hidden in bulk mode */}
           {entryMode !== "bulk" && (
-            <div className="grid grid-cols-2 gap-4 items-end">
+            <div className="grid grid-cols-2 gap-3 items-end">
               <div>
                 <label className={labelClass}>Transport Charge</label>
                 <div className="relative">
-                  <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                  <Navigation className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                   <input
                     type="number"
-                    className={`${inputClass} pl-12 py-3!`}
+                    className={`${inputClass} pl-9`}
                     value={transportCharge}
                     onChange={(e) => setTransportCharge(e.target.value)}
                   />
                 </div>
               </div>
-              <div className="bg-indigo-600 p-4 rounded-4xl flex justify-between items-center shadow-lg shadow-indigo-100 h-[58px]">
-                <span className="text-[10px] font-black text-indigo-100 uppercase tracking-widest">Total Credit</span>
-                <span className="text-xl font-black text-white">₹{finalTotal.toLocaleString('en-IN')}</span>
+              <div className="bg-slate-50 border border-slate-200/80 px-4 rounded-xl flex justify-between items-center h-10">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total</span>
+                <span className="text-sm font-black text-slate-900">₹{finalTotal.toLocaleString('en-IN')}</span>
               </div>
             </div>
           )}
@@ -794,10 +819,10 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({ isOpen, onClose, cu
               type="submit"
               onClick={(e) => { e.stopPropagation(); handleSubmit(e); }}
               disabled={isSubmitting || loadingOptions}
-              className="w-full py-5 bg-slate-900 text-white rounded-[1.8rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
+              className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs transition-colors shadow-2xs flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50"
             >
-              {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (editData ? <Plus size={18} /> : <FileText size={18} />)}
-              {isSubmitting ? (editData ? 'Updating...' : 'Confirming...') : (editData ? 'Update Dispatch' : 'Confirm Dispatch')}
+              {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : (editData ? <Plus size={16} /> : <FileText size={16} />)}
+              <span>{isSubmitting ? (editData ? 'Updating...' : 'Confirming...') : (editData ? 'Update Dispatch' : 'Confirm Dispatch')}</span>
             </button>
           )}
         </div>

@@ -127,41 +127,39 @@ export default function ViewVehicle() {
     );
 
     return (
-        <div className="min-h-screen bg-[#FDFDFD] pb-32">
-            <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-12 animate-in fade-in duration-700">
-
-                {/* HEADER SECTION --- same as before --- */}
+        <div className="space-y-8 animate-in font-sans">
+            {/* HEADER SECTION */}
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => navigate(-1)} className="group p-3 rounded-2xl bg-white border border-gray-100 shadow-sm hover:border-orange-200 transition-all active:scale-90">
-                            <ArrowLeft size={22} className="text-gray-600 group-hover:text-orange-500 transition-colors" />
+                        <button onClick={() => navigate(-1)} className="group p-3 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-indigo-300 hover:bg-indigo-50/50 transition-all active:scale-95 cursor-pointer">
+                            <ArrowLeft size={22} className="text-slate-600 group-hover:text-indigo-600 transition-colors" />
                         </button>
                         <div>
                             {isEdit ? (
-                                <input name="vehicleName" className="w-full text-2xl md:text-4xl font-black bg-white border-b-4 border-orange-500 focus:outline-none rounded-t-lg px-2" value={vehicle.vehicleName} onChange={handleChange} autoFocus />
+                                <input name="vehicleName" className="w-full text-2xl md:text-4xl font-black bg-white border-b-4 border-indigo-600 focus:outline-none rounded-t-lg px-2" value={vehicle.vehicleName} onChange={handleChange} autoFocus />
                             ) : (
                                 <>
-                                    <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-none">{vehicle.vehicleName}</h1>
+                                    <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-none">{vehicle.vehicleName}</h1>
                                     <div className="flex flex-wrap items-center gap-2 mt-3">
-                                        <span className="font-mono text-[11px] font-bold bg-orange-500 text-white px-3 py-1 rounded-lg shadow-lg shadow-orange-200 uppercase tracking-wider">{vehicle.vehicleNumber}</span>
-                                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-100 shadow-sm">
+                                        <span className="font-mono text-[11px] font-bold bg-indigo-600 text-white px-3 py-1 rounded-lg shadow-md shadow-indigo-600/30 uppercase tracking-wider">{vehicle.vehicleNumber}</span>
+                                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-100 shadow-xs">
                                             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                            <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Active Fleet</span>
+                                            <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Active Fleet</span>
                                         </div>
                                     </div>
                                 </>
                             )}
                         </div>
                     </div>
-                    {/* Actions same as before */}
+                    {/* Actions */}
                     <div className="hidden md:flex items-center gap-3">
                         {isEdit ? (
                             <>
-                                <button onClick={handleCancel} className="flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-gray-500 bg-white border border-gray-100 hover:bg-gray-50 transition-all"><X size={18} /> Cancel</button>
-                                <button onClick={handleSave} disabled={!hasChanges || saving} className="flex items-center gap-2 px-8 py-3 rounded-2xl font-bold text-white bg-orange-500 hover:bg-orange-600 shadow-xl shadow-orange-100 disabled:opacity-50 transition-all">{saving ? "Saving..." : "Save Changes"}</button>
+                                <button onClick={handleCancel} className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-all cursor-pointer"><X size={18} /> Cancel</button>
+                                <button onClick={handleSave} disabled={!hasChanges || saving} className="flex items-center gap-2 px-7 py-2.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/25 disabled:opacity-50 transition-all cursor-pointer">{saving ? "Saving..." : "Save Changes"}</button>
                             </>
                         ) : (
-                            <button onClick={() => setEdit(true)} className="flex items-center gap-2 px-8 py-4 rounded-[1.5rem] font-bold text-white bg-gray-900 hover:bg-black shadow-2xl shadow-gray-300 transition-all active:scale-95"><Edit size={18} /> Edit Vehicle</button>
+                            <button onClick={() => setEdit(true)} className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/25 transition-all active:scale-95 cursor-pointer"><Edit size={16} /> Edit Vehicle</button>
                         )}
                     </div>
                 </header>
@@ -169,16 +167,16 @@ export default function ViewVehicle() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* LEFT: Master photo */}
                     <div className="lg:col-span-5">
-                        <div className="group relative aspect-square lg:aspect-[4/5] rounded-[3rem] overflow-hidden bg-gray-100 border-[6px] border-white shadow-2xl">
+                        <div className="group relative aspect-square lg:aspect-[4/5] rounded-2xl overflow-hidden bg-gray-100 border-[6px] border-white shadow-2xl">
                             <img src={docPreviews.vehicleImage || (vehicle.vehicleImage ? `${FILE_BASE_URL}${vehicle.vehicleImage}` : "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80&w=800")} className="w-full h-full object-cover" alt="Vehicle" />
-                            {isEdit && <div onClick={() => vehicleImageRef.current?.click()} className="absolute inset-0 bg-orange-600/40 backdrop-blur-md flex flex-col items-center justify-center text-white cursor-pointer"><Camera size={32} /></div>}
+                            {isEdit && <div onClick={() => vehicleImageRef.current?.click()} className="absolute inset-0 bg-indigo-600/40 backdrop-blur-md flex flex-col items-center justify-center text-white cursor-pointer"><Camera size={32} /></div>}
                         </div>
                     </div>
 
                     {/* RIGHT: Specs */}
                     <div className="lg:col-span-7 space-y-6">
-                        <div className="bg-white rounded-[3rem] p-8 md:p-12 border border-gray-100 shadow-xl shadow-gray-100">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                        <div className="bg-white rounded-3xl p-6 md:p-8 border-2 border-slate-100 shadow-xs">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <Input label="Reg. Number" name="vehicleNumber" disabled={!isEdit} value={vehicle.vehicleNumber} onChange={handleChange} />
                                 <Input label="Current Odometer" name="kilometer" type="number" disabled={!isEdit} value={String(vehicle.kilometer ?? "")} onChange={handleChange} />
                                 <Input label="Insurance" name="insurance" type="date" disabled={!isEdit} value={vehicle.insurance?.slice(0, 10) ?? ""} onChange={handleChange} />
@@ -193,11 +191,11 @@ export default function ViewVehicle() {
 
                 {/* REGULATORY DOCUMENTS */}
                 <section>
-                    <div className="flex items-center gap-4 mb-8">
-                        <h3 className="font-black text-gray-800 uppercase tracking-[0.2em] text-xs px-2">Regulatory Documents</h3>
-                        <div className="flex-1 h-px bg-gray-100"></div>
+                    <div className="flex items-center gap-4 mb-6">
+                        <h3 className="font-extrabold text-slate-800 uppercase tracking-widest text-xs px-2">Regulatory Documents</h3>
+                        <div className="flex-1 h-px bg-slate-200"></div>
                     </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                         <DocCard isEdit={isEdit} img={vehicle.rcImage} label="RC File" preview={docPreviews.rcImage} onSelect={file => handleDocSelect("rcImage", file)} />
                         <DocCard isEdit={isEdit} img={vehicle.insuranceImage} label="Insurance" preview={docPreviews.insuranceImage} onSelect={file => handleDocSelect("insuranceImage", file)} />
                         <DocCard isEdit={isEdit} img={vehicle.pollutionImage} label="Pollution" preview={docPreviews.pollutionImage} onSelect={file => handleDocSelect("pollutionImage", file)} />
@@ -206,17 +204,17 @@ export default function ViewVehicle() {
                 </section>
 
                 {/* TOTAL AMOUNT TRACKER */}
-                <section className="bg-gray-900 rounded-[3rem] p-8 md:p-12 text-white relative overflow-hidden">
+                <section className="bg-slate-900 rounded-3xl p-6 md:p-10 text-white relative overflow-hidden shadow-xl">
                     <div className="absolute top-0 right-0 p-12 opacity-10">
                         <History size={200} />
                     </div>
                     <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-2">System Asset Performance</p>
-                            <h2 className="text-3xl md:text-5xl font-black tracking-tighter uppercase leading-none">Total Amount <br/><span className="text-orange-500">Tracker</span></h2>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300 mb-2">System Asset Performance</p>
+                            <h2 className="text-3xl md:text-5xl font-black tracking-tight uppercase leading-none">Total Amount <br/><span className="text-indigo-400">Tracker</span></h2>
                         </div>
                         <div className="text-right">
-                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-2">Cumulative Spend</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Cumulative Spend</p>
                             <span className="text-4xl md:text-6xl font-black tracking-tighter text-emerald-400">₹ {(vehicle.totalCost || 0).toLocaleString('en-IN')}</span>
                             <div className="flex justify-end gap-2 mt-4">
                                 <div className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-widest">
@@ -231,18 +229,18 @@ export default function ViewVehicle() {
                 </section>
 
                 {/* TRANSACTION HISTORY CATEGORIZED */}
-                <section className="space-y-8">
+                <section className="space-y-6">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                         <div>
-                            <h3 className="text-2xl font-black text-gray-900 tracking-tight uppercase">Activity <span className="text-orange-500">Timeline</span></h3>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Lifecycle event logs for this asset</p>
+                            <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Activity <span className="text-indigo-600">Timeline</span></h3>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Lifecycle event logs for this asset</p>
                         </div>
-                        <div className="flex bg-gray-100 p-1.5 rounded-[1.5rem] gap-1">
+                        <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-1">
                             {["All", "Fuel", "Services", "Spares"].map((tab) => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab as HistoryTab)}
-                                    className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? "bg-white text-gray-900 shadow-lg" : "text-gray-400 hover:text-gray-600"}`}
+                                    className={`px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${activeTab === tab ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500 hover:text-slate-800"}`}
                                 >
                                     {tab}
                                 </button>
@@ -250,56 +248,56 @@ export default function ViewVehicle() {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-[3rem] border border-gray-100 overflow-hidden shadow-xl shadow-gray-100/50">
+                    <div className="bg-white rounded-2xl border-2 border-slate-100 overflow-hidden shadow-xs">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-gray-50/50 border-b border-gray-100">
-                                        <th className="py-6 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Category</th>
-                                        <th className="py-6 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Event Info</th>
-                                        <th className="py-6 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Date Recorded</th>
-                                        <th className="py-6 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Ref / Odometer</th>
-                                        <th className="py-6 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">Amount</th>
+                                    <tr className="bg-slate-50 border-b border-slate-100">
+                                        <th className="py-4 px-6 text-[10px] font-black uppercase tracking-wider text-slate-400">Category</th>
+                                        <th className="py-4 px-6 text-[10px] font-black uppercase tracking-wider text-slate-400">Event Info</th>
+                                        <th className="py-4 px-6 text-[10px] font-black uppercase tracking-wider text-slate-400">Date Recorded</th>
+                                        <th className="py-4 px-6 text-[10px] font-black uppercase tracking-wider text-slate-400">Ref / Odometer</th>
+                                        <th className="py-4 px-6 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Amount</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-50">
+                                <tbody className="divide-y divide-slate-100">
                                     {filteredHistory.length > 0 ? (
                                         filteredHistory.map((item, idx) => (
-                                            <tr key={idx} className="group hover:bg-gray-50/50 transition-colors">
-                                                <td className="py-6 px-8">
+                                            <tr key={idx} className="group hover:bg-indigo-50/30 transition-colors">
+                                                <td className="py-4 px-6">
                                                     <div className="flex items-center gap-3">
                                                         <div className={`p-2 rounded-xl border ${
-                                                            item.type === "Fuel" ? "bg-orange-50 border-orange-100 text-orange-500" :
-                                                            item.type === "Services" ? "bg-blue-50 border-blue-100 text-blue-500" :
-                                                            "bg-emerald-50 border-emerald-100 text-emerald-500"
+                                                            item.type === "Fuel" ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
+                                                            item.type === "Services" ? "bg-blue-50 border-blue-100 text-blue-600" :
+                                                            "bg-emerald-50 border-emerald-100 text-emerald-600"
                                                         }`}>
                                                             {item.type === "Fuel" ? <Fuel size={14} /> : item.type === "Services" ? <Wrench size={14} /> : <Settings size={14} />}
                                                         </div>
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-900">{item.type}</span>
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-800">{item.type}</span>
                                                     </div>
                                                 </td>
-                                                <td className="py-6 px-8">
-                                                    <p className="text-[11px] font-black text-gray-700 uppercase tracking-tight">{item.info}</p>
-                                                    {item.topic && <p className="text-[9px] font-bold text-gray-400 mt-0.5">{item.topic}</p>}
+                                                <td className="py-4 px-6">
+                                                    <p className="text-[11px] font-bold text-slate-700 uppercase tracking-tight">{item.info}</p>
+                                                    {item.topic && <p className="text-[9px] font-bold text-slate-400 mt-0.5">{item.topic}</p>}
                                                 </td>
-                                                <td className="py-6 px-8 whitespace-nowrap">
-                                                    <span className="text-[11px] font-black text-gray-500 uppercase tracking-tighter px-3 py-1 rounded-lg bg-gray-50 border border-gray-100">{formatDate(item.date)}</span>
+                                                <td className="py-4 px-6 whitespace-nowrap">
+                                                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200">{formatDate(item.date)}</span>
                                                 </td>
-                                                <td className="py-6 px-8 text-gray-400 font-mono text-[11px]">
+                                                <td className="py-4 px-6 text-slate-400 font-mono text-[11px]">
                                                     {item.kilometer ? `${item.kilometer} KM` : "---"}
                                                 </td>
-                                                <td className="py-6 px-8 text-right">
-                                                    <span className="text-[11px] font-black text-gray-900 tracking-tighter">₹ {Number(item.amount).toLocaleString('en-IN')}</span>
+                                                <td className="py-4 px-6 text-right">
+                                                    <span className="text-[11px] font-extrabold text-slate-900 tracking-tight">₹ {Number(item.amount).toLocaleString('en-IN')}</span>
                                                 </td>
                                             </tr>
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={5} className="py-20 text-center">
-                                                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-200 mx-auto mb-4 border border-gray-100">
-                                                    <History size={28} />
+                                            <td colSpan={5} className="py-16 text-center">
+                                                <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 mx-auto mb-3 border border-slate-100">
+                                                    <History size={24} />
                                                 </div>
-                                                <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em]">No transaction history found</p>
+                                                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">No transaction history found</p>
                                             </td>
                                         </tr>
                                     )}
@@ -308,7 +306,6 @@ export default function ViewVehicle() {
                         </div>
                     </div>
                 </section>
-            </div>
         </div>
     );
 }
@@ -319,21 +316,21 @@ const DocCard = ({ label, img, preview, onSelect, isEdit }: { label: string; img
     const hasImage = preview || img;
 
     return (
-        <div className="flex flex-col gap-4 group">
-            <div onClick={() => isEdit && inputRef.current?.click()} className={`relative aspect-[3/4] rounded-[2rem] overflow-hidden transition-all duration-500 ${isEdit ? 'cursor-pointer ring-2 ring-dashed ring-orange-200 hover:ring-orange-500 bg-orange-50/30' : 'bg-white shadow-xl ring-1 ring-gray-100'} ${!hasImage && !isEdit ? 'bg-gray-50 flex items-center justify-center' : ''}`}>
+        <div className="flex flex-col gap-3 group">
+            <div onClick={() => isEdit && inputRef.current?.click()} className={`relative aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-300 ${isEdit ? 'cursor-pointer ring-2 ring-dashed ring-indigo-300 hover:ring-indigo-600 bg-indigo-50/30' : 'bg-white shadow-sm ring-1 ring-slate-200'} ${!hasImage && !isEdit ? 'bg-slate-50 flex items-center justify-center' : ''}`}>
                 {hasImage ? (
-                    <img src={preview || `${FILE_BASE_URL}${img}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={label} />
+                    <img src={preview || `${FILE_BASE_URL}${img}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt={label} />
                 ) : (
-                    <div className="flex flex-col items-center gap-2 text-gray-300 p-4 text-center">
-                        <AlertCircle size={32} strokeWidth={1} />
-                        <span className="text-[8px] font-black uppercase tracking-widest leading-tight">Missing</span>
+                    <div className="flex flex-col items-center gap-2 text-slate-300 p-4 text-center">
+                        <AlertCircle size={28} strokeWidth={1.5} />
+                        <span className="text-[9px] font-bold uppercase tracking-wider leading-tight">Missing</span>
                     </div>
                 )}
-                {isEdit && <div className="absolute inset-0 bg-orange-600/20 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"><div className="bg-white p-4 rounded-full shadow-2xl text-orange-600"><Camera size={20} /></div></div>}
+                {isEdit && <div className="absolute inset-0 bg-indigo-600/30 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"><div className="bg-white p-3 rounded-full shadow-xl text-indigo-600"><Camera size={18} /></div></div>}
                 <input ref={inputRef} type="file" accept="image/*" hidden onChange={e => e.target.files?.[0] && onSelect(e.target.files[0])} />
             </div>
             <div className="text-center">
-                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block truncate px-2">{label}</span>
+                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block truncate px-2">{label}</span>
             </div>
         </div>
     );

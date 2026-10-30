@@ -199,52 +199,51 @@ const GprsPage = () => {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => navigate(-1)}
-                        className="p-3 bg-white hover:bg-slate-50 rounded-2xl transition-all border border-slate-200 shadow-sm text-slate-600 hover:text-orange-500"
+                        className="p-2.5 bg-white hover:bg-indigo-50 rounded-xl transition-all border border-slate-200 shadow-2xs text-slate-600 hover:text-indigo-600 cursor-pointer"
                         title="Go Back"
                     >
-                        <ArrowLeft size={22} />
+                        <ArrowLeft size={18} />
                     </motion.button>
                     <div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">GPRS Tracking & Driver Assignment</h1>
-                        <p className="text-slate-500 text-sm font-medium flex items-center gap-2">
+                        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                            GPRS Tracking & <span className="text-indigo-600">Driver Assignment</span>
+                        </h1>
+                        <p className="text-slate-500 text-xs font-medium flex items-center gap-2 mt-0.5">
                             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
                             Live Fleet Telemetry & Personnel Management
                         </p>
                     </div>
                 </div>
                 <motion.button
-                    whileHover={{ scale: 1.02, translateY: -2 }}
+                    whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleSync}
                     disabled={syncing}
-                    className={`relative group flex items-center gap-3 px-8 py-4 rounded-2xl text-white font-black transition-all overflow-hidden ${syncing
+                    className={`h-10 px-5 rounded-xl font-bold text-xs uppercase tracking-wider text-white transition-all shadow-sm shadow-indigo-600/20 flex items-center gap-2 cursor-pointer ${syncing
                         ? "bg-slate-400 cursor-not-allowed"
-                        : "bg-gradient-to-r from-orange-500 via-orange-600 to-orange-500 bg-[length:200%_auto] hover:bg-right shadow-[0_10px_25px_-5px_rgba(249,115,22,0.4)]"
+                        : "bg-indigo-600 hover:bg-indigo-700"
                         }`}
                 >
                     <RefreshCw
-                        size={20}
+                        size={16}
                         className={`${syncing ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`}
                     />
-                    <span className="tracking-wide uppercase text-sm">{syncing ? "Synchronizing..." : "Sync Now"}</span>
-                    {!syncing && (
-                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none"></div>
-                    )}
+                    <span>{syncing ? "Syncing..." : "Sync Now"}</span>
                 </motion.button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Vehicles Column */}
                 <div className="lg:col-span-2 space-y-4">
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-4">
+                    <div className="bg-white p-3.5 rounded-2xl shadow-2xs border border-slate-200/80 mb-4">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
                             <input
                                 type="text"
                                 placeholder="Search vehicle or driver..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-slate-50 pl-10 pr-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 border-transparent focus:border-orange-500 transition-all text-sm"
+                                className="w-full h-10 pl-10 pr-4 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 transition-all shadow-2xs"
                             />
                         </div>
                     </div>
@@ -253,7 +252,7 @@ const GprsPage = () => {
                         <AnimatePresence mode="popLayout">
                             {loading ? (
                                 [1, 2, 3, 4].map(i => (
-                                    <div key={i} className="h-56 bg-white animate-pulse rounded-[2.5rem] border border-slate-100 shadow-sm"></div>
+                                    <div key={i} className="h-56 bg-white animate-pulse rounded-2xl border border-slate-100 shadow-sm"></div>
                                 ))
                             ) : filteredVehicles.length > 0 ? (
                                 filteredVehicles.map((vehicle) => (
@@ -269,11 +268,11 @@ const GprsPage = () => {
                                             if ((e.target as HTMLElement).closest('button')) return;
                                             navigate(`/vehicles/gprs/track/${vehicle.vehicleNumber}`);
                                         }}
-                                        className="group bg-white p-6 rounded-[2.5rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.02)] border border-slate-100 hover:border-orange-200 hover:shadow-[0_20px_50px_-15px_rgba(249,115,22,0.08)] transition-all relative overflow-hidden cursor-pointer active:scale-[0.98] flex flex-col h-full"
+                                        className="group bg-white p-6 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.02)] border border-slate-100 hover:border-indigo-300 hover:shadow-[0_20px_50px_-15px_rgba(79,70,229,0.08)] transition-all relative overflow-hidden cursor-pointer active:scale-[0.98] flex flex-col h-full"
                                     >
                                         <div className="flex justify-between items-start mb-6">
                                             <div className="flex items-center gap-4">
-                                                <div className="bg-slate-50 p-4 rounded-[1.25rem] group-hover:bg-orange-500 group-hover:text-white group-hover:shadow-[0_8px_20px_-5px_rgba(249,115,22,0.4)] transition-all duration-300">
+                                                <div className="bg-slate-50 p-4 rounded-xl group-hover:bg-indigo-600 group-hover:text-white group-hover:shadow-[0_8px_20px_-5px_rgba(79,70,229,0.4)] transition-all duration-300">
                                                     <Truck size={28} className="text-slate-400 group-hover:text-white transition-colors" />
                                                 </div>
                                                 <div>
@@ -292,7 +291,7 @@ const GprsPage = () => {
                                             </div>
                                             <div className="text-right">
                                                 <div className={`text-4xl font-black tabular-nums tracking-tighter ${vehicle.speed > 75 ? "text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.2)]" :
-                                                    vehicle.speed > 40 ? "text-orange-500" :
+                                                    vehicle.speed > 40 ? "text-amber-500" :
                                                         vehicle.speed > 0 ? "text-emerald-500" :
                                                             "text-slate-200"
                                                     }`}>
@@ -302,9 +301,9 @@ const GprsPage = () => {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between mt-auto p-4 bg-slate-50 rounded-2xl border border-slate-50 group-hover:bg-white group-hover:border-orange-100 group-hover:shadow-[0_5px_15px_-5px_rgba(0,0,0,0.05)] transition-all">
+                                        <div className="flex items-center justify-between mt-auto p-4 bg-slate-50 rounded-2xl border border-slate-50 group-hover:bg-white group-hover:border-indigo-100 group-hover:shadow-[0_5px_15px_-5px_rgba(0,0,0,0.05)] transition-all">
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <div className={`p-2 rounded-xl shadow-sm ${vehicle.driverName ? 'bg-white text-orange-500' : 'bg-white text-slate-200'}`}>
+                                                <div className={`p-2 rounded-xl shadow-sm ${vehicle.driverName ? 'bg-white text-indigo-600' : 'bg-white text-slate-200'}`}>
                                                     <UserIcon size={16} />
                                                 </div>
                                                 <div className="min-w-0">
@@ -342,19 +341,19 @@ const GprsPage = () => {
                                             <motion.div
                                                 initial={{ x: -5, opacity: 0 }}
                                                 whileHover={{ x: 0, opacity: 1 }}
-                                                className="text-orange-500 font-black uppercase tracking-widest flex items-center gap-1"
+                                                className="text-indigo-600 font-black uppercase tracking-widest flex items-center gap-1"
                                             >
                                                 Details <ArrowLeft size={10} className="rotate-180" />
                                             </motion.div>
                                         </div>
 
                                         {/* Subtle background glow */}
-                                        <div className={`absolute -bottom-10 -right-10 w-40 h-40 rounded-full blur-3xl transition-opacity duration-700 pointer-events-none ${vehicle.isLive ? "bg-emerald-500/10 opacity-100" : "bg-orange-500/5 opacity-0 group-hover:opacity-100"
+                                        <div className={`absolute -bottom-10 -right-10 w-40 h-40 rounded-full blur-3xl transition-opacity duration-700 pointer-events-none ${vehicle.isLive ? "bg-emerald-500/10 opacity-100" : "bg-indigo-500/5 opacity-0 group-hover:opacity-100"
                                             }`}></div>
                                     </motion.div>
                                 ))
                             ) : (
-                                <div className="col-span-1 md:col-span-2 text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
+                                <div className="col-span-1 md:col-span-2 text-center py-20 bg-white rounded-2xl border-2 border-dashed border-slate-100">
                                     <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
                                         <AlertCircle className="text-slate-200" size={40} />
                                     </div>
@@ -372,7 +371,7 @@ const GprsPage = () => {
                         {/* Available Drivers */}
                         <div className="flex-1 flex flex-col min-h-0 border-b border-slate-50 pb-6 mb-6">
                             <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <UserIcon size={20} className="text-orange-500" />
+                                <UserIcon size={20} className="text-indigo-600" />
                                 Available Drivers
                             </h2>
 
@@ -387,10 +386,10 @@ const GprsPage = () => {
                                             key={driver.userid}
                                             draggable
                                             onDragStart={(e) => onDragStart(e, driver.name)}
-                                            className="p-4 bg-slate-50 rounded-xl border border-slate-100 cursor-grab active:cursor-grabbing hover:bg-white hover:border-orange-200 hover:shadow-md transition-all group"
+                                            className="p-4 bg-slate-50 rounded-xl border border-slate-100 cursor-grab active:cursor-grabbing hover:bg-white hover:border-indigo-200 hover:shadow-md transition-all group"
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold group-hover:bg-orange-100 group-hover:text-orange-600 transition-colors">
+                                                <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">
                                                     {driver.name.charAt(0)}
                                                 </div>
                                                 <div>

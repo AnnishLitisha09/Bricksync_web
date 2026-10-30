@@ -49,7 +49,10 @@ exports.createFuelStatement = async (req, res) => {
 
 exports.getAllFuelStatements = async (req, res) => {
   try {
-    const records = await FuelStatement.findAll({
+    const page = req.query.page ? parseInt(req.query.page) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+
+    const queryOptions = {
       include: [
         {
           model: BankTable,
@@ -63,7 +66,27 @@ exports.getAllFuelStatements = async (req, res) => {
         },
       ],
       order: [["createdAt", "DESC"]],
-    });
+      distinct: true,
+    };
+
+    if (page) {
+      queryOptions.limit = limit;
+      queryOptions.offset = (page - 1) * limit;
+      const { count, rows } = await FuelStatement.findAndCountAll(queryOptions);
+      return res.json({
+        success: true,
+        count,
+        data: rows,
+        pagination: {
+          total: count,
+          page,
+          limit,
+          totalPages: Math.ceil(count / limit),
+        },
+      });
+    }
+
+    const records = await FuelStatement.findAll(queryOptions);
 
     res.json({
       success: true,

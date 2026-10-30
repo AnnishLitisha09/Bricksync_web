@@ -75,33 +75,34 @@ const NotificationPage: React.FC = () => {
     const filteredNotifications = notifications.filter(n => filter === 'all' || !n.isRead);
 
     return (
-        <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-5 font-sans animate-in">
 
-            {/* HEADER - Matching Vehicle Page Style */}
-            <div className="flex items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight uppercase">
-                        System <span className="text-orange-500">Notifications</span>
+            {/* HEADER */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+                <div className="space-y-1">
+                    <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                        System <span className="text-indigo-600">Notifications</span>
                     </h1>
-                    <p className="text-gray-400 text-[10px] md:text-sm font-bold uppercase tracking-widest">
-                        {notifications.filter(n => !n.isRead).length} Unread Alerts
+                    <p className="text-slate-400 text-xs font-semibold">
+                        {notifications.filter(n => !n.isRead).length} Unread Alerts & Security Dispatches
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2 md:gap-4">
+                <div className="flex items-center gap-2 shrink-0">
                     <button
                         onClick={fetchNotifications}
-                        className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-orange-500 rounded-xl md:rounded-2xl transition-all shadow-sm active:scale-95"
+                        className="h-10 px-3 bg-white border border-slate-200/80 text-slate-600 hover:text-indigo-600 hover:bg-slate-50 rounded-xl transition-all shadow-2xs active:scale-95 cursor-pointer flex items-center justify-center"
+                        title="Refresh"
                     >
-                        <RefreshCcw size={20} className={isLoading ? "animate-spin" : ""} />
+                        <RefreshCcw size={16} className={isLoading ? "animate-spin" : ""} />
                     </button>
                     <button
                         onClick={markAllAsRead}
                         disabled={!notifications.some(n => !n.isRead)}
-                        className="flex items-center justify-center bg-gray-900 text-white px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl transition-all shadow-lg shadow-gray-100 active:scale-95 disabled:opacity-50 disabled:grayscale"
+                        className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm shadow-indigo-600/25 active:scale-95 disabled:opacity-50 cursor-pointer"
                     >
-                        <CheckCircle2 className="w-5 h-5" />
-                        <span className="hidden md:block font-bold ml-2 uppercase text-sm">Mark All Read</span>
+                        <CheckCircle2 size={16} />
+                        <span>Mark All Read</span>
                     </button>
                 </div>
             </div>
@@ -113,8 +114,8 @@ const NotificationPage: React.FC = () => {
                         key={f}
                         onClick={() => setFilter(f as any)}
                         className={`px-6 py-3 md:py-4 rounded-xl md:rounded-2xl border transition-all font-bold text-sm uppercase tracking-wider ${filter === f
-                            ? "bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-100"
-                            : "bg-white text-gray-700 border-gray-100 shadow-sm hover:border-orange-200"
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-600/20"
+                            : "bg-white text-gray-700 border-gray-100 shadow-sm hover:border-indigo-200"
                             }`}
                     >
                         {f}
@@ -126,9 +127,9 @@ const NotificationPage: React.FC = () => {
             <div className="grid grid-cols-1 gap-4 md:gap-6">
                 <AnimatePresence mode="popLayout">
                     {isLoading ? (
-                        <div className="text-center py-20 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200">
-                            <Loader2 className="w-10 h-10 mx-auto text-orange-500 animate-spin mb-4" />
-                            <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">Fetching Updates...</p>
+                        <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                            <Loader2 className="w-10 h-10 mx-auto text-indigo-600 animate-spin mb-4" />
+                            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Fetching Updates...</p>
                         </div>
                     ) : filteredNotifications.length > 0 ? (
                         filteredNotifications.map((notification) => (
@@ -138,9 +139,9 @@ const NotificationPage: React.FC = () => {
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.98 }}
-                                className={`group flex flex-col md:flex-row bg-white rounded-[2rem] overflow-hidden border transition-all duration-300 ${notification.isRead
-                                    ? 'border-gray-50 opacity-60'
-                                    : 'border-gray-100 shadow-sm hover:border-orange-200'
+                                className={`group flex flex-col md:flex-row bg-white rounded-2xl overflow-hidden border transition-all duration-300 shadow-2xs ${notification.isRead
+                                    ? 'border-slate-100 opacity-60'
+                                    : 'border-slate-200/80 hover:border-indigo-300 hover:shadow-md'
                                     }`}
                             >
                                 {/* Icon Section */}
@@ -176,7 +177,7 @@ const NotificationPage: React.FC = () => {
                                     {!notification.isRead && (
                                         <button
                                             onClick={() => markAsRead(notification.id)}
-                                            className="w-full md:w-auto flex items-center justify-center gap-2 bg-gray-50 md:bg-gray-900 text-gray-900 md:text-white px-6 py-4 md:py-3 rounded-xl md:rounded-2xl font-bold hover:bg-orange-500 hover:text-white transition-all group/btn active:scale-95 shadow-sm"
+                                            className="w-full md:w-auto flex items-center justify-center gap-2 bg-gray-50 md:bg-gray-900 text-gray-900 md:text-white px-6 py-4 md:py-3 rounded-xl md:rounded-2xl font-bold hover:bg-indigo-600 hover:text-white transition-all group/btn active:scale-95 shadow-sm"
                                         >
                                             <span className="text-xs uppercase">Mark Read</span>
                                             <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
@@ -186,7 +187,7 @@ const NotificationPage: React.FC = () => {
                             </motion.div>
                         ))
                     ) : (
-                        <div className="text-center py-20 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200">
+                        <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
                             <BellRing className="w-10 h-10 mx-auto text-gray-200 mb-4" />
                             <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">No Notifications Found</p>
                         </div>

@@ -22,6 +22,7 @@ interface AttendanceStore {
     setSelectedDate: (date: string) => void;
     fetchAttendance: (force?: boolean) => Promise<void>;
     toggleAttendance: (userid: number, field: "forenoon" | "afternoon") => void;
+    setAllAttendance: (field: "forenoon" | "afternoon" | "both", value: boolean) => void;
     saveAllAttendance: () => Promise<void>;
     invalidate: () => void;
 }
@@ -62,6 +63,17 @@ export const useAttendanceStore = create<AttendanceStore>((set, get) => ({
             attendance: state.attendance.map((staff) =>
                 staff.userid === userid ? { ...staff, [field]: !staff[field] } : staff
             ),
+        }));
+    },
+
+    setAllAttendance: (field, value) => {
+        set((state) => ({
+            attendance: state.attendance.map((staff) => {
+                if (field === "both") {
+                    return { ...staff, forenoon: value, afternoon: value };
+                }
+                return { ...staff, [field]: value };
+            }),
         }));
     },
 

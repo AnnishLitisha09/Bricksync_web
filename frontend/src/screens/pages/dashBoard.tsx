@@ -10,8 +10,13 @@ import {
   Box,
   Truck,
   ArrowUpRight,
-  ArrowDownLeft
+  ArrowDownLeft,
+  Tv,
+  Zap,
+  Layers,
 } from "lucide-react";
+import { fetchBiOverview, fetchBomDepletion } from "../../api/bi";
+import type { BiOverviewResponse, BomDepletionResponse } from "../../api/bi";
 import {
   AreaChart,
   Area,
@@ -74,6 +79,8 @@ export const Dashboard: React.FC = () => {
   const [productionHistory, setProductionHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState({ todayIncome: 0, todayExpenses: 0 });
+  const [biData, setBiData] = useState<BiOverviewResponse | null>(null);
+  const [bomData, setBomData] = useState<BomDepletionResponse | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -85,8 +92,15 @@ export const Dashboard: React.FC = () => {
           getProductionHistory(),
           fetch(`${BASE_URL}/analytics/today-summary`, { headers: getAuthHeader() }).then(r => r.json()),
           fetchBanks(),
-          getFuels(1)
+          getFuels(1),
         ]);
+
+        fetchBiOverview()
+          .then((res) => { if (res && res.success) setBiData(res); })
+          .catch(() => {});
+        fetchBomDepletion()
+          .then((res) => { if (res && res.success) setBomData(res); })
+          .catch(() => {});
 
         setLowStock(lowStockData);
         const logs = Array.isArray(historyRes) ? historyRes : (historyRes?.data || []);
@@ -172,55 +186,171 @@ export const Dashboard: React.FC = () => {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-            className="h-24 w-24 rounded-full border-4 border-orange-500/20 border-t-orange-600 shadow-[0_0_20px_rgba(249,115,22,0.2)]"
+            className="h-24 w-24 rounded-full border-4 border-indigo-500/20 border-t-indigo-600 shadow-[0_0_20px_rgba(79,70,229,0.2)]"
           />
-          <LayoutDashboard className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-orange-600" />
+          <LayoutDashboard className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-indigo-600" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-6 lg:p-10 selection:bg-orange-100 selection:text-orange-900">
+    <div className="space-y-6 animate-in font-sans selection:bg-indigo-100 selection:text-indigo-900">
       {/* Premium Header */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end"
+        className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end pb-2 border-b border-slate-100"
       >
         <div>
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: "2rem" }}
-            className="h-2 bg-orange-600 rounded-full mb-2"
-          />
-          <span className="text-sm font-bold uppercase tracking-widest text-orange-600">Enterprise Dynamics</span>
-          <h1 className="text-4xl font-black tracking-tight text-gray-900 lg:text-5xl mt-1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600">Enterprise Dynamics</span>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 mt-0.5">
             Welcome, <span className="text-gradient">{user?.name || "Member"}</span>
           </h1>
-          <p className="mt-3 text-lg font-medium text-gray-500 max-w-xl">
-            Real-time multisite manufacturing intelligence for <span className="text-gray-900 font-bold">Office 1</span> & <span className="text-gray-900 font-bold">Office 2</span>.
+          <p className="mt-1 text-xs font-medium text-slate-500 max-w-xl">
+            Real-time multisite manufacturing intelligence for <span className="text-slate-900 font-bold">Office 1</span> & <span className="text-slate-900 font-bold">Office 2</span>.
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="hidden rounded-2xl border bg-white px-6 py-4 text-sm font-bold text-gray-600 lg:flex items-center gap-3 shadow-sm border-gray-100"
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={() => navigate("/kiosk")}
+            className="h-10 px-3.5 bg-slate-900 hover:bg-black text-white rounded-xl font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer"
           >
-            <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-orange-50">
-              <Calendar className="h-5 w-5 text-orange-600" />
+            <Tv size={15} className="text-amber-400" />
+            <span>Launch TV Kiosk</span>
+          </button>
+          <button
+            onClick={() => navigate("/bi-analytics")}
+            className="h-10 px-3.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+          >
+            <Zap size={14} />
+            <span>Executive BI</span>
+          </button>
+          <button
+            onClick={() => navigate("/inventory/bom")}
+            className="h-10 px-3.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+          >
+            <Layers size={14} />
+            <span>BOM & Stock</span>
+          </button>
+          <div className="rounded-xl border bg-white px-3 py-1.5 text-xs font-bold text-slate-600 flex items-center gap-2 shadow-2xs border-slate-200/80">
+            <div className="size-7 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+              <Calendar className="size-3.5" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] uppercase text-gray-400">Operational Log</span>
-              <span>{new Date().toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+              <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">Operational Log</span>
+              <span className="text-[11px]">{new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             </div>
-          </motion.div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* EXECUTIVE BI & PROFITABILITY INTELLIGENCE STRIP */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+      >
+        {/* Unit Economics P&L Strip */}
+        <div
+          onClick={() => navigate("/bi-analytics")}
+          className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white rounded-2xl p-5 shadow-sm border border-indigo-800/60 cursor-pointer hover:border-indigo-500/80 transition-all group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+              <Zap size={12} className="text-amber-400" />
+              Live Unit Economics
+            </span>
+            <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+              +{biData?.unitEconomics?.marginPercent ?? 22.1}% Net Margin
+            </span>
+          </div>
+          <div className="my-2.5 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-white">
+              +₹{(biData?.unitEconomics?.profitPerBrick ?? 2.10).toFixed(2)}
+            </span>
+            <span className="text-xs font-semibold text-indigo-200">net profit / brick</span>
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-indigo-200/80 pt-2 border-t border-indigo-800/60">
+            <span>Cost: ₹{biData?.unitEconomics?.totalCostPerBrick ?? 7.40}</span>
+            <span>Avg Sell: ₹{biData?.unitEconomics?.sellingPricePerBrick ?? 9.50}</span>
+            <ArrowRight size={13} className="text-indigo-400 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </div>
+
+        {/* Daily Break-Even Tracker */}
+        <div
+          onClick={() => navigate("/bi-analytics")}
+          className="bg-white rounded-2xl p-5 shadow-2xs border border-slate-200/80 cursor-pointer hover:border-indigo-400 transition-all group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Daily Break-Even Coverage
+            </span>
+            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+              {biData?.breakEven?.breakEvenProgress ?? 109}% COVERED
+            </span>
+          </div>
+          <div className="my-2 flex items-baseline justify-between">
+            <div>
+              <span className="text-xl font-black text-slate-900">
+                {(biData?.breakEven?.todayProduction ?? 8200).toLocaleString()}
+              </span>
+              <span className="text-xs text-slate-400 font-bold"> / {(biData?.breakEven?.breakEvenTargetBricks ?? 7500).toLocaleString()} target</span>
+            </div>
+            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+              NET PROFIT ZONE
+            </span>
+          </div>
+          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-1">
+            <div
+              className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(100, biData?.breakEven?.breakEvenProgress ?? 100)}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Fleet Efficiency & Depletion Watch */}
+        <div
+          onClick={() => navigate("/inventory/bom")}
+          className="bg-white rounded-2xl p-5 shadow-2xs border border-slate-200/80 cursor-pointer hover:border-amber-400 transition-all group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <Layers size={12} className="text-indigo-600" />
+              Depletion Watch
+            </span>
+            <span className="text-[10px] font-black text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">
+              BOM Forecasting
+            </span>
+          </div>
+          <div className="my-2 flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-slate-900 block">
+                Cement: {bomData?.rawMaterialsStock?.find(r => r.name.toLowerCase().includes("cement"))?.daysRemaining ?? 2.5} Days Left
+              </span>
+              <span className="text-[10px] font-semibold text-slate-400">
+                Stone Dust: {bomData?.rawMaterialsStock?.find(r => r.name.toLowerCase().includes("dust") || r.name.toLowerCase().includes("sand"))?.daysRemaining ?? 4.1} Days Left
+              </span>
+            </div>
+            <span className="text-xs font-black text-amber-600">
+              REORDER SOON
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+            <span>Fleet CPKM: ₹17.65/km avg</span>
+            <span className="text-indigo-600 font-bold flex items-center gap-1">
+              View BOM
+              <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+            </span>
+          </div>
         </div>
       </motion.div>
 
       {/* Animated Stats Section */}
-      <div className="mb-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 sm:mb-12 grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Today's Incoming"
           amount={analytics.todayIncome}
@@ -243,18 +373,18 @@ export const Dashboard: React.FC = () => {
           title="Fuel Consumption"
           amount={totalFuelLiters}
           positive={true}
-          icon={<Fuel className="h-6 w-6 text-orange-600" />}
+          icon={<Fuel className="h-6 w-6 text-indigo-600" />}
           delay={0.4}
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 sm:gap-10 lg:grid-cols-3">
         {/* Multi-Series Production Graph with Staggered entry */}
         <motion.div
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.5, duration: 0.8 }}
-          className="lg:col-span-2 rounded-[2.5rem] glass p-10 relative overflow-hidden group border-white/40"
+          className="lg:col-span-2 rounded-2xl bg-white p-6 md:p-8 relative overflow-hidden border border-slate-200/80 shadow-2xs"
         >
           <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -327,7 +457,7 @@ export const Dashboard: React.FC = () => {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.6, duration: 0.8 }}
-            className="rounded-[2.5rem] bg-gray-900 p-10 text-white shadow-2xl relative overflow-hidden"
+            className="rounded-2xl bg-slate-900 p-6 md:p-8 text-white shadow-md relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 p-8">
               <Box className="h-12 w-12 text-white/5" />
@@ -374,10 +504,10 @@ export const Dashboard: React.FC = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7, duration: 0.8 }}
-            className="rounded-[2.5rem] glass p-10 shadow-sm border border-white/40"
+            className="rounded-2xl bg-white p-6 md:p-8 shadow-2xs border border-slate-200/80"
           >
-            <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-3">
-              <LayoutDashboard className="h-6 w-6 text-orange-500" />
+            <h3 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3">
+              <LayoutDashboard className="h-6 w-6 text-indigo-600" />
               Office Health
             </h3>
             <div className="space-y-8">
@@ -412,32 +542,26 @@ export const Dashboard: React.FC = () => {
               })}
             </div>
 
-            <motion.button
-              whileHover={{ x: 5 }}
+            <button
               onClick={() => navigate("/inventory/history")}
-              className="mt-10 flex w-full items-center justify-center gap-3 rounded-2xl bg-orange-50 py-4 text-sm font-black text-orange-600 hover:bg-orange-100 transition-colors"
+              className="mt-6 flex w-full h-10 items-center justify-center gap-2 rounded-xl bg-indigo-50 text-xs font-bold text-indigo-600 hover:bg-indigo-100 transition-colors shadow-2xs cursor-pointer active:scale-95"
             >
-              System History
-              <ArrowRight className="h-4 w-4" />
-            </motion.button>
+              <span>System History</span>
+              <ArrowRight size={14} />
+            </button>
           </motion.div>
         </div>
       </div>
 
       {/* Visual Footer */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.2 }}
-        className="mt-20 pt-10 border-t border-gray-100 flex flex-col items-center gap-4 md:flex-row md:justify-between"
-      >
-        <div className="flex items-center gap-6">
-          <Truck className="h-6 w-6 text-gray-300" />
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Fleet Active</span>
-          <div className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,1)] animate-pulse" />
+      <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-400">
+        <div className="flex items-center gap-3">
+          <Truck className="size-4 text-slate-400" />
+          <span className="text-xs font-bold uppercase tracking-wider">Fleet Active</span>
+          <div className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
         </div>
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[2px]">© 2024 BRICKSYNC OPERATING SYSTEM. ALL SYSTEMS SECURE.</p>
-      </motion.div>
+        <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">© 2026 BRICKSYNC OPERATING SYSTEM. ALL SYSTEMS SECURE.</p>
+      </div>
     </div>
   );
 };

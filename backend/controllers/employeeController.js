@@ -5,16 +5,17 @@ exports.getAllEmployees = async (req, res) => {
     try {
         const employees = await User.findAll({
             where: { isDeleted: false, userRole: 2 },
-            attributes: ['userid', 'name', 'staffRole']
+            attributes: ['userid', 'name', 'staffRole', 'dailySalary', 'amount']
         });
 
-        // Map to match the expected frontend structure (employee_id, employee_name, staff_role)
+        // Map to match the expected frontend structure (employee_id, employee_name, staff_role, daily_salary)
         const mappedEmployees = employees.map(emp => ({
             employee_id: emp.userid,
             employee_name: emp.name,
             staff_role: emp.staffRole
                 ? emp.staffRole.charAt(0).toUpperCase() + emp.staffRole.slice(1).toLowerCase()
-                : null
+                : null,
+            daily_salary: parseFloat(emp.dailySalary) || parseFloat(emp.amount) || 0
         }));
 
         res.json({ data: mappedEmployees });

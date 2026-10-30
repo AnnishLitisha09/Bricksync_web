@@ -12,6 +12,7 @@ export interface Vehicle {
   kilometer: number;
   isActive: boolean;
   totalCost?: number;
+  vehicleType?: string;
   vehicleImage?: string;
   rcImage?: string;
   insuranceImage?: string;
@@ -54,7 +55,8 @@ export const useVehicleStore = create<VehicleStore>((set, get) => ({
       });
       if (!res.ok) throw new Error("Failed to fetch vehicles");
       const data = await res.json();
-      set({ vehicles: data, loading: false, lastFetched: Date.now() });
+      const list = Array.isArray(data) ? data : (data.data || []);
+      set({ vehicles: list, loading: false, lastFetched: Date.now() });
     } catch (err: any) {
       set({ error: err.message, loading: false });
     }

@@ -22,7 +22,7 @@ const avatarColors = [
   "from-blue-500 to-indigo-600",
   "from-emerald-500 to-teal-600",
   "from-rose-500 to-pink-600",
-  "from-amber-500 to-orange-600",
+  "from-indigo-600 to-blue-600",
   "from-cyan-500 to-sky-600",
 ];
 const getAvatarColor = (name: string) => avatarColors[name.charCodeAt(0) % avatarColors.length];
@@ -133,78 +133,94 @@ const CustomerHub: React.FC = () => {
   const dueCount = customers.filter(c => Number(c.balance) > 0).length;
 
   return (
-    <div className="p-4 md:p-8 lg:p-10 min-h-screen bg-[#F7F8FA] space-y-6 md:space-y-8 font-sans max-w-[1600px] mx-auto">
+    <div className="space-y-6 font-sans animate-in">
 
       {/* ─── HEADER ─── */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-        <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-full text-slate-500 font-bold text-[10px] uppercase tracking-widest">
-            <ShieldCheck size={11} /> Secure Ledger
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full font-bold text-[10px] uppercase tracking-wider">
+              <ShieldCheck size={11} /> Secure Ledger
+            </span>
+            <span className="text-xs font-bold text-slate-400">
+              • {loading && !customers.length ? "Loading..." : `${totalCustomers} Accounts`}
+            </span>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-none">
-            Client <span className="text-slate-500">Hub</span>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Client <span className="text-indigo-600">Hub</span>
           </h1>
-          <p className="text-slate-400 text-sm">Manage accounts &amp; outstanding balances</p>
+          <p className="text-xs font-medium text-slate-500">
+            Manage customer accounts, delivery history & outstanding ledger dues
+          </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-sm">
-            <div className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center shrink-0">
-              <Users size={14} className="text-slate-500" />
-            </div>
-            <div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">Accounts</p>
-              <p className="text-xl font-black text-slate-900 leading-tight">{loading && !customers.length ? "—" : totalCustomers}</p>
-            </div>
-          </div>
+        {/* Action Buttons - Perfectly Uniform Height (h-10) and Alignment */}
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
+          <button
+            onClick={() => navigate("/customer/add-material/new")}
+            className="h-10 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-2xs cursor-pointer active:scale-95"
+          >
+            <Package size={15} />
+            <span className="hidden sm:inline">Add Material</span>
+            <span className="sm:hidden">Material</span>
+          </button>
 
-          <button onClick={() => navigate("/customer/add-material/new")}
-            className="px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-2xl font-bold text-indigo-600 hover:bg-indigo-600 hover:text-white transition shadow-sm flex items-center gap-2 text-sm">
-            <Package size={15} /><span className="hidden sm:inline">Add Material</span><span className="sm:hidden">Material</span>
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="h-10 px-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-2xs cursor-pointer active:scale-95"
+          >
+            <Download size={15} />
+            <span>Export</span>
           </button>
-          <button onClick={() => setIsExportModalOpen(true)}
-            className="px-4 py-3 bg-white border border-slate-200 rounded-2xl font-bold text-slate-500 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition shadow-sm flex items-center gap-2 text-sm">
-            <Download size={15} /><span className="hidden sm:inline">Export</span>
-          </button>
-          <button onClick={() => { setFormData({ name: "", email: "", phone_no: "", address: "", balance: 0, category: "other" }); setIsModalOpen(true); }}
-            className="px-5 py-3 bg-slate-900 hover:bg-slate-700 text-white rounded-2xl shadow-sm transition font-bold flex items-center gap-2 text-sm">
-            <Plus size={16} /><span className="hidden sm:inline">Add Client</span><span className="sm:hidden">Add</span>
+
+          <button
+            onClick={() => {
+              setFormData({ name: "", email: "", phone_no: "", address: "", balance: 0, category: "other" });
+              setIsModalOpen(true);
+            }}
+            className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-sm shadow-indigo-600/25 cursor-pointer active:scale-95"
+          >
+            <Plus size={16} />
+            <span className="hidden sm:inline">Add Client</span>
+            <span className="sm:hidden">Add</span>
           </button>
         </div>
       </div>
 
-      {/* ─── STATS ─── */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        {/* Clients */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-3 sm:p-5 shadow-sm flex items-center gap-2 sm:gap-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-100 rounded-xl flex items-center justify-center shrink-0">
-            <Users size={14} className="text-slate-500" />
+      {/* ─── STATS CARDS ─── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        {/* Total Clients */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Clients</p>
+            <p className="text-2xl font-black text-slate-900 mt-1">{totalCustomers}</p>
           </div>
-          <div className="min-w-0">
-            <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">Clients</p>
-            <p className="text-base sm:text-2xl font-black text-slate-900 leading-tight">{totalCustomers}</p>
-          </div>
-        </div>
-
-        {/* Due */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-3 sm:p-5 shadow-sm flex items-center gap-2 sm:gap-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-100 rounded-xl flex items-center justify-center shrink-0">
-            <TrendingUp size={14} className="text-slate-500" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">Due</p>
-            <p className="text-base sm:text-2xl font-black text-slate-700 leading-tight">{dueCount}</p>
+          <div className="size-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
+            <Users size={18} />
           </div>
         </div>
 
-        {/* Balance */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-3 sm:p-5 shadow-sm flex items-center gap-2 sm:gap-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-100 rounded-xl flex items-center justify-center shrink-0">
-            <IndianRupee size={14} className="text-slate-500" />
+        {/* Due Accounts */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Due Accounts</p>
+            <p className="text-2xl font-black text-amber-600 mt-1">{dueCount}</p>
           </div>
-          <div className="min-w-0">
-            <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">Balance</p>
-            <p className="text-sm sm:text-xl font-black text-emerald-600 leading-tight truncate">₹{totalBalance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+          <div className="size-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shrink-0">
+            <TrendingUp size={18} />
+          </div>
+        </div>
+
+        {/* Total Outstanding */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Outstanding</p>
+            <p className="text-2xl font-black text-emerald-600 mt-1">
+              ₹{totalBalance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </p>
+          </div>
+          <div className="size-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
+            <IndianRupee size={18} />
           </div>
         </div>
       </div>
@@ -212,26 +228,55 @@ const CustomerHub: React.FC = () => {
       {/* ─── SEARCH + CONTROLS ─── */}
       <div className="flex items-center gap-2">
         <div className="relative group flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-slate-600 transition-colors" size={16} />
-          <input type="text" placeholder="Search clients by name or phone..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-9 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 outline-none font-medium text-slate-700 transition-all text-sm placeholder:text-slate-300" />
-          {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"><X size={15} /></button>}
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none" size={15} />
+          <input
+            type="text"
+            placeholder="Search clients by name, phone or category..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full h-10 pl-9 pr-8 rounded-xl border border-slate-200/80 bg-white text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 shadow-2xs transition-all"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+            >
+              <X size={13} />
+            </button>
+          )}
         </div>
 
         {/* Sort */}
         <div className="relative shrink-0" ref={sortMenuRef}>
-          <button onClick={() => setShowSortMenu(!showSortMenu)}
-            className={`p-3 rounded-2xl border transition-all ${showSortMenu ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 shadow-sm'}`}>
-            <ListFilter size={16} />
+          <button
+            onClick={() => setShowSortMenu(!showSortMenu)}
+            className={`h-10 px-3.5 rounded-xl border transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-2xs ${
+              showSortMenu
+                ? 'bg-indigo-600 border-indigo-600 text-white'
+                : 'bg-white border-slate-200/80 text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+            }`}
+          >
+            <ListFilter size={15} />
+            <span className="hidden sm:inline">Sort</span>
           </button>
           <AnimatePresence>
             {showSortMenu && (
-              <motion.div initial={{ opacity: 0, y: 6, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: .97 }}
-                className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl border border-slate-100 shadow-xl z-50 py-2">
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-2xl border border-slate-200/90 shadow-xl z-50 py-1.5"
+              >
                 {[["Name A→Z", "name", "ASC"], ["Name Z→A", "name", "DESC"], ["Balance ↓", "amount", "DESC"]].map(([l, f, o]) => (
-                  <button key={l} onClick={() => { setSortBy(f); setSortOrder(o); setShowSortMenu(false); }}
-                    className={`w-full px-4 py-2.5 text-left text-xs font-bold flex items-center justify-between transition-colors ${sortBy === f && sortOrder === o ? 'text-slate-900' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>
-                    {l} {sortBy === f && sortOrder === o && <div className="w-1.5 h-1.5 rounded-full bg-slate-900" />}
+                  <button
+                    key={l}
+                    onClick={() => { setSortBy(f); setSortOrder(o); setShowSortMenu(false); }}
+                    className={`w-full px-3.5 py-2 text-left text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                      sortBy === f && sortOrder === o ? 'text-indigo-600 bg-indigo-50' : 'text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50'
+                    }`}
+                  >
+                    <span>{l}</span>
+                    {sortBy === f && sortOrder === o && <div className="size-1.5 rounded-full bg-indigo-600" />}
                   </button>
                 ))}
               </motion.div>
@@ -240,9 +285,27 @@ const CustomerHub: React.FC = () => {
         </div>
 
         {/* View toggle */}
-        <div className="hidden lg:flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm shrink-0">
-          <button onClick={() => setViewMode("grid")} className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}><LayoutGrid size={15} /></button>
-          <button onClick={() => setViewMode("table")} className={`p-2.5 rounded-xl transition-all ${viewMode === 'table' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}><List size={15} /></button>
+        <div className="hidden lg:flex bg-white h-10 p-1 rounded-xl border border-slate-200/80 shadow-2xs shrink-0 items-center gap-1">
+          <button
+            onClick={() => setViewMode("grid")}
+            className={`h-8 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+              viewMode === 'grid'
+                ? 'bg-indigo-600 text-white shadow-2xs'
+                : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/50'
+            }`}
+          >
+            <LayoutGrid size={14} />
+          </button>
+          <button
+            onClick={() => setViewMode("table")}
+            className={`h-8 px-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+              viewMode === 'table'
+                ? 'bg-indigo-600 text-white shadow-2xs'
+                : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/50'
+            }`}
+          >
+            <List size={14} />
+          </button>
         </div>
       </div>
 
@@ -261,75 +324,101 @@ const CustomerHub: React.FC = () => {
               <AnimatePresence>
                 {customers.map((c, i) => (
                   <motion.div key={c.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0, transition: { delay: Math.min(i * 0.04, 0.3) } }}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0, transition: { delay: Math.min(i * 0.03, 0.25) } }}
                     exit={{ opacity: 0, scale: 0.96 }}
-                    whileHover={{ y: -5, transition: { duration: 0.18, ease: "easeOut" } }}
+                    whileHover={{ y: -3, transition: { duration: 0.16, ease: "easeOut" } }}
                     onClick={() => navigate(`/customer/details/${c.id}`)}
-                    className="bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/80 hover:border-slate-200 transition-shadow group overflow-hidden cursor-pointer"
+                    className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-indigo-300 transition-all group overflow-hidden cursor-pointer flex flex-col justify-between"
                   >
                     {/* Card top */}
-                    <div className="p-5 flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        {/* Coloured avatar */}
-                        <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${getAvatarColor(c.name)} flex items-center justify-center text-white font-black text-base shrink-0 shadow-md shadow-slate-200 group-hover:scale-110 transition-transform duration-200`}>
-                          {c.name.charAt(0).toUpperCase()}
+                    <div>
+                      <div className="p-4 flex items-start justify-between gap-2.5">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Tripzo Style Avatar */}
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-700 to-indigo-500 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                            {c.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="font-black text-slate-800 text-sm truncate max-w-[170px] sm:max-w-[200px] group-hover:text-indigo-600 transition-colors uppercase tracking-tight" title={c.name}>
+                              {c.name}
+                            </h3>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                                {c.category || "Other"}
+                              </span>
+                              <span className="text-slate-300">•</span>
+                              <span className="text-[9px] font-mono text-slate-400">
+                                #{c.id}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <h3 className="font-black text-slate-800 text-sm truncate max-w-[150px] group-hover:text-slate-900 transition-colors uppercase tracking-tight" title={c.name}>{c.name}</h3>
-                          <p className="text-[10px] font-semibold text-slate-400 mt-0.5 truncate">{c.category || "Other"}</p>
+
+                        {/* 3-dot menu */}
+                        <div data-menu className="relative shrink-0" onClick={e => e.stopPropagation()}>
+                          <button onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === c.id ? null : c.id!); }}
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer">
+                            <MoreVertical size={16} />
+                          </button>
+                          <AnimatePresence>
+                            {activeMenu === c.id && (
+                              <motion.div data-menu initial={{ opacity: 0, y: 6, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: .96 }}
+                                className="absolute right-0 mt-1 w-44 bg-white border border-slate-200/90 rounded-2xl shadow-xl z-30 py-1.5">
+                                <button onClick={() => { navigate(`/customer/details/${c.id}`); setActiveMenu(null); }}
+                                  className="w-full text-left px-4 py-2 text-xs font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-2.5 cursor-pointer">
+                                  <ExternalLink size={12} className="text-slate-400" /> View Ledger
+                                </button>
+                                <button onClick={() => { setFormData(c); setIsModalOpen(true); setActiveMenu(null); }}
+                                  className="w-full text-left px-4 py-2 text-xs font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-2.5 cursor-pointer">
+                                  <Pencil size={12} className="text-slate-400" /> Edit
+                                </button>
+                                <button onClick={() => { setDeleteId(c.id!); setActiveMenu(null); }}
+                                  className="w-full text-left px-4 py-2 text-xs font-bold text-rose-500 hover:bg-rose-50 flex items-center gap-2.5 cursor-pointer">
+                                  <Trash2 size={12} className="text-rose-400" /> Delete
+                                </button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       </div>
 
-                      {/* 3-dot */}
-                      <div data-menu className="relative shrink-0" onClick={e => e.stopPropagation()}>
-                        <button onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === c.id ? null : c.id!); }}
-                          className="p-1.5 text-slate-300 hover:text-slate-600 rounded-lg transition-colors">
-                          <MoreVertical size={16} />
-                        </button>
-                        <AnimatePresence>
-                          {activeMenu === c.id && (
-                            <motion.div data-menu initial={{ opacity: 0, y: 6, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: .96 }}
-                              className="absolute right-0 mt-1 w-44 bg-white border border-slate-100 rounded-2xl shadow-xl z-30 py-1.5">
-                              <button onClick={() => { navigate(`/customer/details/${c.id}`); setActiveMenu(null); }}
-                                className="w-full text-left px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2.5"><ExternalLink size={12} className="text-slate-400" /> View Ledger</button>
-                              <button onClick={() => { setFormData(c); setIsModalOpen(true); setActiveMenu(null); }}
-                                className="w-full text-left px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2.5"><Pencil size={12} className="text-slate-400" /> Edit</button>
-                              <button onClick={() => { setDeleteId(c.id!); setActiveMenu(null); }}
-                                className="w-full text-left px-4 py-2 text-xs font-bold text-red-500 hover:bg-red-50 flex items-center gap-2.5"><Trash2 size={12} className="text-red-400" /> Delete</button>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
+                      {/* Divider */}
+                      <div className="mx-4 border-t border-slate-100" />
 
-                    {/* Divider */}
-                    <div className="mx-5 border-t border-slate-50" />
+                      {/* Details */}
+                      <div className="p-4 space-y-2.5">
+                        {/* Phone */}
+                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                          <Phone size={13} className="text-slate-400 shrink-0" />
+                          <span className="truncate">{c.phone_no || "Phone not provided"}</span>
+                        </div>
 
-                    {/* Details */}
-                    <div className="px-5 py-4 space-y-3">
-                      {/* Phone */}
-                      <div className="flex items-center gap-2.5">
-                        <Phone size={12} className="text-slate-300 shrink-0" />
-                        <span className="text-xs font-medium text-slate-400 truncate">{c.phone_no || "—"}</span>
-                      </div>
-
-                      {/* Balance — green text, no background */}
-                      <div className="flex items-center gap-2.5">
-                        <IndianRupee size={12} className={Number(c.balance) > 0 ? "text-emerald-500" : "text-slate-300"} />
-                        <span className={`text-sm font-black ${Number(c.balance) > 0 ? "text-emerald-500" : "text-slate-400"}`}>
-                          ₹{Number(c.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
-                        {Number(c.balance) > 0 && <span className="text-[9px] font-black uppercase text-slate-400 ml-auto tracking-widest">Due</span>}
+                        {/* Balance Banner */}
+                        {Number(c.balance) > 0 ? (
+                          <div className="flex items-center justify-between py-1.5 px-2.5 rounded-xl bg-amber-50/70 border border-amber-200/60">
+                            <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">Due Amount</span>
+                            <span className="text-sm font-black text-amber-800">
+                              ₹{Number(c.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between py-1.5 px-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Balance</span>
+                            <span className="text-sm font-black text-slate-600">₹0.00</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     {/* Action button */}
-                    <div className="px-5 pb-5">
-                       <button onClick={(e) => { e.stopPropagation(); navigate(`/customer/details/${c.id}`); }}
-                        className="w-full py-2.5 bg-slate-50 hover:bg-slate-900 text-slate-500 hover:text-white border border-slate-100 hover:border-slate-900 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 group/btn">
-                        Open Ledger
-                        <ExternalLink size={11} className="opacity-40 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all" />
+                    <div className="px-4 pb-4">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigate(`/customer/details/${c.id}`); }}
+                        className="h-9 w-full bg-indigo-50/80 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-100 hover:border-indigo-600 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer group/btn"
+                      >
+                        <span>Open Ledger</span>
+                        <ExternalLink size={12} className="opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all" />
                       </button>
                     </div>
                   </motion.div>
@@ -409,70 +498,70 @@ const CustomerHub: React.FC = () => {
               <UserCircle2 size={56} className="text-slate-200 mb-4" strokeWidth={1.5} />
               <h2 className="text-xl font-black text-slate-600">No Clients Found</h2>
               <p className="text-slate-400 text-sm mt-1.5">Try a different search or add your first client.</p>
-              <button onClick={() => setSearch("")} className="mt-6 px-6 py-2.5 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-700 transition text-sm">Clear Search</button>
+              <button onClick={() => setSearch("")} className="mt-6 px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition text-sm shadow-md shadow-indigo-600/20 cursor-pointer">Clear Search</button>
             </motion.div>
           )}
 
           {/* Sentinel */}
           <div ref={sentinelRef} className="h-8" />
-          {loading && customers.length > 0 && <div className="flex justify-center py-5"><Loader2 className="animate-spin text-slate-400" size={22} /></div>}
+          {loading && customers.length > 0 && <div className="flex justify-center py-5"><Loader2 className="animate-spin text-indigo-600" size={22} /></div>}
           {!hasMore && customers.length > 0 && <p className="text-center text-[10px] font-black text-slate-300 uppercase tracking-widest py-3">All {totalCustomers} clients loaded</p>}
         </>
       )}
 
       {/* ─── ADD/EDIT MODAL ─── */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
-          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 320, damping: 28 }}
-            className="bg-white rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl w-full sm:max-w-lg overflow-y-auto max-h-[96vh]">
-            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
-              <h2 className="text-xl font-black text-slate-900">{formData.id ? 'Edit Client' : 'New Client'}</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors"><X size={17} /></button>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-3">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 320, damping: 28 }}
+            className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full sm:max-w-lg overflow-y-auto max-h-[96vh]">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
+              <h2 className="text-lg font-black text-slate-900">{formData.id ? 'Edit Client' : 'New Client'}</h2>
+              <button onClick={() => setIsModalOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors cursor-pointer"><X size={17} /></button>
             </div>
-            <div className="px-6 pt-5">
-              <div className="flex p-1 bg-slate-100 rounded-2xl relative">
-                <button onClick={() => setEntryMode("manual")} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest z-10 transition-colors ${entryMode === "manual" ? "text-slate-900" : "text-slate-400"}`}>Manual</button>
-                <button onClick={() => setEntryMode("bulk")} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest z-10 transition-colors ${entryMode === "bulk" ? "text-slate-900" : "text-slate-400"}`}>Bulk Import</button>
-                <motion.div className="absolute inset-1 bg-white rounded-xl shadow-sm" animate={{ x: entryMode === "manual" ? "0%" : "100%" }} style={{ width: "calc(50% - 4px)" }} />
+            <div className="px-6 pt-4">
+              <div className="flex p-1 bg-slate-100 rounded-xl relative">
+                <button onClick={() => setEntryMode("manual")} className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest z-10 transition-colors cursor-pointer ${entryMode === "manual" ? "text-indigo-600" : "text-slate-400"}`}>Manual</button>
+                <button onClick={() => setEntryMode("bulk")} className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest z-10 transition-colors cursor-pointer ${entryMode === "bulk" ? "text-indigo-600" : "text-slate-400"}`}>Bulk Import</button>
+                <motion.div className="absolute inset-1 bg-white rounded-lg shadow-sm" animate={{ x: entryMode === "manual" ? "0%" : "100%" }} style={{ width: "calc(50% - 4px)" }} />
               </div>
             </div>
             <AnimatePresence mode="wait">
               {entryMode === "manual" ? (
                 <motion.form key="m" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} onSubmit={handleCreateCustomer} className="p-6 space-y-4">
-                  <div><label className={lc}>Full Name *</label><input required type="text" className={`${ic} mt-1.5`} placeholder="John Doe" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} /></div>
+                  <div><label className={lc}>Full Name *</label><input required type="text" className={`${ic} mt-1`} placeholder="John Doe" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} /></div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div><label className={lc}>Phone</label><input maxLength={10} className={`${ic} mt-1.5`} placeholder="10-digit" value={formData.phone_no} onChange={e => setFormData({ ...formData, phone_no: e.target.value.replace(/\D/g, '').slice(0, 10) })} /></div>
-                    <div><label className={lc}>Category</label><select className={`${ic} mt-1.5 appearance-none`} value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value as any })}><option value="engineer">Engineer</option><option value="shop">Shop</option><option value="other">Other</option></select></div>
+                    <div><label className={lc}>Phone</label><input maxLength={10} className={`${ic} mt-1`} placeholder="10-digit" value={formData.phone_no} onChange={e => setFormData({ ...formData, phone_no: e.target.value.replace(/\D/g, '').slice(0, 10) })} /></div>
+                    <div><label className={lc}>Category</label><select className={`${ic} mt-1 appearance-none`} value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value as any })}><option value="engineer">Engineer</option><option value="shop">Shop</option><option value="other">Other</option></select></div>
                   </div>
-                  <div><label className={lc}>Email</label><input type="email" className={`${ic} mt-1.5`} placeholder="john@example.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} /></div>
-                  {!formData.id && <div><label className={lc}>Initial Balance</label><input type="number" step="0.01" className={`${ic} mt-1.5`} placeholder="0.00" value={formData.balance === 0 ? '' : formData.balance} onChange={e => setFormData({ ...formData, balance: Number(e.target.value) })} /></div>}
-                  <div><label className={lc}>Address</label><textarea rows={2} className={`${ic} mt-1.5 resize-none`} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} /></div>
-                  <div className="flex justify-end gap-3 pt-1">
-                    <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 text-sm transition-colors">Cancel</button>
-                    <button type="submit" disabled={submitting} className="px-5 py-2.5 rounded-xl font-bold bg-slate-900 text-white hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors disabled:opacity-60">
-                      {submitting ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}{formData.id ? 'Update' : 'Save'}
+                  <div><label className={lc}>Email</label><input type="email" className={`${ic} mt-1`} placeholder="john@example.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} /></div>
+                  {!formData.id && <div><label className={lc}>Initial Balance</label><input type="number" step="0.01" className={`${ic} mt-1`} placeholder="0.00" value={formData.balance === 0 ? '' : formData.balance} onChange={e => setFormData({ ...formData, balance: Number(e.target.value) })} /></div>}
+                  <div><label className={lc}>Address</label><textarea rows={2} className={`${ic} mt-1 resize-none`} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} /></div>
+                  <div className="flex justify-end gap-2.5 pt-2">
+                    <button type="button" onClick={() => setIsModalOpen(false)} className="h-10 px-4 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 text-xs transition-colors cursor-pointer">Cancel</button>
+                    <button type="submit" disabled={submitting} className="h-10 px-5 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2 text-xs shadow-md shadow-indigo-600/20 transition-all disabled:opacity-60 cursor-pointer">
+                      {submitting ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}{formData.id ? 'Update Client' : 'Save Client'}
                     </button>
                   </div>
                 </motion.form>
               ) : (
-                <motion.div key="b" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="p-6 space-y-5">
-                  <div onClick={() => fileInputRef.current?.click()} className="group w-full py-10 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center cursor-pointer hover:border-slate-400 hover:bg-slate-100/50 transition-all">
-                    <div className="p-5 bg-white rounded-2xl shadow border border-slate-100 text-slate-500 group-hover:scale-105 transition-transform">
-                      {isParsing ? <Loader2 size={26} className="animate-spin" /> : bulkFile ? <CheckCircle2 size={26} className="text-emerald-500" /> : <Upload size={26} />}
+                <motion.div key="b" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="p-6 space-y-4">
+                  <div onClick={() => fileInputRef.current?.click()} className="group w-full py-8 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/20 transition-all">
+                    <div className="p-4 bg-white rounded-2xl shadow-xs border border-slate-100 text-slate-500 group-hover:scale-105 transition-transform">
+                      {isParsing ? <Loader2 size={24} className="animate-spin text-indigo-600" /> : bulkFile ? <CheckCircle2 size={24} className="text-emerald-500" /> : <Upload size={24} />}
                     </div>
-                    <p className="mt-3 text-sm font-bold text-slate-600 truncate px-4 text-center w-full">{isParsing ? "Parsing..." : bulkFile ? bulkFile.name : "Upload Consolidated PDF"}</p>
-                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">PDF format</p>
+                    <p className="mt-3 text-xs font-bold text-slate-700 truncate px-4 text-center w-full">{isParsing ? "Parsing PDF..." : bulkFile ? bulkFile.name : "Upload Consolidated PDF"}</p>
+                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">PDF format only</p>
                     <input type="file" ref={fileInputRef} hidden accept=".pdf" onChange={handleBulkFileChange} />
                   </div>
                   {parsedCustomers.length > 0 && (
                     <>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Found {parsedCustomers.length} clients</p>
-                      <div className="max-h-52 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50 text-xs">
+                      <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50 text-xs">
                         <table className="w-full"><thead className="sticky top-0 bg-slate-100"><tr><th className="px-3 py-2 text-left font-black text-slate-500 text-[10px] uppercase">Name</th><th className="px-3 py-2 font-black text-slate-500 text-[10px] uppercase">Phone</th></tr></thead>
                           <tbody>{parsedCustomers.slice(0, 100).map((c, i) => <tr key={i} className="border-t border-slate-100"><td className="px-3 py-2 font-bold text-slate-700 truncate max-w-[150px]">{c.name}</td><td className="px-3 py-2 text-slate-500">{c.phone_no}</td></tr>)}</tbody>
                         </table>
                       </div>
-                      <button onClick={handleBulkSubmit} disabled={submitting} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-slate-700 transition flex items-center justify-center gap-2 disabled:opacity-60">
+                      <button onClick={handleBulkSubmit} disabled={submitting} className="w-full h-10 bg-indigo-600 text-white rounded-xl font-bold text-xs hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 disabled:opacity-60 cursor-pointer">
                         {submitting ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}{submitting ? "Importing..." : `Import ${parsedCustomers.length} Clients`}
                       </button>
                     </>

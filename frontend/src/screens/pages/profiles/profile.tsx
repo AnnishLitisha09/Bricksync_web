@@ -124,10 +124,10 @@ export default function ProfilePage() {
             animate={{ opacity: 1, y: 0 }}
             className="lg:col-span-4 space-y-6"
           >
-            <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/60 p-8 border border-slate-100 backdrop-blur-sm relative overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-2xl shadow-slate-200/60 p-8 border border-slate-100 backdrop-blur-sm relative overflow-hidden">
               <div className="relative w-48 h-48 mx-auto group">
-                <div className="absolute inset-0 bg-indigo-500 rounded-[2.5rem] rotate-6 group-hover:rotate-12 transition-transform duration-500" />
-                <div className="relative w-full h-full rounded-[2.5rem] overflow-hidden ring-4 ring-white shadow-xl bg-slate-100">
+                <div className="absolute inset-0 bg-indigo-500 rounded-2xl rotate-6 group-hover:rotate-12 transition-transform duration-500" />
+                <div className="relative w-full h-full rounded-2xl overflow-hidden ring-4 ring-white shadow-xl bg-slate-100">
                   <img
                     src={user?.imageUrl ? `${FILE_BASE_URL}${user.imageUrl}` : `https://api.dicebear.com/7.x/initials/svg?seed=${user?.name}`}
                     className="w-full h-full object-cover"
@@ -187,7 +187,7 @@ export default function ProfilePage() {
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-8 md:p-10 border border-slate-100"
+              className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-8 md:p-10 border border-slate-100"
             >
               <div className="flex items-center gap-3 mb-10">
                 <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl"><User size={22} /></div>
@@ -227,7 +227,7 @@ export default function ProfilePage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-8 md:p-10 border border-slate-100"
+              className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-8 md:p-10 border border-slate-100"
             >
               <div className="flex items-center gap-3 mb-10">
                 <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl"><Fingerprint size={22} /></div>
@@ -315,7 +315,7 @@ interface DocCardProps {
 
 function DocCard({ title, img, inputRef, onUpload, date, setDate, isBack }: DocCardProps) {
   return (
-    <div className="bg-slate-50 rounded-[2.2rem] p-6 border border-slate-100 hover:border-indigo-200 transition-all duration-300 group">
+    <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 hover:border-indigo-200 transition-all duration-300 group">
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{title}</h4>
         {img && <CheckCircle size={14} className="text-emerald-500" />}

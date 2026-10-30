@@ -9,6 +9,8 @@ import toast from 'react-hot-toast';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { BASE_URL, getAuthHeader } from '../../../api/base';
+import SearchableCustomerSelect from '../../../components/common/SearchableCustomerSelect';
+import SearchableVehicleSelect from '../../../components/SearchableVehicleSelect';
 
 interface InvoiceItem {
     id: string;
@@ -387,10 +389,14 @@ const AddInvoice: React.FC = () => {
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 flex items-center gap-1"><Truck size={10} className="text-slate-400" /> Vehicle No</label>
-                                <select value={invoiceData.vehicleNumber} onChange={e => setInvoiceData({ ...invoiceData, vehicleNumber: e.target.value })} className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none">
-                                    <option value="">Select Vehicle</option>
-                                    {vehicles.map(v => <option key={v.id} value={v.vehicleNumber}>{v.vehicleNumber}</option>)}
-                                </select>
+                                <div className="mt-1">
+                                    <SearchableVehicleSelect
+                                        vehicles={vehicles}
+                                        value={invoiceData.vehicleNumber}
+                                        onChange={(val) => setInvoiceData({ ...invoiceData, vehicleNumber: val })}
+                                        placeholder="Select vehicle..."
+                                    />
+                                </div>
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 flex items-center gap-1"><MapPin size={10} className="text-slate-400" /> Delivery Place</label>
@@ -426,14 +432,17 @@ const AddInvoice: React.FC = () => {
                         </div>
                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
                             <p className="text-[10px] font-black text-black uppercase">Billed To</p>
-                            <select
-                                value={invoiceData.billingName}
-                                onChange={e => handleCustomerChange(e.target.value)}
-                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm"
-                            >
-                                <option value="">Select Customer</option>
-                                {customers.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                            </select>
+                            <SearchableCustomerSelect
+                                customers={customers}
+                                value={customers.find(c => c.name === invoiceData.billingName)?.id || ""}
+                                onChange={(selectedId, customerObj) => {
+                                    const cust = customers.find(c => String(c.id) === String(selectedId)) || customerObj;
+                                    if (cust) {
+                                        handleCustomerChange(cust.name);
+                                    }
+                                }}
+                                placeholder="Search customer by name or phone..."
+                            />
                             <textarea placeholder="Full Address" value={invoiceData.billingAddress} onChange={e => setInvoiceData({ ...invoiceData, billingAddress: e.target.value })} rows={2} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm resize-none" />
                             <div className="grid grid-cols-2 gap-2">
                                 <input type="text" placeholder="GSTIN" value={invoiceData.billingGstin} onChange={e => setInvoiceData({ ...invoiceData, billingGstin: e.target.value })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm" />

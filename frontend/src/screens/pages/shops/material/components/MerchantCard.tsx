@@ -50,13 +50,13 @@ const MerchantCard: React.FC<MerchantCardProps> = ({
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ delay: idx * 0.05 }}
             onClick={() => onViewHistory(shop)}
-            className="group relative bg-white rounded-[3rem] p-2 pr-8 shadow-sm border border-slate-100 hover:shadow-2xl hover:shadow-slate-200/50 transition-all overflow-hidden cursor-pointer"
+            className="group relative bg-white rounded-2xl p-2 pr-8 shadow-sm border border-slate-100 hover:shadow-2xl hover:shadow-slate-200/50 transition-all overflow-hidden cursor-pointer"
         >
             {isHighBalance && <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full -mr-16 -mt-16" />}
 
             <div className="flex flex-col md:flex-row items-center gap-8">
                 {/* ICON BOX */}
-                <div className="relative w-full md:w-56 h-44 bg-slate-50 rounded-[2.5rem] overflow-hidden border border-slate-100 flex items-center justify-center m-2 shrink-0">
+                <div className="relative w-full md:w-56 h-44 bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 flex items-center justify-center m-2 shrink-0">
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900/5 backdrop-blur-[1px] z-10 flex items-center justify-center">
                         <div className="bg-white p-3 rounded-full shadow-xl">
                             <ExternalLink size={20} className="text-indigo-600" />

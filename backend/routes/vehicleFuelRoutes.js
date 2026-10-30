@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
+const role = require("../middleware/roleMiddleware");
 const {
   createVehicleFuel,
   getAllVehicleFuels,
@@ -16,17 +17,17 @@ const {
 router.use(authMiddleware);
 
 // CRUD
-router.post("/", createVehicleFuel);
-router.get("/", getAllVehicleFuels);       // supports pagination ?page=1
-router.delete("/:id", deleteVehicleFuel);  // DELETE fuel
+router.post("/", role(1, 2), createVehicleFuel);
+router.get("/", role(1, 2), getAllVehicleFuels);       // supports pagination ?page=1
+router.delete("/:id", role(1), deleteVehicleFuel);  // Strictly Admin only
 
-// 🔹 SEARCH ROUTES (static routes MUST come before dynamic :id)
-router.get("/search/by-vehicle-number", searchByVehicleNumber); // ?vehicleNumber=XYZ
-router.get("/search/by-bunk-id", searchByBunkId);               // ?bunkId=2
-router.get("/search/by-date-range", getFuelsByDateRange);       // ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+// 🔹 SEARCH ROUTES
+router.get("/search/by-vehicle-number", role(1, 2), searchByVehicleNumber);
+router.get("/search/by-bunk-id", role(1, 2), searchByBunkId);
+router.get("/search/by-date-range", role(1, 2), getFuelsByDateRange);
 
 // Dynamic routes
-router.get("/:id", getVehicleFuelById);
-router.patch("/:id/verify", verifyFuel);
+router.get("/:id", role(1, 2), getVehicleFuelById);
+router.patch("/:id/verify", role(1), verifyFuel); // Admin verify
 
 module.exports = router;

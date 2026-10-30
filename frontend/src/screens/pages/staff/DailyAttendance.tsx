@@ -1,27 +1,35 @@
 import React, { useEffect, useState } from "react";
 import {
-    CheckCircle2,
-    Clock4,
     Save,
     ChevronLeft,
     Calendar,
-    UserCheck,
     Search,
     Check,
-    User,
-    Loader2
+    Loader2,
+    CheckCheck,
+    X,
+    Filter
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { useAttendanceStore } from "../../../store/useAttendanceStore";
 import { FILE_BASE_URL } from "../../../api/base";
-import LottieLoader from "../../../components/common/LottieLoader";
 
 const DailyAttendance: React.FC = () => {
     const navigate = useNavigate();
-    const { attendance, loading, saving, fetchAttendance, toggleAttendance, saveAllAttendance, selectedDate, setSelectedDate } = useAttendanceStore();
+    const {
+        attendance,
+        loading,
+        saving,
+        fetchAttendance,
+        toggleAttendance,
+        setAllAttendance,
+        saveAllAttendance,
+        selectedDate,
+        setSelectedDate
+    } = useAttendanceStore();
     const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState<"all" | "full" | "half" | "absent">("all");
 
     useEffect(() => {
         fetchAttendance(true);
@@ -30,330 +38,307 @@ const DailyAttendance: React.FC = () => {
     const handleSaveAll = async () => {
         try {
             await saveAllAttendance();
-            toast.success("All attendance records saved and synced!");
+            toast.success("Attendance records saved and synced!");
         } catch (error) {
             console.error("Save error:", error);
-            toast.error("Sync Failure: Some records could not be persisted.");
+            toast.error("Failed to persist attendance records.");
         }
     };
 
-    const filteredAttendance = attendance.filter(staff =>
-        staff.name.toLowerCase().includes(search.toLowerCase()) ||
-        staff.userid.toString().includes(search)
-    );
-
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.05
-            }
-        }
+    const handleMarkAllPresent = () => {
+        setAllAttendance("both", true);
+        toast.success("Marked all staff as Full Present");
     };
 
-    const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0 }
+    const handleClearAll = () => {
+        setAllAttendance("both", false);
+        toast.success("Reset all staff attendance");
     };
+
+    const filteredAttendance = attendance.filter(staff => {
+        const matchesSearch =
+            staff.name.toLowerCase().includes(search.toLowerCase()) ||
+            staff.userid.toString().includes(search);
+
+        if (!matchesSearch) return false;
+
+        const isFull = staff.forenoon && staff.afternoon;
+        const isHalf = (staff.forenoon && !staff.afternoon) || (!staff.forenoon && staff.afternoon);
+        const isAbsent = !staff.forenoon && !staff.afternoon;
+
+        if (statusFilter === "full") return isFull;
+        if (statusFilter === "half") return isHalf;
+        if (statusFilter === "absent") return isAbsent;
+        return true;
+    });
+
+    const fullCount = attendance.filter(s => s.forenoon && s.afternoon).length;
+    const halfCount = attendance.filter(s => (s.forenoon && !s.afternoon) || (!s.forenoon && s.afternoon)).length;
+    const absentCount = attendance.filter(s => !s.forenoon && !s.afternoon).length;
 
     return (
-        <div className="p-4 md:p-8 lg:p-12 min-h-screen bg-[#F8FAFC] space-y-8 font-sans max-w-[1400px] mx-auto overflow-x-hidden">
-
-            {/* --- Header Section --- */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-4">
-                    <motion.button
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        onClick={() => navigate("/staff")}
-                        className="flex items-center gap-2 text-slate-400 hover:text-indigo-600 font-bold text-[10px] uppercase tracking-widest transition-all group"
-                    >
-                        <div className="p-1.5 rounded-lg bg-white border border-slate-100 group-hover:bg-indigo-50 group-hover:border-indigo-100 transition-all shadow-sm">
-                            <ChevronLeft size={14} />
-                        </div>
-                        Back to Personnel Hub
-                    </motion.button>
-                    <div>
-                        <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight">
-                            Daily <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">Attendance</span>
-                        </h1>
-                        <div className="flex items-center gap-3 mt-4 text-slate-500 font-bold bg-white w-fit px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
-                            <Calendar size={18} className="text-indigo-500" />
-                            <input
-                                type="date"
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
-                                className="bg-transparent border-none outline-none text-xs uppercase tracking-wider font-extrabold cursor-pointer text-slate-700"
-                            />
-                        </div>
+        <div className="space-y-6 animate-in font-sans">
+            {/* ─── HEADER ─── */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => navigate("/staff")}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 rounded-full font-bold text-[10px] uppercase tracking-wider transition-colors cursor-pointer"
+                        >
+                            <ChevronLeft size={12} /> Personnel Hub
+                        </button>
+                        <span className="text-xs font-bold text-slate-400">• Daily Shift Roster</span>
                     </div>
+                    <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                        Daily <span className="text-indigo-600">Attendance</span>
+                    </h1>
+                    <p className="text-xs font-medium text-slate-500">
+                        Shift tracking (Forenoon & Afternoon) with automated payroll synchronization
+                    </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4">
-                    <motion.button
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
+                {/* Date Picker + Actions */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="flex items-center gap-2 bg-white px-3 h-10 rounded-xl border border-slate-200/80 shadow-2xs">
+                        <Calendar size={15} className="text-indigo-600 shrink-0" />
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="bg-transparent border-none outline-none text-xs font-extrabold uppercase tracking-wider cursor-pointer text-slate-700"
+                        />
+                    </div>
+
+                    <button
+                        onClick={handleMarkAllPresent}
+                        type="button"
+                        className="h-10 px-3.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                        title="1-click mark all staff full present"
+                    >
+                        <CheckCheck size={14} />
+                        <span className="hidden sm:inline">Mark All Present</span>
+                        <span className="sm:hidden">All Present</span>
+                    </button>
+
+                    <button
+                        onClick={handleClearAll}
+                        type="button"
+                        className="h-10 px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+                        title="Reset all"
+                    >
+                        <X size={14} />
+                        <span className="hidden sm:inline">Reset</span>
+                    </button>
+
+                    <button
                         onClick={handleSaveAll}
                         disabled={saving || loading}
-                        className={`flex items-center justify-center gap-3 px-8 py-4 rounded-2xl shadow-xl transition-all font-black text-xs uppercase tracking-widest disabled:opacity-50 ${saving ? 'bg-slate-100 text-slate-400' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200/50'}`}
+                        className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-2xs transition-all disabled:opacity-50 cursor-pointer"
                     >
-                        {saving ? (
-                            <Loader2 size={18} className="animate-spin" />
-                        ) : (
-                            <Save size={18} />
-                        )}
-                        {saving ? "Syncing..." : "Save Changes"}
-                    </motion.button>
+                        {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                        <span>{saving ? "Saving..." : "Save Changes"}</span>
+                    </button>
                 </div>
             </div>
 
-            {/* --- Filters & Search --- */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white p-4 md:p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/20 flex flex-col lg:flex-row items-center gap-4"
-            >
-                <div className="relative flex-1 w-full group">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
+            {/* ─── QUICK METRICS & FILTER BAR ─── */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <button
+                    onClick={() => setStatusFilter("all")}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        statusFilter === "all"
+                            ? "bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/10 shadow-2xs"
+                            : "bg-white border-slate-200/80 hover:border-slate-300 shadow-2xs"
+                    }`}
+                >
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Personnel</p>
+                    <p className="text-xl font-black text-slate-900 mt-0.5">{attendance.length}</p>
+                </button>
+
+                <button
+                    onClick={() => setStatusFilter("full")}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        statusFilter === "full"
+                            ? "bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/10 shadow-2xs"
+                            : "bg-white border-slate-200/80 hover:border-slate-300 shadow-2xs"
+                    }`}
+                >
+                    <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Full Present</p>
+                    <p className="text-xl font-black text-emerald-700 mt-0.5">{fullCount}</p>
+                </button>
+
+                <button
+                    onClick={() => setStatusFilter("half")}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        statusFilter === "half"
+                            ? "bg-amber-50/70 border-amber-300 ring-2 ring-amber-500/10 shadow-2xs"
+                            : "bg-white border-slate-200/80 hover:border-slate-300 shadow-2xs"
+                    }`}
+                >
+                    <p className="text-[10px] font-black uppercase tracking-wider text-amber-600">Half Shift</p>
+                    <p className="text-xl font-black text-amber-700 mt-0.5">{halfCount}</p>
+                </button>
+
+                <button
+                    onClick={() => setStatusFilter("absent")}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        statusFilter === "absent"
+                            ? "bg-rose-50/70 border-rose-300 ring-2 ring-rose-500/10 shadow-2xs"
+                            : "bg-white border-slate-200/80 hover:border-slate-300 shadow-2xs"
+                    }`}
+                >
+                    <p className="text-[10px] font-black uppercase tracking-wider text-rose-500">Absent</p>
+                    <p className="text-xl font-black text-rose-600 mt-0.5">{absentCount}</p>
+                </button>
+            </div>
+
+            {/* ─── SEARCH BAR ─── */}
+            <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-center gap-3">
+                <div className="relative flex-1 w-full">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={15} />
                     <input
                         type="text"
-                        placeholder="Search personnel..."
+                        placeholder="Search personnel by name or ID..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-16 pr-6 py-4 rounded-2xl border border-slate-100 focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none font-bold text-slate-700 transition-all placeholder:text-slate-300 bg-slate-50/50 focus:bg-white"
+                        className="w-full h-10 pl-9 pr-4 rounded-xl border border-slate-200/80 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-semibold text-xs text-slate-800 placeholder:text-slate-400 bg-white transition-all shadow-2xs"
                     />
                 </div>
-                <div className="flex items-center gap-3 px-6 py-4 bg-slate-900 rounded-2xl text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-slate-200/50 w-full lg:w-auto justify-center">
-                    <UserCheck size={18} className="text-indigo-400" />
-                    {attendance.length} Total Staff
+                <div className="flex items-center gap-2 px-3 h-10 bg-slate-50 border border-slate-200/80 rounded-xl text-slate-600 font-bold text-xs shrink-0 w-full sm:w-auto justify-center">
+                    <Filter size={13} className="text-indigo-600" />
+                    <span>Showing {filteredAttendance.length} of {attendance.length}</span>
                 </div>
-            </motion.div>
-
-            {/* --- Content Section --- */}
-            <div className="min-h-[400px]">
-                {loading ? (
-                    <LottieLoader
-                        type="general"
-                        message="Synchronizing Personnel Roster"
-                        size={250}
-                    />
-                ) : (
-                    <motion.div
-                        variants={containerVariants}
-                        initial="hidden"
-                        animate="visible"
-                        layout
-                    >
-                        {filteredAttendance.length === 0 ? (
-                            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-20 text-center shadow-sm">
-                                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <Search size={32} className="text-slate-200" />
-                                </div>
-                                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">No Matching Records</h3>
-                                <p className="text-slate-400 font-medium mt-1">Refine your search parameters to locate personnel.</p>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Desktop/Tablet Table View */}
-                                <div className="hidden md:block bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-xl shadow-slate-200/10">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left border-collapse">
-                                            <thead>
-                                                <tr className="bg-slate-50/50 border-b border-slate-100">
-                                                    <th className="p-8 text-[11px] font-black text-slate-400 uppercase tracking-widest pl-10">Personnel</th>
-                                                    <th className="p-8 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">FN</th>
-                                                    <th className="p-8 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">AN</th>
-                                                    <th className="p-8 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-50">
-                                                <AnimatePresence mode="popLayout">
-                                                    {filteredAttendance.map((staff) => (
-                                                        <AttendanceRow key={staff.userid} staff={staff} toggleAttendance={toggleAttendance} variants={itemVariants} />
-                                                    ))}
-                                                </AnimatePresence>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
-                                {/* Mobile Card View */}
-                                <div className="md:hidden space-y-4">
-                                    <AnimatePresence mode="popLayout">
-                                        {filteredAttendance.map((staff) => (
-                                            <AttendanceCard key={staff.userid} staff={staff} toggleAttendance={toggleAttendance} variants={itemVariants} />
-                                        ))}
-                                    </AnimatePresence>
-                                </div>
-                            </>
-                        )}
-                    </motion.div>
-                )}
             </div>
 
-            {/* --- Insight/Footer --- */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-12">
-                {[
-                    { icon: <CheckCircle2 size={24} />, title: "Precision Logging", text: "Mark individual shifts accurately for payroll automated calculation.", color: "text-indigo-600", bg: "bg-indigo-50" },
-                    { icon: <Clock4 size={24} />, title: "Real-time Sync", text: "All changes are instantly synchronized with the central cloud database.", color: "text-emerald-600", bg: "bg-emerald-50" },
-                    { icon: <UserCheck size={24} />, title: "Identity Guard", text: "Attendance is verified through unique personnel identification IDs.", color: "text-amber-600", bg: "bg-amber-50" }
-                ].map((item, i) => (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 * i }}
-                        key={i}
-                        className="p-6 md:p-8 bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group"
-                    >
-                        <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center ${item.color} mb-6 group-hover:scale-110 transition-transform`}>
-                            {item.icon}
+            {/* ─── ATTENDANCE TABLE ─── */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20 space-y-3">
+                        <Loader2 className="size-9 text-indigo-600 animate-spin" />
+                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Loading Personnel Roster...</p>
+                    </div>
+                ) : filteredAttendance.length === 0 ? (
+                    <div className="p-12 text-center">
+                        <div className="size-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                            <Search size={20} className="text-slate-400" />
                         </div>
-                        <h3 className="font-black text-slate-900 text-sm mb-2 uppercase tracking-tight">{item.title}</h3>
-                        <p className="text-slate-400 text-xs font-semibold leading-relaxed">{item.text}</p>
-                    </motion.div>
-                ))}
+                        <h3 className="text-sm font-bold text-slate-800">No Matching Personnel Found</h3>
+                        <p className="text-xs text-slate-400 mt-1">Try modifying your search or status filter.</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50/80 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                    <th className="py-3 px-4 sm:px-6">Personnel</th>
+                                    <th className="py-3 px-4 text-center w-32">Forenoon (FN)</th>
+                                    <th className="py-3 px-4 text-center w-32">Afternoon (AN)</th>
+                                    <th className="py-3 px-4 text-center w-36">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredAttendance.map((staff) => {
+                                    const isFN = staff.forenoon;
+                                    const isAN = staff.afternoon;
+                                    const { label, badgeStyle } = getAttendanceStatus(isFN, isAN);
+
+                                    return (
+                                        <tr key={staff.userid} className="hover:bg-slate-50/60 transition-colors">
+                                            {/* Staff info */}
+                                            <td className="py-3 px-4 sm:px-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="size-9 rounded-xl overflow-hidden bg-slate-100 ring-1 ring-slate-200 shrink-0">
+                                                        {staff.imageUrl ? (
+                                                            <img
+                                                                src={`${FILE_BASE_URL}${staff.imageUrl}`}
+                                                                alt={staff.name}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-600 font-black text-xs">
+                                                                {staff.name.charAt(0).toUpperCase()}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-black text-slate-900 text-xs sm:text-sm uppercase tracking-tight truncate">
+                                                            {staff.name}
+                                                        </p>
+                                                        <p className="text-[10px] text-slate-400 font-semibold tracking-wider">
+                                                            ID: #{staff.userid}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* FN Toggle */}
+                                            <td className="py-3 px-4 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleAttendance(staff.userid, "forenoon")}
+                                                    className={`inline-flex items-center justify-center size-9 rounded-xl border transition-all cursor-pointer ${
+                                                        isFN
+                                                            ? "bg-indigo-600 border-indigo-600 text-white shadow-xs hover:bg-indigo-700"
+                                                            : "bg-white border-slate-200 text-slate-300 hover:border-slate-300 hover:text-slate-400"
+                                                    }`}
+                                                    title={`Toggle FN for ${staff.name}`}
+                                                >
+                                                    {isFN ? <Check size={16} strokeWidth={3} /> : <span className="size-1.5 rounded-full bg-slate-300" />}
+                                                </button>
+                                            </td>
+
+                                            {/* AN Toggle */}
+                                            <td className="py-3 px-4 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleAttendance(staff.userid, "afternoon")}
+                                                    className={`inline-flex items-center justify-center size-9 rounded-xl border transition-all cursor-pointer ${
+                                                        isAN
+                                                            ? "bg-indigo-600 border-indigo-600 text-white shadow-xs hover:bg-indigo-700"
+                                                            : "bg-white border-slate-200 text-slate-300 hover:border-slate-300 hover:text-slate-400"
+                                                    }`}
+                                                    title={`Toggle AN for ${staff.name}`}
+                                                >
+                                                    {isAN ? <Check size={16} strokeWidth={3} /> : <span className="size-1.5 rounded-full bg-slate-300" />}
+                                                </button>
+                                            </td>
+
+                                            {/* Status Badge */}
+                                            <td className="py-3 px-4 text-center">
+                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${badgeStyle}`}>
+                                                    {label}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 
-/* --- Helper Components --- */
-
-interface StaffMember {
-    userid: number;
-    name: string;
-    imageUrl?: string;
-    forenoon: boolean;
-    afternoon: boolean;
-}
-
-interface ComponentProps {
-    staff: StaffMember;
-    toggleAttendance: (userid: number, field: "forenoon" | "afternoon") => void;
-    variants: any;
-}
-
-const AttendanceRow = ({ staff, toggleAttendance, variants }: ComponentProps) => {
-    const isFN = staff.forenoon;
-    const isAN = staff.afternoon;
-    const { label, colorStyles } = getStatusDetails(isFN, isAN);
-
-    return (
-        <motion.tr variants={variants} className="hover:bg-slate-50/50 transition-all group">
-            <td className="p-6 pl-10">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl overflow-hidden ring-2 ring-slate-100 bg-slate-50 relative">
-                        {staff.imageUrl ? (
-                            <img src={`${FILE_BASE_URL}${staff.imageUrl}`} className="w-full h-full object-cover" />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-400">
-                                <User size={20} />
-                            </div>
-                        )}
-                    </div>
-                    <div className="min-w-0">
-                        <p className="font-black text-slate-900 text-sm truncate">{staff.name}</p>
-                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-0.5">ID: #{staff.userid}</p>
-                    </div>
-                </div>
-            </td>
-            <td className="p-6">
-                <CustomCheckbox active={isFN} onClick={() => toggleAttendance(staff.userid, 'forenoon')} />
-            </td>
-            <td className="p-6">
-                <CustomCheckbox active={isAN} onClick={() => toggleAttendance(staff.userid, 'afternoon')} />
-            </td>
-            <td className="p-6 text-center">
-                <div className={`inline-block px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${colorStyles}`}>
-                    {label}
-                </div>
-            </td>
-        </motion.tr>
-    );
-};
-
-const AttendanceCard = ({ staff, toggleAttendance, variants }: ComponentProps) => {
-    const isFN = staff.forenoon;
-    const isAN = staff.afternoon;
-    const { label, colorStyles } = getStatusDetails(isFN, isAN);
-
-    return (
-        <motion.div variants={variants} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-5">
-            <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl overflow-hidden ring-2 ring-slate-100 bg-slate-50">
-                    {staff.imageUrl ? (
-                        <img src={`${FILE_BASE_URL}${staff.imageUrl}`} className="w-full h-full object-cover" />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-400">
-                            <User size={20} />
-                        </div>
-                    )}
-                </div>
-                <div className="flex-1 min-w-0">
-                    <p className="font-black text-slate-900 text-sm truncate">{staff.name}</p>
-                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">ID: #{staff.userid}</p>
-                </div>
-                <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${colorStyles}`}>
-                    {label}
-                </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="space-y-2">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Shift: FN</p>
-                    <div className="flex justify-center">
-                        <CustomCheckbox active={isFN} onClick={() => toggleAttendance(staff.userid, 'forenoon')} />
-                    </div>
-                </div>
-                <div className="space-y-2">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Shift: AN</p>
-                    <div className="flex justify-center">
-                        <CustomCheckbox active={isAN} onClick={() => toggleAttendance(staff.userid, 'afternoon')} />
-                    </div>
-                </div>
-            </div>
-        </motion.div>
-    );
-};
-
-const CustomCheckbox = ({ active, onClick }: { active: boolean, onClick: () => void }) => (
-    <motion.button
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={onClick}
-        className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all duration-300 mx-auto ${active
-            ? "bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-200"
-            : "bg-slate-50 border-slate-100 text-slate-200 hover:border-indigo-200 hover:bg-white"
-            }`}
-    >
-        <AnimatePresence mode="wait">
-            {active ? (
-                <motion.div
-                    key="checked"
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
-                >
-                    <Check size={28} strokeWidth={3} />
-                </motion.div>
-            ) : (
-                <motion.div
-                    key="unchecked"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                    className="w-2.5 h-2.5 rounded-full bg-slate-200"
-                />
-            )}
-        </AnimatePresence>
-    </motion.button>
-);
-
-const getStatusDetails = (fn: boolean, an: boolean) => {
-    if (fn && an) return { label: "Full Present", colorStyles: "bg-emerald-50 text-emerald-600 border-emerald-100" };
-    if (fn || an) return { label: "Half Shift", colorStyles: "bg-amber-50 text-amber-600 border-amber-100" };
-    return { label: "Absent", colorStyles: "bg-rose-50 text-rose-600 border-rose-100" };
+const getAttendanceStatus = (fn: boolean, an: boolean) => {
+    if (fn && an) {
+        return {
+            label: "Full Present",
+            badgeStyle: "bg-emerald-50 text-emerald-700 border-emerald-200"
+        };
+    }
+    if (fn || an) {
+        return {
+            label: "Half Shift",
+            badgeStyle: "bg-amber-50 text-amber-700 border-amber-200"
+        };
+    }
+    return {
+        label: "Absent",
+        badgeStyle: "bg-rose-50 text-rose-700 border-rose-200"
+    };
 };
 
 export default DailyAttendance;

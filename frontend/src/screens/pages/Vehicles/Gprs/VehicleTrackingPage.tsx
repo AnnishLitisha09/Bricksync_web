@@ -43,9 +43,9 @@ const SpeedGauge = ({ speed }: { speed: number }) => {
     const offset = circumference - (Math.min(displaySpeed, 140) / 140) * circumference;
 
     return (
-        <div className="relative flex flex-col items-center justify-center bg-white p-4 rounded-[2.5rem] border border-slate-100 shadow-sm h-full w-full">
+        <div className="relative flex flex-col items-center justify-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm h-full w-full">
             <div className="absolute top-4 left-6 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Velocity</span>
             </div>
 
@@ -53,7 +53,7 @@ const SpeedGauge = ({ speed }: { speed: number }) => {
                 <circle cx="50%" cy="50%" r="70" stroke="#f1f5f9" strokeWidth="10" fill="none" />
                 <motion.circle
                     cx="50%" cy="50%" r="70"
-                    stroke="#f97316"
+                    stroke="#4f46e5"
                     strokeWidth="10"
                     strokeLinecap="round"
                     fill="none"
@@ -150,14 +150,14 @@ const VehicleTrackingPage = () => {
         mapRef.current.flyTo([lat, lng], 16, { duration: 1.5 });
     };
 
-    if (loading) return <div className="h-screen flex items-center justify-center bg-white text-orange-500 font-black tracking-widest uppercase animate-pulse">Initializing System...</div>;
+    if (loading) return <div className="h-screen flex items-center justify-center bg-white text-indigo-600 font-black tracking-widest uppercase animate-pulse">Initializing System...</div>;
 
     return (
         <div className="h-screen bg-[#f8fafc] p-2 md:p-4 flex flex-col overflow-hidden font-sans">
             <style>{`
                 .m-icon { background: none!important; }
-                .dot-main { width: 14px; height: 14px; background: #f97316; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(249,115,22,0.5); position: relative; }
-                .dot-ping { position: absolute; width: 100%; height: 100%; border-radius: 50%; background: #f97316; animation: ping 2s infinite; opacity: 0.4; }
+                .dot-main { width: 14px; height: 14px; background: #4f46e5; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(79,70,229,0.5); position: relative; }
+                .dot-ping { position: absolute; width: 100%; height: 100%; border-radius: 50%; background: #4f46e5; animation: ping 2s infinite; opacity: 0.4; }
                 @keyframes ping { 0% { transform: scale(1); opacity: 0.4; } 100% { transform: scale(3); opacity: 0; } }
                 .leaflet-container { font-family: inherit; }
             `}</style>
@@ -177,7 +177,7 @@ const VehicleTrackingPage = () => {
                     </div>
                 </div>
                 <div className="hidden sm:flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
-                    <ShieldCheck size={14} className="text-orange-500" />
+                    <ShieldCheck size={14} className="text-indigo-600" />
                     <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Secured</span>
                 </div>
             </header>
@@ -201,7 +201,7 @@ const VehicleTrackingPage = () => {
 
                     <div className="flex flex-col h-full overflow-hidden p-4 md:p-0 md:gap-4">
                         {/* INFO CARD */}
-                        <div className="bg-white p-5 md:p-6 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-1 overflow-y-auto">
+                        <div className="bg-white p-5 md:p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-1 overflow-y-auto">
                             <div className="space-y-4 md:space-y-6">
                                 <DetailRow icon={<UserIcon size={16} />} label="Pilot" value={data?.assignedDriver || "No driver Assiged"} />
                                 <DetailRow
@@ -216,10 +216,10 @@ const VehicleTrackingPage = () => {
                             <div className="mt-6 md:mt-auto pt-4 md:pt-6 border-t border-slate-50 space-y-3">
                                 <div className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
                                     <div className="flex items-center gap-2">
-                                        <Zap size={14} className={data?.sensor1 === 'ON' ? 'text-orange-500' : 'text-slate-300'} />
+                                        <Zap size={14} className={data?.sensor1 === 'ON' ? 'text-indigo-600' : 'text-slate-300'} />
                                         <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Ignition</span>
                                     </div>
-                                    <span className={`text-[10px] font-black ${data?.sensor1 === 'ON' ? 'text-orange-500' : 'text-slate-400'}`}>{data?.sensor1 || "OFF"}</span>
+                                    <span className={`text-[10px] font-black ${data?.sensor1 === 'ON' ? 'text-indigo-600' : 'text-slate-400'}`}>{data?.sensor1 || "OFF"}</span>
                                 </div>
                                 <div className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
                                     <div className="flex items-center gap-2">
@@ -239,13 +239,13 @@ const VehicleTrackingPage = () => {
                 </aside>
 
                 {/* MAP AREA */}
-                <main className="flex-1 md:col-span-8 lg:col-span-9 bg-white p-1 md:p-2 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden h-full">
-                    <div id="map-container" className="w-full h-full rounded-[1.8rem] md:rounded-[2.5rem] overflow-hidden" />
+                <main className="flex-1 md:col-span-8 lg:col-span-9 bg-white p-1 md:p-2 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden h-full">
+                    <div id="map-container" className="w-full h-full rounded-xl sm:rounded-2xl overflow-hidden" />
 
                     {/* FLOATING SPEED (MOBILE ONLY) */}
                     <div className="absolute top-4 left-4 z-[1000] md:hidden">
                         <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-white shadow-lg flex items-center gap-3">
-                            <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                            <div className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
                             <div className="flex flex-col">
                                 <span className="text-[14px] font-black text-slate-900 leading-none">{data?.speed || 0}</span>
                                 <span className="text-[7px] font-black text-slate-400 uppercase tracking-tighter">KM/H</span>
@@ -255,10 +255,10 @@ const VehicleTrackingPage = () => {
 
                     {/* MAP CONTROLS */}
                     <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
-                        <button onClick={() => mapRef.current?.zoomIn()} className="p-2 md:p-3 bg-white/90 backdrop-blur shadow-sm rounded-xl md:rounded-2xl text-slate-600 hover:text-orange-500 border border-slate-100">
+                        <button onClick={() => mapRef.current?.zoomIn()} className="p-2 md:p-3 bg-white/90 backdrop-blur shadow-sm rounded-xl sm:rounded-2xl text-slate-600 hover:text-indigo-600 border border-slate-100 cursor-pointer">
                             <Maximize size={16} />
                         </button>
-                        <button onClick={() => mapRef.current?.zoomOut()} className="p-2 md:p-3 bg-white/90 backdrop-blur shadow-sm rounded-xl md:rounded-2xl text-slate-600 hover:text-orange-500 border border-slate-100">
+                        <button onClick={() => mapRef.current?.zoomOut()} className="p-2 md:p-3 bg-white/90 backdrop-blur shadow-sm rounded-xl sm:rounded-2xl text-slate-600 hover:text-indigo-600 border border-slate-100 cursor-pointer">
                             <Target size={16} />
                         </button>
                     </div>
@@ -275,7 +275,7 @@ const VehicleTrackingPage = () => {
                                 <span className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase tracking-widest">Lat</span>
                                 <span className="text-xs md:text-sm font-black text-slate-800 tabular-nums">{data?.latitude?.toFixed(4) || "0.0000"}</span>
                             </div>
-                            <div className="p-2 bg-orange-500 rounded-lg md:rounded-xl text-white">
+                            <div className="p-2 bg-indigo-600 rounded-lg md:rounded-xl text-white">
                                 <Navigation size={14} className="rotate-45" />
                             </div>
                         </div>
@@ -288,7 +288,7 @@ const VehicleTrackingPage = () => {
 
 const DetailRow = ({ icon, label, value, isAddress }: any) => (
     <div className="flex items-start gap-3 md:gap-4 group">
-        <div className="p-2 md:p-3 bg-slate-50 rounded-xl md:rounded-2xl text-slate-400 group-hover:text-orange-500 transition-colors mt-0.5">
+        <div className="p-2 md:p-3 bg-slate-50 rounded-xl sm:rounded-2xl text-slate-400 group-hover:text-indigo-600 transition-colors mt-0.5">
             {icon}
         </div>
         <div className="flex-1 min-w-0">

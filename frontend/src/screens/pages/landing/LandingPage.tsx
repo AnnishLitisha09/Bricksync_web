@@ -180,7 +180,7 @@ const AswathBricksPro: React.FC = () => {
         {isModalOpen && (
           <div className="fixed inset-0 z-[2005] flex items-center justify-center p-4 md:p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { if (!isSubmitting) setIsModalOpen(false) }} className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" />
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="relative bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden p-8 md:p-14">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden p-8 md:p-14">
               {!isSubmitting && !isSuccess && (
                 <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-950 transition-colors"><X size={24} /></button>
               )}
@@ -210,7 +210,7 @@ const AswathBricksPro: React.FC = () => {
                     <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
                       <div className="space-y-1">
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Full Name</label>
-                        <input required value={formData.name} type="text" placeholder="John Doe" className="w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm" onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                        <input required value={formData.name} type="text" placeholder="John Doe" className="w-full px-6 md:px-8 py-4 md:py-5 rounded-xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm" onChange={e => setFormData({ ...formData, name: e.target.value })} />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Contact Number</label>
@@ -219,7 +219,7 @@ const AswathBricksPro: React.FC = () => {
                           value={formData.phone}
                           type="tel"
                           placeholder="00000 00000"
-                          className={`w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm ${errors.phone ? 'ring-2 ring-red-500' : ''}`}
+                          className={`w-full px-6 md:px-8 py-4 md:py-5 rounded-xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm ${errors.phone ? 'ring-2 ring-red-500' : ''}`}
                           onChange={e => {
                             const val = e.target.value.replace(/\D/g, "");
                             if (val.length <= 10) setFormData({ ...formData, phone: val });
@@ -229,10 +229,10 @@ const AswathBricksPro: React.FC = () => {
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Email Address</label>
-                        <input required value={formData.email} type="email" placeholder="name@company.com" className={`w-full px-6 md:px-8 py-4 md:py-5 rounded-[1.2rem] md:rounded-[1.5rem] bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm ${errors.email ? 'ring-2 ring-red-500' : ''}`} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                        <input required value={formData.email} type="email" placeholder="name@company.com" className={`w-full px-6 md:px-8 py-4 md:py-5 rounded-xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 font-bold transition-all text-sm ${errors.email ? 'ring-2 ring-red-500' : ''}`} onChange={e => setFormData({ ...formData, email: e.target.value })} />
                         {errors.email && <p className="text-red-500 text-[10px] ml-4 font-bold">{errors.email}</p>}
                       </div>
-                      <button className="w-full bg-slate-950 text-white py-5 md:py-6 rounded-[1.2rem] md:rounded-[1.5rem] font-black uppercase text-[10px] md:text-xs tracking-[0.2em] hover:bg-orange-600 transition-all flex items-center justify-center gap-3 mt-4">
+                      <button className="w-full bg-slate-950 text-white py-5 md:py-6 rounded-xl font-black uppercase text-[10px] md:text-xs tracking-[0.2em] hover:bg-orange-600 transition-all flex items-center justify-center gap-3 mt-4">
                         Request Estimate <Send size={16} />
                       </button>
                     </form>
@@ -310,7 +310,7 @@ const AswathBricksPro: React.FC = () => {
             </motion.div>
           </motion.div>
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.2 }} className="relative hidden lg:block">
-            <div className="relative rounded-[5rem] overflow-hidden shadow-2xl group">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl group">
               <img src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1000&q=80" className="w-full aspect-[4/5] object-cover grayscale group-hover:grayscale-0 transition-all duration-1000" alt="Construction detail" />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
             </div>
@@ -325,8 +325,8 @@ const AswathBricksPro: React.FC = () => {
             <div className="relative px-2 md:px-0">
               <div className="absolute -z-10 top-10 -left-10 w-64 md:w-96 h-64 md:h-96 bg-orange-100 rounded-full blur-[80px] md:blur-[100px] opacity-40" />
               <div className="relative">
-                <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80" className="rounded-[2.5rem] md:rounded-[4rem] shadow-2xl z-10 relative border-[10px] md:border-[20px] border-slate-50 w-full" alt="Process" />
-                <div className="absolute -bottom-6 md:-bottom-10 right-4 md:-right-10 bg-orange-600 p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] text-white shadow-2xl z-20 min-w-[140px] md:min-w-0">
+                <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80" className="rounded-2xl md:rounded-3xl shadow-2xl z-10 relative border-[10px] md:border-[20px] border-slate-50 w-full" alt="Process" />
+                <div className="absolute -bottom-6 md:-bottom-10 right-4 md:-right-10 bg-orange-600 p-6 md:p-12 rounded-2xl text-white shadow-2xl z-20 min-w-[140px] md:min-w-0">
                   <span className="text-4xl md:text-6xl font-black italic block mb-1">15+</span>
                   <span className="text-[10px] md:text-[10px] font-black uppercase tracking-[0.3em]">Years of Glory</span>
                 </div>
@@ -362,8 +362,8 @@ const AswathBricksPro: React.FC = () => {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
             {products.map((p, i) => (
-              <motion.div key={i} whileHover={{ y: -10 }} className="group relative bg-white/[0.03] backdrop-blur-md rounded-[2.5rem] md:rounded-[4rem] p-4 md:p-5 border border-white/10">
-                <div className="relative h-64 md:h-80 rounded-[2rem] md:rounded-[3rem] overflow-hidden mb-6 md:mb-8 shadow-2xl">
+              <motion.div key={i} whileHover={{ y: -10 }} className="group relative bg-white/[0.03] backdrop-blur-md rounded-2xl md:rounded-3xl p-4 md:p-5 border border-white/10">
+                <div className="relative h-64 md:h-80 rounded-2xl overflow-hidden mb-6 md:mb-8 shadow-2xl">
                   <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
                   <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end">
@@ -374,7 +374,7 @@ const AswathBricksPro: React.FC = () => {
                 <div className="px-4 md:px-6 pb-4 md:pb-6">
                   <h4 className="text-2xl md:text-3xl font-black italic uppercase mb-3 md:mb-4 tracking-tighter text-orange-500">{p.name}</h4>
                   <p className="text-slate-400 text-xs md:text-sm leading-relaxed mb-8 md:mb-10 font-medium opacity-80">{p.description}</p>
-                  <button onClick={() => setIsModalOpen(true)} className="w-full py-4 md:py-5 rounded-[1.5rem] md:rounded-[2rem] bg-white/5 border border-white/10 hover:bg-orange-600 text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] transition-all">Wholesale Price</button>
+                  <button onClick={() => setIsModalOpen(true)} className="w-full py-4 md:py-5 rounded-xl md:rounded-2xl bg-white/5 border border-white/10 hover:bg-orange-600 text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] transition-all">Wholesale Price</button>
                 </div>
               </motion.div>
             ))}
@@ -427,7 +427,7 @@ const AswathBricksPro: React.FC = () => {
 
             <div className="relative">
               {/* Map Container - Matches the rounded style of your icon boxes */}
-              <div className="aspect-square bg-slate-950 rounded-[3rem] md:rounded-[5rem] overflow-hidden border-[12px] md:border-[24px] border-slate-50 relative group shadow-2xl">
+              <div className="aspect-square bg-slate-950 rounded-2xl md:rounded-3xl overflow-hidden border-[12px] md:border-[24px] border-slate-50 relative group shadow-2xl">
 
                 {/* Google Maps Embed pinned at 11.166174, 77.349766 */}
                 <iframe

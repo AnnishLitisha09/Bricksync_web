@@ -130,14 +130,14 @@ export default function AddDriverPage() {
           {/* Sidebar Info */}
           <div className="lg:col-span-4 lg:sticky lg:top-10 h-fit space-y-6">
             <div className="hidden lg:block space-y-4">
-              <div className="w-20 h-20 bg-slate-900 rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl shadow-slate-200 mb-6">
-                <UserPlus size={36} />
+              <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-md shadow-indigo-600/25 mb-4">
+                <UserPlus size={26} />
               </div>
-              <h1 className="text-4xl font-black text-slate-900 leading-tight">Personnel<br />Onboarding</h1>
-              <p className="text-slate-500 font-medium">Assign roles and verify documents for your operational team.</p>
+              <h1 className="text-3xl font-black text-slate-900 leading-tight">Personnel<br />Onboarding</h1>
+              <p className="text-slate-500 text-xs font-medium">Assign roles and verify documents for your operational team.</p>
             </div>
 
-            <div className="flex lg:flex-col items-center lg:items-start justify-between lg:justify-start gap-4 lg:gap-6 bg-white lg:bg-transparent p-4 lg:p-0 rounded-3xl border border-slate-100 lg:border-none shadow-sm lg:shadow-none">
+            <div className="flex lg:flex-col items-center lg:items-start justify-between lg:justify-start gap-4 lg:gap-6 bg-white lg:bg-transparent p-4 lg:p-0 rounded-2xl border border-slate-200/80 lg:border-none shadow-2xs lg:shadow-none">
               <StepItem icon={<UserCircle size={18} />} title="Identity" active />
               <div className="h-px flex-1 lg:hidden bg-slate-100" />
               <StepItem icon={<FileText size={18} />} title="Docs" active />
@@ -148,12 +148,12 @@ export default function AddDriverPage() {
 
           {/* Form */}
           <div className="lg:col-span-8 space-y-6 pb-20 lg:pb-0">
-            <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
 
-              <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-sm transition-all hover:shadow-md">
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-2xs transition-all">
                 <SectionHeader number="01" title="General Details" />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                   <Input
                     icon={<UserPlus size={18} />} label="Full Name" name="name"
                     placeholder="E.g. Rahul Kumar" value={form.name} onChange={handleChange}
@@ -162,16 +162,16 @@ export default function AddDriverPage() {
 
                   {/* Staff Role Selection */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Staff Role</label>
+                    <label className="text-[11px] font-semibold text-slate-500 block ml-0.5">Staff Role</label>
                     <div className="relative group">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
-                        <Briefcase size={18} />
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                        <Briefcase size={16} />
                       </div>
                       <select
                         name="staffRole"
                         value={form.staffRole}
                         onChange={handleChange}
-                        className="w-full bg-slate-50/50 border-2 border-slate-50 focus:border-indigo-500/20 focus:bg-white focus:ring-8 focus:ring-indigo-500/5 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 outline-none appearance-none transition-all cursor-pointer"
+                        className="w-full bg-white border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 rounded-xl pl-10 pr-4 h-10 text-xs font-medium text-slate-800 outline-none appearance-none transition-all cursor-pointer"
                       >
                         <option value="Operator">Operator</option>
                         <option value="Driver">Driver</option>
@@ -211,9 +211,9 @@ export default function AddDriverPage() {
               </div>
 
               {/* Document Section */}
-              <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-sm transition-all hover:shadow-md">
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-2xs transition-all">
                 <SectionHeader number="02" title="Verification Documents" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FileDrop label="Profile Picture" preview={previews.image} onChange={(f) => handleFileChange("image", f)} />
                   <FileDrop label="Aadhar Card" preview={previews.aadhar} onChange={(f) => handleFileChange("aadhar", f)} />
                   <FileDrop label="ID Card Front" preview={previews.drivingLicence} onChange={(f) => handleFileChange("drivingLicence", f)} />
@@ -221,18 +221,18 @@ export default function AddDriverPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-4">
+              <div className="flex items-center justify-end gap-3">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full lg:w-auto flex items-center justify-center gap-3 px-10 py-4 bg-slate-900 hover:bg-indigo-600 text-white rounded-2xl transition-all shadow-xl shadow-slate-200 disabled:opacity-50 font-black tracking-tight active:scale-95"
+                  className="w-full lg:w-auto flex items-center justify-center gap-2 h-11 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-2xs disabled:opacity-50 font-bold text-xs"
                 >
                   {loading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
-                    <Save size={20} />
+                    <Save size={16} />
                   )}
-                  {loading ? "Onboarding..." : "Complete Registration"}
+                  <span>{loading ? "Onboarding..." : "Complete Registration"}</span>
                 </button>
               </div>
             </form>

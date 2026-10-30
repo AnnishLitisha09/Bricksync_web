@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Calendar, Package, TrendingUp,
-  Receipt, Loader2, Truck, Plus, Wallet,
+  Loader2, Truck, Plus, Wallet,
   PhoneCall, X, BellRing, User, HardHat, Building2,
   Pencil, Trash2, CreditCard, Navigation,
   ChevronLeft, ChevronRight, Download
@@ -38,7 +38,12 @@ const CustomerDetails: React.FC = () => {
 
 
   const loadData = async () => {
-    if (!id) return;
+    if (!id || id === 'new' || isNaN(Number(id))) {
+      if (id === 'new') {
+        navigate('/customers', { replace: true });
+      }
+      return;
+    }
     try {
       setLoading(true);
       const data = await fetchCustomerById(id);
@@ -179,35 +184,59 @@ const CustomerDetails: React.FC = () => {
   if (!customer && !loading) return <div className="p-12 text-center font-bold text-slate-400">Customer not found.</div>;
 
   return (
-    <div className="p-4 sm:p-8 lg:p-12 min-h-screen bg-[#FBFDFF] space-y-8 animate-in fade-in duration-500 relative">
+    <div className="space-y-6 animate-in font-sans relative">
       {loading ? (
         <div className="h-screen flex items-center justify-center bg-[#FBFDFF] absolute inset-0 z-50">
           <Loader2 className="animate-spin text-indigo-600" size={48} />
         </div>
       ) : (
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="space-y-6">
 
-          {/* Navigation & Actions */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition-colors group"
-            >
-              <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-              Back to Hub
-            </button>
+          {/* ─── HEADER & ACTIONS ─── */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 rounded-full font-bold text-[10px] uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  <ArrowLeft size={12} /> Client Hub
+                </button>
+                <span className="text-xs font-bold text-slate-400">• Account #{customer.id}</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                {customer.name} <span className="text-indigo-600">Ledger</span>
+              </h1>
+              <p className="text-xs font-medium text-slate-500">
+                Real-time material delivery history, payments & statement reconciliation
+              </p>
+            </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
               <button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   setIsCallModalOpen(true);
                 }}
-                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-4xl font-bold text-slate-700 hover:border-indigo-200 hover:text-indigo-600 transition-all shadow-sm"
+                className="h-10 px-3.5 bg-white hover:bg-slate-50 border border-slate-200/80 rounded-xl font-bold text-xs text-slate-700 hover:text-indigo-600 transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
-                <PhoneCall size={18} /> Call Log
+                <PhoneCall size={14} className="text-indigo-600" />
+                <span>Call Log</span>
               </button>
+
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsExportModalOpen(true);
+                }}
+                className="h-10 px-3.5 bg-white hover:bg-slate-50 border border-slate-200/80 rounded-xl font-bold text-xs text-slate-700 hover:text-indigo-600 transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Download size={14} className="text-slate-500" />
+                <span>Export</span>
+              </button>
+
               <button
                 onClick={(e) => {
                   e.preventDefault();
@@ -215,107 +244,105 @@ const CustomerDetails: React.FC = () => {
                   setEditPaymentData(null);
                   setIsPaymentModalOpen(true);
                 }}
-                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 hover:border-emerald-200 hover:text-emerald-600 transition-all shadow-sm"
+                className="h-10 px-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-xl font-bold text-xs text-emerald-700 transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
-                <CreditCard size={18} /> Record Payment
+                <CreditCard size={15} />
+                <span>Record Payment</span>
               </button>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsExportModalOpen(true);
-                }}
-                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 hover:border-indigo-200 hover:text-indigo-600 transition-all shadow-sm"
-              >
-                <Download size={18} /> Export Ledger
-              </button>
+
               <button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   navigate(`/customer/add-material/${id}`, { state: { customerName: customer?.name } });
                 }}
-                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+                className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm shadow-indigo-600/25 cursor-pointer active:scale-95"
               >
-                <Plus size={18} /> Add Material
+                <Plus size={16} />
+                <span>Add Material</span>
               </button>
             </div>
           </div>
 
-          {/* Header Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
-                {customer.name} <span className="text-indigo-600">Ledger</span>
-              </h1>
-              <div className="flex items-center gap-2 mt-4 text-slate-500 font-medium">
-                <Receipt size={18} />
-                <span className="text-lg">Account ID: #{customer.id}</span>
+          {/* ─── BALANCE & STATS CARDS ─── */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            {/* Outstanding Balance */}
+            <div className="bg-slate-900 rounded-2xl p-4 text-white shadow-2xs flex items-center justify-between relative overflow-hidden group">
+              <div className="relative z-10">
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">Outstanding Balance</p>
+                <p className="text-2xl font-black text-white mt-1">₹{totals.balance.toLocaleString('en-IN')}</p>
+              </div>
+              <div className="size-11 rounded-xl bg-white/10 text-white flex items-center justify-center shrink-0 z-10">
+                <Wallet size={18} />
               </div>
             </div>
 
-            <div className="bg-slate-900 rounded-4xl p-6 text-white flex flex-col justify-between shadow-2xl relative overflow-hidden group">
-              <div className="relative z-10">
-                <p className="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">Outstanding Balance</p>
-                <h2 className="text-3xl font-black">₹{totals.balance.toLocaleString()}</h2>
+            {/* Total Billed */}
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Billed</p>
+                <p className="text-2xl font-black text-slate-900 mt-1">₹{totals.credit.toLocaleString('en-IN')}</p>
               </div>
-              <Wallet className="absolute -right-4 -bottom-4 text-white/10 group-hover:scale-110 transition-transform" size={100} />
-              <div className="mt-4 flex gap-4 relative z-10">
-                <div className="text-[10px]">
-                  <p className="text-slate-400 font-bold uppercase">Total Billed</p>
-                  <p className="font-bold">₹{totals.credit.toLocaleString()}</p>
-                </div>
-                <div className="text-[10px]">
-                  <p className="text-slate-400 font-bold uppercase">Total Paid</p>
-                  <p className="font-bold text-emerald-400">₹{totals.debit.toLocaleString()}</p>
-                </div>
+              <div className="size-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
+                <Package size={18} />
+              </div>
+            </div>
+
+            {/* Total Paid */}
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Paid</p>
+                <p className="text-2xl font-black text-emerald-600 mt-1">₹{totals.debit.toLocaleString('en-IN')}</p>
+              </div>
+              <div className="size-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
+                <TrendingUp size={18} />
               </div>
             </div>
           </div>
 
-          {/* Ledger Table Section */}
-          <div className="bg-white rounded-4xl border border-slate-200 shadow-xl overflow-hidden">
+          {/* ─── LEDGER TABLE ─── */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
-                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date & Ref</th>
-                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Item Particulars & Logistics</th>
-                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Debit (Paid)</th>
-                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Credit (Dispatch)</th>
-                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                  <tr className="bg-slate-50/80 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    <th className="py-3 px-4 sm:px-6">Date & Ref</th>
+                    <th className="py-3 px-4">Item Particulars & Logistics</th>
+                    <th className="py-3 px-4 text-right">Debit (Paid)</th>
+                    <th className="py-3 px-4 text-right">Credit (Dispatch)</th>
+                    <th className="py-3 px-4 sm:px-6 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-100">
                   {paginatedEntries.map((tx: any) => {
                     return (
-                      <tr key={tx.id} className="hover:bg-indigo-50/20 transition-colors align-top group">
-                        <td className="px-8 py-6">
+                      <tr key={tx.id} className="hover:bg-slate-50/60 transition-colors align-top group">
+                        <td className="py-3.5 px-4 sm:px-6">
                           <div className="flex flex-col">
-                            <span className="text-slate-900 font-bold flex items-center gap-2 whitespace-nowrap">
-                              <Calendar size={14} className="text-slate-400" /> {tx.date}
+                            <span className="text-slate-900 font-bold text-xs flex items-center gap-1.5 whitespace-nowrap">
+                              <Calendar size={13} className="text-slate-400" /> {tx.date}
                             </span>
-                            <span className="text-indigo-600 text-[11px] font-black mt-1 uppercase tracking-widest">{tx.id}</span>
+                            <span className="text-indigo-600 text-[10px] font-black mt-0.5 uppercase tracking-wider">{tx.id}</span>
                           </div>
                         </td>
-                        <td className="px-8 py-6">
-                          <div className="space-y-6">
-                            <div className="flex flex-col border-l-2 border-slate-100 pl-4 gap-4">
+                        <td className="py-3.5 px-4">
+                          <div className="space-y-3">
+                            <div className="flex flex-col border-l-2 border-slate-100 pl-3 gap-2.5">
                               {tx.type === "Payment" ? (
-                                <span className="text-slate-700 font-bold text-sm flex items-center gap-2">
-                                  <TrendingUp size={14} className="text-emerald-500" />
+                                <span className="text-slate-700 font-bold text-xs flex items-center gap-1.5">
+                                  <TrendingUp size={13} className="text-emerald-500" />
                                   {tx.particulars}
                                 </span>
                               ) : (
-                                <div className="space-y-4">
+                                <div className="space-y-2.5">
                                   {tx.items?.map((item: any, iidx: number) => (
-                                    <div key={iidx} className="space-y-1 pb-3 border-b border-slate-50 last:border-0 last:pb-0">
+                                    <div key={iidx} className="space-y-1 pb-2 border-b border-slate-50 last:border-0 last:pb-0">
                                       <div className="flex items-center gap-2">
-                                        <Package size={14} className="text-indigo-500" />
-                                        <span className="text-slate-700 font-bold text-sm">{item.product}</span>
-                                        <span className="text-slate-400 text-xs font-medium">({item.qty} × ₹{item.rate})</span>
+                                        <Package size={13} className="text-indigo-500 shrink-0" />
+                                        <span className="text-slate-800 font-bold text-xs">{item.product}</span>
+                                        <span className="text-slate-400 text-[11px] font-medium">({item.qty} × ₹{item.rate})</span>
                                       </div>
-                                      <div className="flex flex-wrap gap-2">
+                                      <div className="flex flex-wrap gap-1.5">
                                         {item.office && (
                                           <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-[9px] font-black uppercase">
                                             <Building2 size={10} /> {item.office}
@@ -342,25 +369,25 @@ const CustomerDetails: React.FC = () => {
 
                                   <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100 border-dashed">
                                     {tx.raw?.transport_charge > 0 && (
-                                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border border-indigo-100 bg-white text-indigo-400 text-[10px] font-black uppercase">
-                                        <Navigation size={12} /> Transport: ₹{tx.raw.transport_charge}
+                                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border border-indigo-100 bg-white text-indigo-500 text-[10px] font-bold uppercase">
+                                        <Navigation size={11} /> Transport: ₹{tx.raw.transport_charge}
                                       </div>
                                     )}
                                   </div>
                                 </div>
                               )}
-                              <span className="text-slate-400 text-xs font-semibold pt-1">Total: ₹{tx.amount.toLocaleString()}</span>
+                              <span className="text-slate-400 text-[11px] font-semibold">Total: ₹{tx.amount.toLocaleString('en-IN')}</span>
                             </div>
                           </div>
                         </td>
-                        <td className="px-8 py-6 text-right font-bold text-emerald-600">
-                          {tx.debit > 0 && `₹${tx.debit.toLocaleString()}`}
+                        <td className="py-3.5 px-4 text-right font-extrabold text-xs text-emerald-600">
+                          {tx.debit > 0 ? `₹${tx.debit.toLocaleString('en-IN')}` : "-"}
                         </td>
-                        <td className="px-8 py-6 text-right font-bold text-slate-900">
-                          {tx.credit > 0 && `₹${tx.credit.toLocaleString()}`}
+                        <td className="py-3.5 px-4 text-right font-extrabold text-xs text-slate-900">
+                          {tx.credit > 0 ? `₹${tx.credit.toLocaleString('en-IN')}` : "-"}
                         </td>
-                        <td className="px-8 py-6 text-right">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <td className="py-3.5 px-4 sm:px-6 text-right">
+                          <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -371,20 +398,20 @@ const CustomerDetails: React.FC = () => {
                                   setIsPaymentModalOpen(true);
                                 }
                               }}
-                              className="p-3 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-xl text-slate-400 transition-all"
+                              className="size-8 rounded-lg bg-slate-50 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 transition-all flex items-center justify-center cursor-pointer"
                               title="Edit"
                             >
-                              <Pencil size={16} />
+                              <Pencil size={13} />
                             </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteEntry(tx.type, tx.id);
                               }}
-                              className="p-3 bg-slate-50 hover:bg-red-600 hover:text-white rounded-xl text-slate-400 transition-all"
+                              className="size-8 rounded-lg bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-all flex items-center justify-center cursor-pointer"
                               title="Delete"
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={13} />
                             </button>
                           </div>
                         </td>
@@ -397,19 +424,19 @@ const CustomerDetails: React.FC = () => {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="px-8 py-10 bg-slate-50/50 border-t border-slate-100 flex flex-col items-center gap-6">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <div className="px-4 sm:px-6 py-3.5 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
                   Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, ledgerEntries.length)} of {ledgerEntries.length} entries
                 </p>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
-                    className="p-3 rounded-2xl border border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
+                    className="size-8 rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-2xs flex items-center justify-center cursor-pointer"
                   >
-                    <ChevronLeft size={20} />
+                    <ChevronLeft size={15} />
                   </button>
-                  <div className="flex items-center gap-2 max-w-[250px] md:max-w-[400px] overflow-x-auto no-scrollbar py-2 px-1 scroll-smooth">
+                  <div className="flex items-center gap-1 max-w-[200px] sm:max-w-[300px] overflow-x-auto no-scrollbar py-1">
                     {[...Array(totalPages)].map((_, i) => {
                       const pageNum = i + 1;
                       return (
@@ -417,10 +444,11 @@ const CustomerDetails: React.FC = () => {
                           key={pageNum}
                           id={`ledger-page-btn-${pageNum}`}
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`flex-shrink-0 w-10 h-10 rounded-xl text-[10px] font-black transition-all ${currentPage === pageNum
-                            ? "bg-slate-900 text-white shadow-lg shadow-slate-200"
-                            : "bg-white border border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"
-                            }`}
+                          className={`size-8 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                            currentPage === pageNum
+                              ? "bg-indigo-600 text-white shadow-2xs"
+                              : "bg-white border border-slate-200/80 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"
+                          }`}
                         >
                           {pageNum}
                         </button>
@@ -430,9 +458,9 @@ const CustomerDetails: React.FC = () => {
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    className="p-3 rounded-2xl border border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
+                    className="size-8 rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-2xs flex items-center justify-center cursor-pointer"
                   >
-                    <ChevronRight size={20} />
+                    <ChevronRight size={15} />
                   </button>
                 </div>
               </div>
@@ -445,7 +473,7 @@ const CustomerDetails: React.FC = () => {
       {isCallModalOpen && createPortal(
         <div className="fixed inset-0 z-9999 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl" onClick={(e) => { e.stopPropagation(); setIsCallModalOpen(false); }} />
-          <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-8 shadow-2xl relative z-10 animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-lg p-6 sm:p-8 shadow-2xl relative z-10 animate-in zoom-in-95 duration-200 border border-slate-200/80">
             <div className="flex justify-between items-center mb-8">
               <div>
                 <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Log Call</h3>
@@ -503,10 +531,10 @@ const CustomerDetails: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-5 bg-slate-900 text-white rounded-[1.8rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-[0.98]"
+                className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
-                <PhoneCall size={18} />
-                Save Call Entry
+                <PhoneCall size={16} />
+                <span>Save Call Entry</span>
               </button>
             </form>
           </div>

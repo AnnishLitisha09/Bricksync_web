@@ -50,10 +50,10 @@ const compressImage = (file: File, quality = 0.7, maxWidth = 1200): Promise<File
   });
 };
 
-const labelClass = "text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 mb-1 block";
+const labelClass = "text-[11px] font-semibold text-slate-500 block mb-1";
 const inputClass =
-  "w-full bg-gray-50 border-2 border-transparent rounded-2xl px-4 py-3 text-sm font-bold " +
-  "focus:bg-white focus:ring-0 focus:border-orange-500 transition-all outline-none text-slate-700";
+  "w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl font-medium text-xs text-slate-800 " +
+  "focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all outline-none";
 
 const AddSparesEntry: React.FC = () => {
   const { vehicleId: urlVehicleId } = useParams<{ vehicleId: string }>();
@@ -159,28 +159,30 @@ const AddSparesEntry: React.FC = () => {
       className="max-w-3xl mx-auto p-4 pb-24"
     >
       {/* HEADER */}
-      <div className="flex items-center justify-between mb-8">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 bg-white rounded-xl shadow-sm text-slate-400 hover:text-orange-600 transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="text-center">
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">
-            {isGeneralAdd ? "NEW" : "ADD"} <span className="text-orange-600 uppercase">Spares Log</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100 mb-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-1.5 rounded-lg border border-slate-200 hover:border-indigo-200 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 transition-all cursor-pointer"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full font-bold text-[10px] uppercase tracking-wider">
+              {isGeneralAdd ? "Fleet Inventory" : `Vehicle ${vehicleNumber}`}
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            {isGeneralAdd ? "New" : "Add"} <span className="text-indigo-600">Spares Log</span>
           </h1>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
-            {isGeneralAdd ? "Add Record for Any Vehicle" : `Vehicle ${vehicleNumber}`}
-          </p>
+          <p className="text-xs font-medium text-slate-500">Record replacement parts, hardware expenses & service bills</p>
         </div>
-        <div className="w-10" />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* VEHICLE SELECTION */}
         {isGeneralAdd && (
-          <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
+          <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
             <div className="space-y-1">
               <label className={labelClass}><Truck size={12} className="inline mr-1" /> Target Vehicle</label>
               <SearchableVehicleSelect
@@ -195,7 +197,7 @@ const AddSparesEntry: React.FC = () => {
         )}
 
         {/* LOG DETAILS */}
-        <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-1">
               <label className={labelClass}><Calendar size={12} className="inline mr-1" /> Log Date</label>
@@ -221,7 +223,7 @@ const AddSparesEntry: React.FC = () => {
         </div>
 
         {/* DESCRIPTION */}
-        <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
           <div className="space-y-1">
             <label className={labelClass}><Package size={12} className="inline mr-1" /> Spares / Parts Description</label>
             <input 
@@ -235,7 +237,7 @@ const AddSparesEntry: React.FC = () => {
         </div>
 
         {/* IMAGES */}
-        <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
           <label className={labelClass}><Upload size={12} className="inline mr-1" /> Transaction Evidence (Images)</label>
           
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3">
@@ -260,31 +262,31 @@ const AddSparesEntry: React.FC = () => {
               ))}
             </AnimatePresence>
 
-            <label className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 hover:bg-orange-50 transition-all group">
-               <Upload size={24} className="text-slate-300 group-hover:text-orange-500 transition-colors" />
+            <label className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/20 transition-all group">
+               <Upload size={24} className="text-slate-300 group-hover:text-indigo-600 transition-colors" />
                <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageChange} />
             </label>
           </div>
         </div>
 
         {/* ACTIONS */}
-        <div className="flex flex-col md:flex-row gap-4 pt-4">
+        <div className="flex flex-col sm:flex-row gap-3 pt-4">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="flex-1 py-4 rounded-2xl font-black text-slate-400 bg-white border border-gray-100 hover:bg-gray-50 transition-colors uppercase tracking-widest text-xs"
+            className="flex-1 h-11 rounded-xl font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors uppercase tracking-wider text-xs cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex-[2] bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-slate-200 hover:bg-orange-600 transition-all active:scale-95 flex items-center justify-center gap-2"
+            className="flex-[2] h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold uppercase tracking-wider text-xs shadow-sm shadow-indigo-600/20 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (
               <>
-                <CheckCircle2 size={18} />
-                Save Spares Record
+                <CheckCircle2 size={16} />
+                <span>Save Spares Record</span>
               </>
             )}
           </button>

@@ -8,8 +8,11 @@ const {
   deleteBank,
 } = require("../controllers/bankController");
 const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 
+// Strictly Admin Only (Role 1) - Protected Payment & Financial Asset
 router.use(authMiddleware);
+router.use(roleMiddleware(1));
 
 router.post("/", createBank);
 router.get("/", getAllBanks);

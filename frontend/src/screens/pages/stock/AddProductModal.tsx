@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Package,
@@ -27,10 +28,10 @@ interface AddProductModalProps {
     editData?: any; // If provided, we are in edit mode
 }
 
-const labelClass = "text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 mb-1 block";
+const labelClass = "text-[11px] font-semibold text-slate-500 block mb-1";
 const inputClass =
-    "w-full bg-gray-50 border-2 border-transparent rounded-2xl px-4 py-3 text-sm font-bold " +
-    "focus:bg-white focus:ring-0 focus:border-orange-500 transition-all outline-none text-slate-700 disabled:opacity-50";
+    "w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl font-medium text-xs text-slate-800 " +
+    "focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all outline-none disabled:opacity-50";
 
 export default function AddProductModal({ isOpen, onClose, onSuccess, editData }: AddProductModalProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -143,11 +144,8 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, editData }
             }
 
             if (editData) {
-                // We are updating the Product record, not the stock record directly here
-                // The backend updateProduct expects product_id
                 await updateProduct(editData.product_id, formData);
 
-                // Also update stock quantity if it changed
                 if (parseFloat(form.qty) !== parseFloat(editData.quantity)) {
                     await updateStock(editData.stock_id, parseFloat(form.qty));
                 }
@@ -168,157 +166,205 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, editData }
         }
     };
 
-    return (
-        <AnimatePresence>
-            {isOpen && (
-                <div className="fixed inset-0 z-120 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="bg-white rounded-[2.5rem] w-full max-w-2xl shadow-2xl overflow-hidden my-auto"
-                    >
-                        <div className="p-6 md:p-8 space-y-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
-                            <div className="flex justify-between items-center mb-2">
-                                <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
-                                    <Package size={24} />
-                                </div>
-                                <button onClick={onClose} className="text-slate-400 hover:text-red-500 transition-colors">
-                                    <X size={24} />
-                                </button>
-                            </div>
+    if (!isOpen) return null;
 
-                            <div className="text-left">
-                                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">
-                                    {editData ? "Edit" : "Add"} <span className="text-orange-600">Product</span>
+    return createPortal(
+        <AnimatePresence>
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5">
+                {/* Backdrop Overlay */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={onClose}
+                    className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
+                />
+
+                {/* Modal Card */}
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="relative bg-white w-full max-w-2xl max-h-[92vh] flex flex-col rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-10"
+                >
+                    {/* 1. FIXED HEADER */}
+                    <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+                        <div className="flex items-center gap-3">
+                            <div className="size-11 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shadow-xs shrink-0">
+                                <Package size={22} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">
+                                    {editData ? "Edit" : "Add"} <span className="text-indigo-600">Product</span>
                                 </h3>
                                 <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Inventory Management</p>
                             </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="size-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+                            title="Close"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-1">
-                                        <label className={labelClass}><Package size={12} className="inline mr-1" /> Product Name</label>
-                                        <input
-                                            type="text"
-                                            name="name"
-                                            value={form.name}
-                                            onChange={handleChange}
-                                            placeholder="e.g. Wireless Mouse"
-                                            className={inputClass}
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <label className={labelClass}><Store size={12} className="inline mr-1" /> Select Shop</label>
-                                        <select
-                                            name="shopId"
-                                            value={form.shopId}
-                                            onChange={handleChange}
-                                            className={inputClass}
-                                            disabled={!!editData}
-                                            required={!editData}
-                                        >
-                                            <option value="">{editData ? "Fixed Location" : "Choose Store"}</option>
-                                            {offices.map(o => (
-                                                <option key={o.office_id} value={o.office_id}>{o.office_name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-1">
-                                        <label className={labelClass}><Tag size={12} className="inline mr-1" /> Category</label>
-                                        <select
-                                            name="category"
-                                            value={form.category}
-                                            onChange={handleChange}
-                                            className={inputClass}
-                                            required
-                                        >
-                                            <option value="">Select Category</option>
-                                            <option value="bricks">Bricks</option>
-                                            <option value="sand">Sand</option>
-                                            <option value="cement">Cement</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <label className={labelClass}><Boxes size={12} className="inline mr-1" /> {editData ? "Current Stock (Adjustable)" : "Opening Quantity"}</label>
-                                        <input
-                                            type="number"
-                                            name="qty"
-                                            value={form.qty}
-                                            onChange={handleChange}
-                                            placeholder="0"
-                                            className={inputClass}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
+                    {/* 2. FORM & SCROLLABLE BODY */}
+                    <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden min-h-0">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <label className={labelClass}><Upload size={12} className="inline mr-1" /> Product Image</label>
-                                    <div className="mt-2">
-                                        {!imagePreview ? (
-                                            <div
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="group w-full aspect-video bg-gray-50 border-2 border-dashed border-gray-200 rounded-4xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 hover:bg-orange-50/30 transition-all"
-                                            >
-                                                <div className="p-4 bg-white rounded-2xl shadow-sm text-slate-400 group-hover:text-orange-600 group-hover:scale-110 transition-all">
-                                                    <Upload size={24} />
-                                                </div>
-                                                <p className="mt-3 text-xs font-black text-slate-400 uppercase tracking-tighter">Click to upload photo</p>
-                                            </div>
-                                        ) : (
-                                            <div className="relative w-full aspect-video rounded-4xl overflow-hidden group">
-                                                <img
-                                                    src={imagePreview?.startsWith('data:') || imagePreview?.startsWith('http') ? imagePreview : `${FILE_BASE_URL}${imagePreview}`}
-                                                    alt="Preview"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                                <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                    <button
-                                                        type="button"
-                                                        onClick={removeImage}
-                                                        className="p-3 bg-red-500 text-white rounded-2xl shadow-xl hover:bg-red-600 transition-all"
-                                                    >
-                                                        <X size={20} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <label className={labelClass}><FileText size={12} className="inline mr-1" /> Product Description</label>
-                                    <textarea
-                                        name="description"
-                                        rows={3}
-                                        value={form.description}
+                                    <label className={labelClass}><Package size={12} className="inline mr-1" /> Product Name</label>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        value={form.name}
                                         onChange={handleChange}
-                                        placeholder="Detailed description..."
-                                        className={`${inputClass} resize-none`}
+                                        placeholder="e.g. Solid Brick 4-inch"
+                                        className={inputClass}
                                         required
                                     />
                                 </div>
 
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:bg-orange-600 transition-all active:scale-95 flex items-center justify-center gap-2"
-                                >
-                                    {loading ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /> {editData ? "Update Product" : "Create Product"}</>}
-                                </button>
-                            </form>
+                                <div className="space-y-1">
+                                    <label className={labelClass}><Store size={12} className="inline mr-1" /> Select Shop</label>
+                                    <select
+                                        name="shopId"
+                                        value={form.shopId}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                        disabled={!!editData}
+                                        required={!editData}
+                                    >
+                                        <option value="">{editData ? "Fixed Location" : "Choose Store"}</option>
+                                        {offices.map(o => (
+                                            <option key={o.office_id} value={o.office_id}>{o.office_name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className={labelClass}><Tag size={12} className="inline mr-1" /> Category</label>
+                                    <select
+                                        name="category"
+                                        value={form.category}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                        required
+                                    >
+                                        <option value="">Select Category</option>
+                                        <option value="bricks">Bricks</option>
+                                        <option value="sand">Sand</option>
+                                        <option value="cement">Cement</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className={labelClass}><Boxes size={12} className="inline mr-1" /> {editData ? "Current Stock (Adjustable)" : "Opening Quantity"}</label>
+                                    <input
+                                        type="number"
+                                        name="qty"
+                                        value={form.qty}
+                                        onChange={handleChange}
+                                        placeholder="0"
+                                        className={inputClass}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className={labelClass}><Upload size={12} className="inline mr-1" /> Product Image</label>
+                                <div>
+                                    {!imagePreview ? (
+                                        <div
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="group w-full h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/20 transition-all"
+                                        >
+                                            <div className="p-2.5 bg-white rounded-xl shadow-2xs text-slate-400 group-hover:text-indigo-600 group-hover:scale-105 transition-all border border-slate-200/80">
+                                                <Upload size={18} />
+                                            </div>
+                                            <p className="mt-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Click to upload photo</p>
+                                        </div>
+                                    ) : (
+                                        <div className="relative w-full h-36 rounded-2xl overflow-hidden group border border-slate-200 bg-slate-50 flex items-center justify-center">
+                                            <img
+                                                src={imagePreview?.startsWith('data:') || imagePreview?.startsWith('http') ? imagePreview : `${FILE_BASE_URL}${imagePreview}`}
+                                                alt="Preview"
+                                                className="w-full h-full object-contain"
+                                            />
+                                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className="px-3 py-1.5 bg-white text-slate-700 rounded-xl shadow-md hover:bg-slate-100 transition-all text-xs font-bold cursor-pointer"
+                                                >
+                                                    Change
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={removeImage}
+                                                    className="p-2 bg-rose-500 text-white rounded-xl shadow-md hover:bg-rose-600 transition-all cursor-pointer"
+                                                    title="Remove"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className={labelClass}><FileText size={12} className="inline mr-1" /> Product Description</label>
+                                <textarea
+                                    name="description"
+                                    rows={2}
+                                    value={form.description}
+                                    onChange={handleChange}
+                                    placeholder="Detailed description..."
+                                    className="w-full p-3 bg-white border border-slate-200 rounded-xl font-medium text-xs text-slate-800 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all resize-none"
+                                    required
+                                />
+                            </div>
                         </div>
-                    </motion.div>
-                </div>
-            )}
-        </AnimatePresence>
+
+                        {/* 3. FIXED FOOTER */}
+                        <div className="p-4 sm:px-6 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="h-10 px-5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold uppercase tracking-wider text-xs shadow-md shadow-indigo-600/20 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="animate-spin" size={16} />
+                                        <span>Saving...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save size={15} />
+                                        <span>{editData ? "Update Product" : "Create Product"}</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </form>
+                </motion.div>
+            </div>
+        </AnimatePresence>,
+        document.body
     );
 }

@@ -86,7 +86,7 @@ export default function AddServiceShopPage() {
         Back to Hubs
       </button>
 
-      <div className="bg-white rounded-[3rem] shadow-2xl shadow-slate-200 overflow-hidden border border-slate-100 flex flex-col lg:flex-row">
+      <div className="bg-white rounded-2xl shadow-2xl shadow-slate-200 overflow-hidden border border-slate-100 flex flex-col lg:flex-row">
 
         {/* LEFT PANEL: BRANDING */}
         <div className="lg:w-1/3 bg-slate-900 p-8 lg:p-12 text-white relative overflow-hidden">
@@ -196,7 +196,7 @@ export default function AddServiceShopPage() {
                 onChange={handleChange}
                 placeholder="Enter the full commercial address..."
                 rows={4}
-                className="w-full bg-slate-50 border-2 border-transparent rounded-[2rem] px-6 py-5 text-sm font-bold focus:bg-white focus:border-emerald-500 transition-all outline-none text-slate-700 resize-none shadow-inner"
+                className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-6 py-5 text-sm font-bold focus:bg-white focus:border-emerald-500 transition-all outline-none text-slate-700 resize-none shadow-inner"
               />
             </div>
 

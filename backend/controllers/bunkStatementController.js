@@ -63,14 +63,35 @@ exports.payToBunk = async (req, res) => {
 // Get all
 exports.getAllBunkStatements = async (req, res) => {
   try {
-    const statements = await BunkStatement.findAll({
+    const page = req.query.page ? parseInt(req.query.page) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+
+    const queryOptions = {
       include: [
         { model: Vehicle, as: "vehicle", attributes: ["id", "vehicleName", "vehicleNumber"] },
         { model: Bunk, as: "bunk", attributes: ["id", "bunkName"] },
         { model: VehicleFuel, as: "fuel", attributes: ["fuelId", "volume", "amount"] },
       ],
       order: [["date", "DESC"]],
-    });
+      distinct: true,
+    };
+
+    if (page) {
+      queryOptions.limit = limit;
+      queryOptions.offset = (page - 1) * limit;
+      const { count, rows } = await BunkStatement.findAndCountAll(queryOptions);
+      return res.json({
+        data: rows,
+        pagination: {
+          total: count,
+          page,
+          limit,
+          totalPages: Math.ceil(count / limit),
+        },
+      });
+    }
+
+    const statements = await BunkStatement.findAll(queryOptions);
     res.json(statements);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -81,11 +102,14 @@ exports.getAllBunkStatements = async (req, res) => {
 exports.filterBunkStatements = async (req, res) => {
   try {
     const { vehicleId, bunkId } = req.query;
+    const page = req.query.page ? parseInt(req.query.page) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+
     const where = {};
     if (vehicleId) where.vehicleId = vehicleId;
     if (bunkId) where.bunkId = bunkId;
 
-    const statements = await BunkStatement.findAll({
+    const queryOptions = {
       where,
       include: [
         { model: Vehicle, as: "vehicle", attributes: ["id", "vehicleName", "vehicleNumber"] },
@@ -93,7 +117,25 @@ exports.filterBunkStatements = async (req, res) => {
         { model: VehicleFuel, as: "fuel", attributes: ["fuelId", "volume", "amount"] },
       ],
       order: [["date", "DESC"]],
-    });
+      distinct: true,
+    };
+
+    if (page) {
+      queryOptions.limit = limit;
+      queryOptions.offset = (page - 1) * limit;
+      const { count, rows } = await BunkStatement.findAndCountAll(queryOptions);
+      return res.json({
+        data: rows,
+        pagination: {
+          total: count,
+          page,
+          limit,
+          totalPages: Math.ceil(count / limit),
+        },
+      });
+    }
+
+    const statements = await BunkStatement.findAll(queryOptions);
     res.json(statements);
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -44,10 +44,30 @@ exports.createStatement = async (req, res) => {
 // Get all Statements
 exports.getAllStatements = async (req, res) => {
     try {
-        const statements = await CustomerStatement.findAll({
+        const page = req.query.page ? parseInt(req.query.page) : null;
+        const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+        const queryOptions = {
             include: [{ model: Customer, as: "customer" }],
             order: [["created_at", "DESC"]],
-        });
+            distinct: true,
+        };
+
+        if (page) {
+            queryOptions.limit = limit;
+            queryOptions.offset = (page - 1) * limit;
+            const { count, rows } = await CustomerStatement.findAndCountAll(queryOptions);
+            return res.status(200).json({
+                data: rows,
+                pagination: {
+                    total: count,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(count / limit),
+                },
+            });
+        }
+
+        const statements = await CustomerStatement.findAll(queryOptions);
         return res.status(200).json({ data: statements });
     } catch (error) {
         console.error("Error fetching statements:", error);
@@ -59,11 +79,32 @@ exports.getAllStatements = async (req, res) => {
 exports.getStatementsByCustomer = async (req, res) => {
     try {
         const { cusId } = req.params;
-        const statements = await CustomerStatement.findAll({
+        const page = req.query.page ? parseInt(req.query.page) : null;
+        const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+
+        const queryOptions = {
             where: { cus_id: cusId },
             include: [{ model: Customer, as: "customer" }],
             order: [["created_at", "DESC"]],
-        });
+            distinct: true,
+        };
+
+        if (page) {
+            queryOptions.limit = limit;
+            queryOptions.offset = (page - 1) * limit;
+            const { count, rows } = await CustomerStatement.findAndCountAll(queryOptions);
+            return res.status(200).json({
+                data: rows,
+                pagination: {
+                    total: count,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(count / limit),
+                },
+            });
+        }
+
+        const statements = await CustomerStatement.findAll(queryOptions);
         return res.status(200).json({ data: statements });
     } catch (error) {
         console.error("Error fetching statements for customer:", error);

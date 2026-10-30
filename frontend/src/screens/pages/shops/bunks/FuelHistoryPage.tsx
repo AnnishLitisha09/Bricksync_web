@@ -228,71 +228,112 @@ export default function FuelHistoryPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-gray-50/50 p-4 md:p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-6 animate-in font-sans">
 
-      {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <button onClick={() => navigate(-1)} className="group flex items-center gap-3 text-slate-400 hover:text-orange-600 transition-all font-black uppercase tracking-[0.2em] text-[10px]">
-          <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 group-hover:bg-orange-50 transition-all"><ArrowLeft size={16} /></div>
-          Back to Network
-        </button>
+      {/* ─── HEADER & ACTIONS ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 rounded-full font-bold text-[10px] uppercase tracking-wider transition-colors cursor-pointer"
+            >
+              <ArrowLeft size={12} /> Bunk Network
+            </button>
+            <span className="text-xs font-bold text-slate-400">• Station Ledger</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight uppercase">
+            {bunkName}
+          </h1>
+          <p className="text-xs font-medium text-slate-500">
+            Fuel dispense logs, bulk statement payments & outstanding settlement
+          </p>
+        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <button
             onClick={handleDownloadPdf}
-            className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all shadow-sm"
+            className="h-10 px-3.5 bg-white hover:bg-slate-50 border border-slate-200/80 text-slate-700 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
           >
-            <Download size={16} className="text-orange-600" /> PDF Report
+            <Download size={14} className="text-indigo-600" />
+            <span>PDF Report</span>
           </button>
 
-          <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100">
-            <Wallet size={16} /> Record Payment
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="h-10 px-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-700 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+          >
+            <Wallet size={15} />
+            <span>Record Payment</span>
           </button>
 
-          <button onClick={() => navigate("/vehicles/fuel/add")} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-orange-600 transition-all shadow-xl shadow-slate-200">
-            <Plus size={16} /> New Fuel Entry
+          <button
+            onClick={() => navigate("/vehicles/fuel/add")}
+            className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-indigo-600/25 transition-all cursor-pointer active:scale-95"
+          >
+            <Plus size={16} />
+            <span>New Fuel Entry</span>
           </button>
         </div>
       </div>
 
-      {/* SUMMARY STATS */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 relative bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center gap-6 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
-          <div className="relative z-10 p-5 bg-orange-50 rounded-3xl text-orange-600"><Fuel size={40} strokeWidth={2.5} /></div>
-          <div className="relative z-10 flex-1">
-            <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] mb-1">Filling Station</p>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">{bunkName}</h1>
-            <div className="flex items-center gap-4 mt-2">
-              <p className="text-slate-400 font-bold text-xs">Total Fuel: <span className="text-slate-900">₹{summary.totalFuel.toLocaleString()}</span></p>
-              <div className="w-1 h-1 bg-slate-300 rounded-full" />
-              <p className="text-slate-400 font-bold text-xs">Paid: <span className="text-emerald-600">₹{summary.totalPaid.toLocaleString()}</span></p>
-            </div>
+      {/* ─── SUMMARY STATS ─── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        {/* Total Dispensed */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Fuel Dispensed</p>
+            <p className="text-2xl font-black text-slate-900 mt-1">₹{summary.totalFuel.toLocaleString('en-IN')}</p>
+          </div>
+          <div className="size-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
+            <Fuel size={18} />
           </div>
         </div>
-        <div className="bg-orange-600 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
-          <div className="absolute -bottom-4 -right-4 text-white/10 group-hover:scale-110 transition-transform"><TrendingUp size={120} /></div>
-          <div className="relative z-10">
-            <p className="text-[10px] font-black text-orange-100 uppercase tracking-[0.2em] opacity-80 mb-2">Net Outstanding</p>
-            <p className="text-4xl font-black tabular-nums">₹{summary.outstanding.toLocaleString()}</p>
-            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-lg text-[9px] font-black uppercase tracking-widest">Live Balance</div>
+
+        {/* Total Paid */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Paid Out</p>
+            <p className="text-2xl font-black text-emerald-600 mt-1">₹{summary.totalPaid.toLocaleString('en-IN')}</p>
+          </div>
+          <div className="size-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
+            <CheckCircle2 size={18} />
+          </div>
+        </div>
+
+        {/* Outstanding Due */}
+        <div className="bg-slate-900 rounded-2xl p-4 text-white shadow-2xs flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Net Due Balance</p>
+            <p className="text-2xl font-black text-white mt-1">₹{summary.outstanding.toLocaleString('en-IN')}</p>
+          </div>
+          <div className="size-11 rounded-xl bg-white/10 text-white flex items-center justify-center shrink-0">
+            <TrendingUp size={18} />
           </div>
         </div>
       </div>
 
-      {/* NAVIGATION TABS */}
-      <div className="flex gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl w-fit shadow-sm overflow-x-auto">
+      {/* ─── NAVIGATION TABS ─── */}
+      <div className="flex gap-1.5 p-1 bg-white border border-slate-200/80 rounded-xl w-fit shadow-2xs">
         {(['all', 'logs', 'statements'] as TabType[]).map((tab) => (
-          <button key={tab} onClick={() => setActiveTab(tab)} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? (tab === 'all' ? 'bg-blue-600 text-white' : tab === 'logs' ? 'bg-slate-900 text-white' : 'bg-orange-600 text-white') : 'text-slate-400 hover:text-slate-600'}`}>
-            {tab === 'all' && <LayoutList size={14} />}
-            {tab === 'logs' && <History size={14} />}
-            {tab === 'statements' && <ReceiptText size={14} />}
-            {tab}
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer capitalize ${
+              activeTab === tab
+                ? 'bg-indigo-600 text-white shadow-2xs'
+                : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-50'
+            }`}
+          >
+            {tab === 'all' && <LayoutList size={13} />}
+            {tab === 'logs' && <History size={13} />}
+            {tab === 'statements' && <ReceiptText size={13} />}
+            <span>{tab === 'all' ? 'All Transactions' : tab === 'logs' ? 'Fuel Entries' : 'Statements'}</span>
           </button>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-3">
         {activeTab === 'all' && combinedTimeline.map((item, idx) => (
           <div key={`${item.id}-${idx}`} ref={idx === combinedTimeline.length - 1 ? lastElementRef : null}>
             {item.type === 'fuel' ? <FuelLogRow log={item} idx={idx} /> : <StatementRow st={item} idx={idx} />}
@@ -311,7 +352,7 @@ export default function FuelHistoryPage() {
 
         {loading && (
           <div className="flex justify-center py-8">
-            <Loader2 className="animate-spin text-orange-600" size={32} />
+            <Loader2 className="animate-spin text-indigo-600" size={28} />
           </div>
         )}
 
@@ -325,7 +366,7 @@ export default function FuelHistoryPage() {
         {isModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden">
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
               <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-emerald-50/30">
                 <div>
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Add Payment</h2>
@@ -407,17 +448,17 @@ export default function FuelHistoryPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting || !paymentForm.bankId || !paymentForm.payment_mode}
-                  className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
+                  className="w-full h-11 bg-emerald-600 text-white rounded-xl font-bold text-xs hover:bg-emerald-700 shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                 >
-                  {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
-                  {isSubmitting ? "Processing..." : "Confirm Payment"}
+                  {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
+                  <span>{isSubmitting ? "Processing..." : "Confirm Payment"}</span>
                 </button>
               </form>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 
@@ -425,15 +466,15 @@ export default function FuelHistoryPage() {
 function FuelLogRow({ log, idx }: { log: Transaction; idx: number }) {
   const date = log.sortDate;
   return (
-    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className={`group bg-white p-2 pr-6 rounded-[2rem] shadow-sm border transition-all flex flex-col md:flex-row items-center gap-6 mb-4 ${!log.isVerified ? 'border-red-100 bg-red-50/10' : 'border-slate-100 hover:shadow-xl'}`}>
-      <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-slate-50 border border-slate-100 flex flex-col items-center justify-center">
+    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className={`group bg-white p-2 pr-6 rounded-2xl shadow-sm border transition-all flex flex-col md:flex-row items-center gap-6 mb-4 ${!log.isVerified ? 'border-red-100 bg-red-50/10' : 'border-slate-100 hover:shadow-xl'}`}>
+      <div className="w-full md:w-32 h-24 rounded-xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center">
         <span className="text-[10px] font-black text-slate-400 uppercase mb-1">{date.getFullYear()}</span>
         <span className="text-2xl font-black text-slate-800 leading-none">{date.getDate()}</span>
-        <span className="text-[10px] font-black uppercase text-orange-600 mt-1">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>
+        <span className="text-[10px] font-black uppercase text-indigo-600 mt-1">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>
       </div>
       <div className="flex-1 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-4 bg-orange-50 text-orange-600 rounded-2xl"><Droplets size={24} /></div>
+          <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><Droplets size={24} /></div>
           <div>
             <h3 className="text-xl font-black text-slate-800">{log.volume} Litres</h3>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{log.isVerified ? "Verified" : "Pending"}</p>
@@ -443,10 +484,10 @@ function FuelLogRow({ log, idx }: { log: Transaction; idx: number }) {
           <div className="text-right"><p className="text-[8px] font-black text-slate-400 uppercase mb-1">Expense</p><span className="text-xl font-black text-slate-900">₹{log.amount.toLocaleString()}</span></div>
         </div>
       </div>
-      <div className="w-full md:w-56 p-4 rounded-[1.5rem] bg-slate-900 text-white">
+      <div className="w-full md:w-56 p-4 rounded-xl bg-slate-900 text-white">
         <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Vehicle</p>
         <p className="font-black text-sm uppercase truncate">{log.vehicle?.vehicleName || 'N/A'}</p>
-        <span className="text-[10px] font-mono text-orange-400">{log.vehicle?.vehicleNumber || 'N/A'}</span>
+        <span className="text-[10px] font-mono text-indigo-300">{log.vehicle?.vehicleNumber || 'N/A'}</span>
       </div>
     </motion.div>
   );
@@ -455,8 +496,8 @@ function FuelLogRow({ log, idx }: { log: Transaction; idx: number }) {
 function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
   const date = st.sortDate;
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="bg-white p-2 pr-6 rounded-[2rem] shadow-sm border border-emerald-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
-      <div className="w-full md:w-32 h-24 rounded-[1.5rem] bg-emerald-50 border border-emerald-100 flex flex-col items-center justify-center">
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.01 }} className="bg-white p-2 pr-6 rounded-2xl shadow-sm border border-emerald-100 hover:shadow-xl transition-all flex flex-col md:flex-row items-center gap-6 mb-4">
+      <div className="w-full md:w-32 h-24 rounded-xl bg-emerald-50 border border-emerald-100 flex flex-col items-center justify-center">
         <span className="text-[10px] font-black text-emerald-600/50 uppercase mb-1">PAID</span>
         <span className="text-2xl font-black text-emerald-700 leading-none">{date.getDate()}</span>
         <span className="text-[10px] font-black uppercase text-emerald-600 mt-1">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>
@@ -487,7 +528,7 @@ function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
           </div>
         )}
       </div>
-      <div className="w-full md:w-56 p-4 rounded-[1.5rem] bg-emerald-900 text-white shadow-xl shadow-emerald-100">
+      <div className="w-full md:w-56 p-4 rounded-xl bg-emerald-900 text-white shadow-xl shadow-emerald-100">
         <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Confirmed</p>
         <p className="font-black text-[10px] uppercase truncate">{st.bank?.holderName}</p>
       </div>
@@ -497,7 +538,7 @@ function StatementRow({ st, idx }: { st: Transaction; idx: number }) {
 
 function EmptyState({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="text-center py-24 bg-white rounded-[3rem] border-4 border-dashed border-slate-100">
+    <div className="text-center py-24 bg-white rounded-2xl border-4 border-dashed border-slate-100">
       <div className="flex justify-center text-slate-200 mb-4">{icon}</div>
       <h3 className="text-slate-800 font-black uppercase tracking-tighter">{label}</h3>
     </div>
