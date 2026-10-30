@@ -99,7 +99,36 @@ if (db.Bunk && db.BunkStatement) {
 
   db.BunkStatement.belongsTo(db.Bunk, {
     foreignKey: "bunkId",
+    as: "bunk",
+  });
+
+  db.BunkStatement.belongsTo(db.Bunk, {
+    foreignKey: "bunkId",
     as: "statementBunk",
+  });
+}
+
+if (db.Vehicle && db.BunkStatement) {
+  db.Vehicle.hasMany(db.BunkStatement, {
+    foreignKey: "vehicleId",
+    as: "bunkStatements",
+  });
+
+  db.BunkStatement.belongsTo(db.Vehicle, {
+    foreignKey: "vehicleId",
+    as: "vehicle",
+  });
+}
+
+if (db.VehicleFuel && db.BunkStatement) {
+  db.VehicleFuel.hasOne(db.BunkStatement, {
+    foreignKey: "fuelId",
+    as: "bunkStatement",
+  });
+
+  db.BunkStatement.belongsTo(db.VehicleFuel, {
+    foreignKey: "fuelId",
+    as: "fuel",
   });
 }
 

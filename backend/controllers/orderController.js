@@ -1,4 +1,4 @@
-const { Order, OrderItem, OrderEmployee, Customer, Office, Product, ProductStock, Vehicle, Employee, sequelize } = require("../models");
+const { Order, OrderItem, OrderEmployee, Customer, Office, Product, ProductStock, Vehicle, Employee, User, sequelize } = require("../models");
 
 // Create an Order
 exports.createOrder = async (req, res) => {
@@ -121,7 +121,7 @@ exports.getAllOrders = async (req, res) => {
                     ]
                 }
             ],
-            order: [["createdAt", "DESC"]],
+            order: [["created_at", "DESC"]],
             distinct: true,
         };
 
