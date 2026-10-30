@@ -6,8 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "nodemon server.js",
     "migrate": "npx sequelize db:migrate"
   },
   "keywords": [],
@@ -25,10 +24,10 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.13",
     "sequelize": "^6.37.7",
-    "sequelize-cli": "^6.6.5",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.11",
+    "sequelize-cli": "^6.6.5"
   }
 }
