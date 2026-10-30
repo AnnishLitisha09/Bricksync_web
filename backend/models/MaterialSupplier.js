@@ -27,6 +27,18 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.STRING,
                 allowNull: false,
             },
+            gst_number: {
+                type: DataTypes.STRING(50),
+                allowNull: true,
+            },
+            notes: {
+                type: DataTypes.TEXT,
+                allowNull: true,
+            },
+            tags: {
+                type: DataTypes.TEXT,
+                allowNull: true,
+            },
         },
         {
             tableName: "material_suppliers",

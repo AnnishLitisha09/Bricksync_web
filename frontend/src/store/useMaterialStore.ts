@@ -1,6 +1,13 @@
 import { create } from "zustand";
-import { BASE_URL} from "../api/base";
+import { BASE_URL } from "../api/base";
 import { isStale } from "./storeUtils";
+
+export interface SupplierField {
+    id?: number;
+    supplier_id?: number;
+    field_name: string;
+    field_options?: string[] | any;
+}
 
 export interface Supplier {
     id: number;
@@ -10,7 +17,12 @@ export interface Supplier {
     address: string;
     category: string;
     balance: string | number;
+    gst_number?: string | null;
+    notes?: string | null;
+    tags?: string | null;
+    additionalFields?: SupplierField[];
     createdAt: string;
+    updatedAt?: string;
 }
 
 interface MaterialStore {

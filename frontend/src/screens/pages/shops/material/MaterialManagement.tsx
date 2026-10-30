@@ -35,9 +35,14 @@ export default function ShopLedgerPage() {
 
   const filteredEntries = useMemo(() => {
     return suppliers.filter((s) => {
+      const term = searchTerm.toLowerCase();
       const matchSearch =
-        s.shop_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.owner_name.toLowerCase().includes(searchTerm.toLowerCase());
+        !term ||
+        s.shop_name.toLowerCase().includes(term) ||
+        s.owner_name.toLowerCase().includes(term) ||
+        (s.phone_no && s.phone_no.toLowerCase().includes(term)) ||
+        (s.gst_number && s.gst_number.toLowerCase().includes(term)) ||
+        (s.tags && s.tags.toLowerCase().includes(term));
       const matchCategory = activeCategory === "ALL" || s.category.toUpperCase() === activeCategory.toUpperCase();
       return matchSearch && matchCategory;
     });
@@ -99,10 +104,10 @@ export default function ShopLedgerPage() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={15} />
             <input
               type="text"
-              placeholder="Search merchants..."
+              placeholder="Search merchants, GST, tags..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-10 pl-9 pr-4 bg-white border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-2xs w-48 sm:w-60"
+              className="h-10 pl-9 pr-4 bg-white border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-2xs w-48 sm:w-64"
             />
           </div>
 

@@ -14,7 +14,12 @@ import {
   Package,
   Layers,
   CheckCircle2,
-  X
+  X,
+  Tag,
+  FileText,
+  User,
+  Phone,
+  MapPin
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -27,6 +32,7 @@ import Pagination from "./components/Pagination";
 import EntryModal from "./components/modals/EntryModal";
 import PaymentModal from "./components/modals/PaymentModal";
 import ExportModal from "./components/modals/ExportModal";
+import MerchantModal from "./components/modals/MerchantModal";
 
 // --- TYPES ---
 interface MaterialEntryField {
@@ -38,7 +44,9 @@ interface MaterialEntry {
   id: number;
   date: string;
   product_id: number;
+  office_id: number;
   units: string | number;
+  unit_price?: string | number;
   amount: string | number;
   product?: { product_name: string };
   office?: { office_name: string };
@@ -64,6 +72,7 @@ export default function MaterialHistoryPage() {
   const [activeTab, setActiveTab] = useState<"ALL" | "ENTRY" | "STATEMENT">("ALL");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isEditMerchantModalOpen, setIsEditMerchantModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<MaterialEntry[]>([]);
   const [statements, setStatements] = useState<MaterialStatement[]>([]);
@@ -187,6 +196,12 @@ export default function MaterialHistoryPage() {
 
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
 
+  const supplierTags: string[] = useMemo(() => {
+    if (!supplier?.tags) return [];
+    if (Array.isArray(supplier.tags)) return supplier.tags;
+    return String(supplier.tags).split(",").map(t => t.trim()).filter(Boolean);
+  }, [supplier?.tags]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -195,33 +210,102 @@ export default function MaterialHistoryPage() {
     >
       {/* ── HEADER ── */}
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-start sm:items-center gap-3 sm:gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="w-10 h-10 bg-white border border-slate-200/80 rounded-xl shadow-2xs hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer group"
+            className="w-10 h-10 bg-white border border-slate-200/80 rounded-xl shadow-2xs hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer group shrink-0 mt-1 sm:mt-0"
           >
             <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
           </button>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 rounded-full text-indigo-700 font-bold text-[10px] uppercase tracking-wider border border-indigo-100">
                 <Store size={11} /> Merchant Procurement Ledger
               </span>
               <span className="text-xs font-bold text-slate-400">
                 • ID: #{shopId}
               </span>
+              {supplier?.category && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                  {supplier.category}
+                </span>
+              )}
             </div>
+
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1">
-              {shopName}
+              {supplier?.shop_name || shopName}
             </h1>
-            <p className="text-xs font-medium text-slate-500">
-              Procurement orders, material intake logs & payment clearance records
-            </p>
+
+            {/* Merchant Details / Metadata row */}
+            <div className="flex items-center gap-3 flex-wrap text-xs text-slate-500 font-medium mt-1">
+              {supplier?.owner_name && (
+                <span className="flex items-center gap-1">
+                  <User size={12} className="text-slate-400" />
+                  <span>{supplier.owner_name}</span>
+                </span>
+              )}
+
+              {supplier?.phone_no && (
+                <a
+                  href={`tel:${supplier.phone_no}`}
+                  className="flex items-center gap-1 text-indigo-600 hover:underline font-semibold"
+                >
+                  <Phone size={12} />
+                  <span>{supplier.phone_no}</span>
+                </a>
+              )}
+
+              {supplier?.address && (
+                <span className="flex items-center gap-1 truncate max-w-xs">
+                  <MapPin size={12} className="text-slate-400 shrink-0" />
+                  <span className="truncate">{supplier.address}</span>
+                </span>
+              )}
+            </div>
+
+            {/* Additional Information Badges: GSTIN, Tags, Notes */}
+            {(supplier?.gst_number || supplierTags.length > 0 || supplier?.notes) && (
+              <div className="flex items-center gap-2 flex-wrap pt-2 mt-1">
+                {supplier?.gst_number && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-100 border border-slate-200 text-slate-700 rounded-md text-[11px] font-mono font-bold tracking-wider">
+                    <Receipt size={12} className="text-indigo-600" />
+                    GSTIN: {supplier.gst_number}
+                  </span>
+                )}
+
+                {supplierTags.map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-md text-[10px] font-bold"
+                  >
+                    <Tag size={10} className="text-indigo-500" />
+                    #{tag}
+                  </span>
+                ))}
+
+                {supplier?.notes && (
+                  <span className="inline-flex items-center gap-1 text-[11px] italic text-slate-500 bg-amber-50/70 border border-amber-200/60 px-2.5 py-0.5 rounded-md">
+                    <FileText size={11} className="text-amber-600 shrink-0" />
+                    <span className="line-clamp-1">{supplier.notes}</span>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 flex-wrap">
+          {/* Edit Merchant Button */}
+          <button
+            onClick={() => setIsEditMerchantModalOpen(true)}
+            className="h-10 px-3.5 bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-700 border border-slate-200/80 hover:border-amber-200 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+            title="Edit Merchant Information"
+          >
+            <Pencil size={14} className="text-amber-600" />
+            <span>Edit Merchant</span>
+          </button>
+
           <button
             onClick={() => setIsExportModalOpen(true)}
             className="h-10 px-3.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-2xs cursor-pointer active:scale-95"
@@ -343,7 +427,7 @@ export default function MaterialHistoryPage() {
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm("")}
-                  className="mt-4 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors"
+                  className="mt-4 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors cursor-pointer"
                 >
                   Clear Search Filter
                 </button>
@@ -397,6 +481,7 @@ export default function MaterialHistoryPage() {
         predefinedFields={supplier?.additionalFields || []}
         editData={editingEntry}
       />
+
       <PaymentModal
         isOpen={isPaymentModalOpen || !!editingStatement}
         onClose={() => {
@@ -407,11 +492,20 @@ export default function MaterialHistoryPage() {
         supplierId={shopId || ""}
         editData={editingStatement}
       />
+
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         supplier={supplier}
         allLogs={allLogs}
+      />
+
+      {/* Edit Merchant Modal */}
+      <MerchantModal
+        isOpen={isEditMerchantModalOpen}
+        onClose={() => setIsEditMerchantModalOpen(false)}
+        shop={supplier}
+        onSuccess={fetchData}
       />
     </motion.div>
   );
@@ -423,6 +517,13 @@ function MaterialLogRow({ log, idx, onEdit, onDelete }: { log: any; idx: number;
   const formattedDay = date.toLocaleDateString('en-IN', { weekday: 'short' });
   const formattedDate = date.getDate();
   const formattedMonth = date.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+
+  // Amount per unit calculation
+  const unitsNum = Number(log.units) || 0;
+  const amountNum = Number(log.amount) || 0;
+  const unitPrice = log.unit_price !== undefined && log.unit_price !== null && Number(log.unit_price) > 0
+    ? Number(log.unit_price)
+    : (unitsNum > 0 && amountNum > 0 ? (amountNum / unitsNum) : 0);
 
   return (
     <motion.div
@@ -466,10 +567,18 @@ function MaterialLogRow({ log, idx, onEdit, onDelete }: { log: any; idx: number;
           </h3>
 
           <div className="flex items-center gap-2 flex-wrap text-xs font-medium text-slate-500">
-            <span className="inline-flex items-center gap-1 font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md">
+            {/* Units Badge */}
+            <span className="inline-flex items-center gap-1 font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
               <Layers size={11} className="text-slate-500" />
-              {Number(log.units).toLocaleString()} Units
+              {unitsNum.toLocaleString()} Units
             </span>
+
+            {/* Price Per Unit Badge */}
+            {unitPrice > 0 && (
+              <span className="inline-flex items-center gap-1 font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-100">
+                @ ₹{unitPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}/unit
+              </span>
+            )}
 
             {/* Custom Field Tags */}
             {log.fields && log.fields.map((f: any, i: number) => (
@@ -488,7 +597,7 @@ function MaterialLogRow({ log, idx, onEdit, onDelete }: { log: any; idx: number;
             Procurement Value
           </p>
           <span className="text-xl sm:text-2xl font-black text-slate-900 tabular-nums">
-            ₹{Number(log.amount).toLocaleString('en-IN')}
+            ₹{amountNum.toLocaleString('en-IN')}
           </span>
         </div>
 
