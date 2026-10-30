@@ -23,10 +23,12 @@ const initScheduledTasks = () => {
     });
 
     // 0 22 * * 0 = Sunday 10 PM - SQL BACKUP
+   if (process.env.DISABLE_INTERNAL_DB_BACKUP !== "true") {
     cron.schedule("0 22 * * 0", async () => {
-        console.log("🕒 [Scheduler] Running Sunday 10 PM SQL Backup...");
+        console.log("[Scheduler] Running Sunday SQL Backup...");
         await backupDatabase();
     });
+}
 
     // Keeping invoice deactivation as it's a maintenance task
     cron.schedule("*/30 * * * *", async () => {

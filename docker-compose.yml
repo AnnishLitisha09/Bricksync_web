@@ -1,0 +1,65 @@
+name: bricksync
+
+services:
+  db:
+    image: mysql:8.4
+    container_name: bricksync-mysql
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    volumes:
+      - bricksync_mysql_data:/var/lib/mysql
+    ports:
+      - "127.0.0.1:3307:3306"
+    networks:
+      - bricksync_network
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'mysqladmin ping -h 127.0.0.1 -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent'
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: bricksync-backend:latest
+    container_name: bricksync-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    ports:
+      - "5000:5000"
+    volumes:
+      - "D:/Server/bricksync/images:/app/images"
+      - "D:/Server/bricksync/invoices:/app/invoices"
+      - "D:/Server/bricksync/notepad:/app/notepad"
+      - "D:/Server/bricksync/tmp:/app/tmp"
+      - "D:/Server/bricksync/logs:/app/logs"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - bricksync_network
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:5000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  bricksync_network:
+    name: bricksync_network
+    driver: bridge
+
+volumes:
+  bricksync_mysql_data:
+    name: bricksync_mysql_data

@@ -31,30 +31,35 @@ exports.saveNotepad = async (req, res) => {
 exports.uploadPDF = async (req, res) => {
     try {
         if (!req.file) {
-            return res.status(400).json({ success: false, message: "No PDF file uploaded" });
+            return res.status(400).json({
+                success: false,
+                message: "No PDF file uploaded"
+            });
         }
-        const folder = req.headers['x-folder-name'] || 'notepad';
-        const originalPath = req.file.path;
-        const compressedPath = originalPath + '.gz';
 
-        const zlib = require('zlib');
-        // Compress the saved file using gzip
+        const originalPath = req.file.path;
+        const compressedPath = originalPath + ".gz";
+        const zlib = require("zlib");
+
         const fileData = fs.readFileSync(originalPath);
         const compressedBuffer = zlib.gzipSync(fileData);
-        fs.writeFileSync(compressedPath, compressedBuffer);
 
-        // Remove the uncompressed original to save disk space
+        fs.writeFileSync(compressedPath, compressedBuffer);
         fs.unlinkSync(originalPath);
 
         res.status(200).json({
             success: true,
             message: "PDF uploaded and compressed successfully",
             filename: req.file.filename,
-            path: `/${folder}/${req.file.filename}`
+            path: `/notepad/${req.file.filename}`
         });
     } catch (error) {
         console.error("Upload PDF Error:", error);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
+
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
     }
 };
 

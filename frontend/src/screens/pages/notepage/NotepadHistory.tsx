@@ -49,10 +49,19 @@ const NotepadHistory: React.FC = () => {
     }, [page, search]);
 
     const getPdfUrl = (record: NotepadRecord) => {
-        if (record.filename) return `${FILE_BASE_URL}/notepad/${record.filename}`;
-        if (record.pdfPath) return `${FILE_BASE_URL}${record.pdfPath.replace('/pdfs/', '/notepad/').replace('/pdf/', '/notepad/')}`;
-        return null;
-    };
+    if (record.pdfPath) {
+        return `${FILE_BASE_URL}${record.pdfPath
+            .replace('/pdfs/', '/notepad/')
+            .replace('/pdf/', '/notepad/')}`;
+    }
+
+    // Fallback for older records
+    if (record.filename) {
+        return `${FILE_BASE_URL}/notepad/${record.filename}`;
+    }
+
+    return null;
+};
 
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {

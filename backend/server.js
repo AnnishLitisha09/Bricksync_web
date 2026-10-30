@@ -201,30 +201,29 @@ function getLocalIP() {
 }
 
 const PORT = process.env.PORT || 5000;
+
 const http = require("http");
 const { initSocket } = require("./utils/socket");
 const { startTelemetryStream } = require("./utils/telemetryStreamer");
 
 const server = http.createServer(app);
-initSocket(server);
-startTelemetryStream();
 
 db.sequelize.authenticate()
-  .then(() => {
-    console.log("✅ DB Connected");
-    return db.sequelize.sync(); 
-  })
-  .then(() => {
-    console.log("✅ Tables Synced");
-    // Safely attempt to add the places column if it doesn't exist (ignores error if it does)
-    db.sequelize.query("ALTER TABLE order_items ADD COLUMN places VARCHAR(255);").catch(() => {});
-    
-    const ip = getLocalIP();
-    server.listen(PORT, "0.0.0.0", () => {
-      console.log(`👉 Local: http://localhost:${PORT}`);
-      console.log(`👉 Network: http://${ip}:${PORT}`);
+    .then(() => {
+        console.log("🟢 DB Connected");
+
+        // Start background services only after DB connection succeeds
+        initSocket(server);
+        startTelemetryStream();
+
+        const ip = getLocalIP();
+
+        server.listen(PORT, "0.0.0.0", () => {
+            console.log(`📡 Local: http://localhost:${PORT}`);
+            console.log(`📡 Network: http://${ip}:${PORT}`);
+        });
+    })
+    .catch(err => {
+        console.error("❌ DB Error:", err);
+        process.exit(1);
     });
-  })
-  .catch(err => {
-    console.error("❌ DB Error:", err);
-  });

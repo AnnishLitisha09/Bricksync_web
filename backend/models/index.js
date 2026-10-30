@@ -2,7 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const Sequelize = require("sequelize");
 const basename = path.basename(__filename);
-const config = require("../config/config.js").development;
+const env = process.env.NODE_ENV || "development";
+const config = require("../config/config.js")[env];
 
 const sequelize = new Sequelize(
   config.database,

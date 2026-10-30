@@ -1,3 +1,4 @@
+
 require("dotenv").config();
 
 const poolConfig = {
@@ -7,29 +8,21 @@ const poolConfig = {
   idle: parseInt(process.env.DB_POOL_IDLE || "10000", 10),
 };
 
+const databaseConfig = {
+  username: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT || 3306),
+  dialect: "mysql",
+  pool: poolConfig,
+};
+
 module.exports = {
-  development: {
-    username: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    database: process.env.DB_NAME,
-    host: process.env.DB_HOST,
-    dialect: "mysql",
-    pool: poolConfig,
-  },
+  development: databaseConfig,
   test: {
-    username: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    database: "database_test",
-    host: process.env.DB_HOST,
-    dialect: "mysql",
-    pool: poolConfig,
+    ...databaseConfig,
+    database: process.env.DB_TEST_NAME || "bricksync_test",
   },
-  production: {
-    username: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    database: "database_production",
-    host: process.env.DB_HOST,
-    dialect: "mysql",
-    pool: poolConfig,
-  },
+  production: databaseConfig,
 };

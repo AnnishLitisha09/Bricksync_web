@@ -11,6 +11,7 @@ Thumbs.db
 # =========================
 .env
 .env.*
+!.env.example
 
 # =========================
 # Logs
@@ -28,3 +29,16 @@ build/
 # Mobile application (separate Flutter project)
 # =========================
 mobile/
+# Production environment
+.env
+.env.*
+
+# Database backups
+*.sql
+*.sql.gz
+backend/backups/
+backups/
+
+# Runtime data
+backend/logs/
+backend/tmp/

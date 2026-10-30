@@ -77,39 +77,50 @@ const BusinessNotepad: React.FC = () => {
   };
 
   const uploadToBackend = async (pdfBlob: Blob, fileName: string) => {
-    try {
-      const formDataUpload = new FormData();
-      formDataUpload.append('pdf', pdfBlob, fileName);
+  try {
+    const formDataUpload = new FormData();
+    formDataUpload.append('pdf', pdfBlob, fileName);
 
-      const response = await fetch(`${BASE_URL}/notepad/upload-pdf`, {
-        method: 'POST',
-        headers: { ...getAuthHeader(), 'x-folder-name': 'notepad' },
-        body: formDataUpload
-      });
+    const response = await fetch(`${BASE_URL}/notepad/upload-pdf`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: formDataUpload
+    });
 
-      if (!response.ok) throw new Error("Backend upload failed");
+    const uploadResult = await response.json();
 
-      // Save notepad statistics and PDF path to database
-      await fetch(`${BASE_URL}/notepad/save`, {
-        method: 'POST',
-        headers: {
-          ...getAuthHeader(),
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          formData,
-          pdfPath: `/notepad/${fileName}`,
-          filename: fileName,
-          toggles
-        })
-      });
-
-      toast.success(`PDF saved as ${fileName}`);
-    } catch (error) {
-      console.error("Backend Error:", error);
-      toast.error("Failed to save record to database.");
+    if (!response.ok || !uploadResult.success || !uploadResult.path) {
+      throw new Error(uploadResult.message || "PDF upload failed");
     }
-  };
+
+    // Keep the original readable filename for history display.
+    // Store the actual UUID-based URL for opening the PDF.
+    const saveResponse = await fetch(`${BASE_URL}/notepad/save`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        formData,
+        pdfPath: uploadResult.path,
+        filename: fileName,
+        toggles
+      })
+    });
+
+    const saveResult = await saveResponse.json();
+
+    if (!saveResponse.ok || !saveResult.success) {
+      throw new Error(saveResult.message || "Failed to save notepad record");
+    }
+
+    toast.success(`PDF saved as ${fileName}`);
+  } catch (error) {
+    console.error("Backend Error:", error);
+    toast.error("Failed to upload PDF or save record.");
+  }
+};
 
   const downloadPDF = async () => {
     if (!previewRef.current) return;
