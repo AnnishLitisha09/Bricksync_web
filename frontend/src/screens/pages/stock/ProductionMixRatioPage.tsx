@@ -23,7 +23,8 @@ import {
   getProductionRecipes,
   upsertProductionRecipe,
   deleteProductionRecipe,
-  createProduct
+  createProduct,
+  getStock
 } from "../../../api/inventory";
 
 interface RecipeItem {
@@ -68,6 +69,23 @@ interface ProductOption {
   price_per_stock?: string;
 }
 
+interface ProductStockItem {
+  stock_id: number;
+  product_id: number;
+  office_id: number;
+  quantity: string;
+  product?: {
+    product_id: number;
+    product_name: string;
+    category: string;
+    price_per_stock?: string;
+  };
+  office?: {
+    office_id: number;
+    office_name: string;
+  };
+}
+
 interface FormItemState {
   material_product_id: number | null;
   material_name: string;
@@ -84,6 +102,7 @@ export default function ProductionMixRatioPage() {
   const [recipes, setRecipes] = useState<MixRecipe[]>([]);
   const [offices, setOffices] = useState<OfficeOption[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
+  const [stocks, setStocks] = useState<ProductStockItem[]>([]);
   const [activeOfficeId, setActiveOfficeId] = useState<number | null>(null);
 
   // Modal State
@@ -115,10 +134,11 @@ export default function ProductionMixRatioPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [officesRes, productsRes, recipesRes] = await Promise.all([
+      const [officesRes, productsRes, recipesRes, stocksRes] = await Promise.all([
         getAllOffices(),
         getAllProducts(),
-        getProductionRecipes()
+        getProductionRecipes(),
+        getStock()
       ]);
 
       const officeList: OfficeOption[] = Array.isArray(officesRes) ? officesRes : (officesRes.data || []);
@@ -126,6 +146,9 @@ export default function ProductionMixRatioPage() {
 
       const productList: ProductOption[] = Array.isArray(productsRes) ? productsRes : (productsRes.data || []);
       setProducts(productList);
+
+      const stockList: ProductStockItem[] = Array.isArray(stocksRes) ? stocksRes : (stocksRes?.data || []);
+      setStocks(stockList);
 
       if (recipesRes && recipesRes.success) {
         setRecipes(recipesRes.data || []);
@@ -152,11 +175,60 @@ export default function ProductionMixRatioPage() {
     return recipes.filter(r => r.office_id === activeOfficeId);
   }, [recipes, activeOfficeId]);
 
-  // Finished brick products ONLY (e.g. 6 mold, 6 holow, 4 mold)
-  const finishedBrickProducts = useMemo(() => {
-    const bricksOnly = products.filter(p => p.category === "bricks");
-    return bricksOnly.length > 0 ? bricksOnly : products;
-  }, [products]);
+  // Helper to get finished brick products available in a specific branch alone
+  const getBranchBrickProducts = (officeId: number) => {
+    if (!officeId) return [];
+
+    const branchStocks = stocks.filter(s => Number(s.office_id) === Number(officeId));
+    const result: { product_id: number; product_name: string; quantity?: string }[] = [];
+    const seenIds = new Set<number>();
+
+    for (const s of branchStocks) {
+      const prodMaster = products.find(p => p.product_id === s.product_id);
+      const category = s.product?.category || prodMaster?.category;
+
+      if (category === "bricks" && !seenIds.has(s.product_id)) {
+        seenIds.add(s.product_id);
+        result.push({
+          product_id: s.product_id,
+          product_name: s.product?.product_name || prodMaster?.product_name || `Brick Product #${s.product_id}`,
+          quantity: s.quantity
+        });
+      }
+    }
+
+    // If editing a recipe for this office, ensure its brick product is included
+    if (editingRecipeId) {
+      const currentRecipe = recipes.find(r => r.id === editingRecipeId);
+      if (currentRecipe && Number(currentRecipe.office_id) === Number(officeId) && !seenIds.has(currentRecipe.product_id)) {
+        result.push({
+          product_id: currentRecipe.product_id,
+          product_name: currentRecipe.product_name || `Brick Product #${currentRecipe.product_id}`,
+        });
+      }
+    }
+
+    return result;
+  };
+
+  // Finished brick products ONLY for the selected Factory Office / Plant (formOfficeId)
+  const branchFinishedBrickProducts = useMemo(() => {
+    return getBranchBrickProducts(formOfficeId);
+  }, [stocks, products, formOfficeId, editingRecipeId, recipes]);
+
+  // Handle switching factory office/plant in the modal
+  const handleOfficeChange = (newOfficeId: number) => {
+    setFormOfficeId(newOfficeId);
+    const available = getBranchBrickProducts(newOfficeId);
+    const isStillValid = available.some(p => p.product_id === formProductId);
+    if (isStillValid) {
+      // Keep current selection
+    } else if (available.length > 0) {
+      setFormProductId(available[0].product_id);
+    } else {
+      setFormProductId(0);
+    }
+  };
 
   // Raw materials from backend (e.g. Chemical Admixture, OPC 53 Cement, Stone Dust, Fly Ash, etc.)
   const rawMaterialOptions = useMemo(() => {
@@ -176,8 +248,11 @@ export default function ProductionMixRatioPage() {
   // Open Create Modal
   const openCreateModal = () => {
     setEditingRecipeId(null);
-    setFormOfficeId(activeOfficeId || (offices[0]?.office_id || 1));
-    setFormProductId(finishedBrickProducts[0]?.product_id || 1);
+    const initialOfficeId = activeOfficeId || (offices[0]?.office_id || 1);
+    setFormOfficeId(initialOfficeId);
+
+    const availableBricks = getBranchBrickProducts(initialOfficeId);
+    setFormProductId(availableBricks.length > 0 ? availableBricks[0].product_id : 0);
     setFormBatchBricks(1000);
     setFormDescription("");
 
@@ -352,10 +427,15 @@ export default function ProductionMixRatioPage() {
         toast.success(`Raw material "${newMaterialName.trim()}" added to database!`);
         setIsNewMaterialModalOpen(false);
         setNewMaterialName("");
-        // Reload products
-        const updated = await getAllProducts();
+        // Reload products & stocks
+        const [updated, updatedStocks] = await Promise.all([
+          getAllProducts(),
+          getStock()
+        ]);
         const productList: ProductOption[] = Array.isArray(updated) ? updated : (updated.data || []);
         setProducts(productList);
+        const stockList: ProductStockItem[] = Array.isArray(updatedStocks) ? updatedStocks : (updatedStocks?.data || []);
+        setStocks(stockList);
 
         // Auto select the new material for the first custom row or add a new row with it
         const newProd = productList.find(p => p.product_name.toLowerCase() === newMaterialName.trim().toLowerCase());
@@ -384,8 +464,8 @@ export default function ProductionMixRatioPage() {
   const handleSaveRecipe = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formOfficeId || !formProductId) {
-      toast.error("Please select an office and a brick product.");
+    if (!formOfficeId || !formProductId || formProductId === 0) {
+      toast.error("Please select a factory office and a finished brick product available in that branch.");
       return;
     }
 
@@ -803,8 +883,8 @@ export default function ProductionMixRatioPage() {
                     </label>
                     <select
                       value={formOfficeId}
-                      onChange={e => setFormOfficeId(Number(e.target.value))}
-                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-600"
+                      onChange={e => handleOfficeChange(Number(e.target.value))}
+                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-600 cursor-pointer"
                     >
                       {offices.map(o => (
                         <option key={o.office_id} value={o.office_id}>
@@ -814,22 +894,41 @@ export default function ProductionMixRatioPage() {
                     </select>
                   </div>
 
-                  {/* Select Finished Brick Product (BRICKS ONLY!) */}
+                  {/* Select Finished Brick Product (BRICKS ONLY IN THIS BRANCH!) */}
                   <div>
-                    <label className="text-[11px] font-bold text-slate-500 block mb-1">
-                      Finished Brick Product
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-bold text-slate-500 block">
+                        Finished Brick Product
+                      </label>
+                      {branchFinishedBrickProducts.length > 0 && (
+                        <span className="text-[10px] font-bold text-indigo-600">
+                          {branchFinishedBrickProducts.length} in branch
+                        </span>
+                      )}
+                    </div>
                     <select
-                      value={formProductId}
+                      value={formProductId || ""}
                       onChange={e => setFormProductId(Number(e.target.value))}
-                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-indigo-600"
+                      disabled={branchFinishedBrickProducts.length === 0}
+                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-indigo-600 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer"
                     >
-                      {finishedBrickProducts.map(p => (
-                        <option key={p.product_id} value={p.product_id}>
-                          {p.product_name}
+                      {branchFinishedBrickProducts.length === 0 ? (
+                        <option value="" disabled>
+                          No brick products in this branch
                         </option>
-                      ))}
+                      ) : (
+                        branchFinishedBrickProducts.map(p => (
+                          <option key={p.product_id} value={p.product_id}>
+                            {p.product_name}
+                          </option>
+                        ))
+                      )}
                     </select>
+                    {branchFinishedBrickProducts.length === 0 && (
+                      <p className="text-[10px] text-amber-600 font-semibold mt-1">
+                        ⚠️ No brick products available in this branch alone.
+                      </p>
+                    )}
                   </div>
 
                   {/* Batch Bricks Output */}
@@ -1000,8 +1099,8 @@ export default function ProductionMixRatioPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={modalLoading}
-                    className="h-10 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-indigo-600/25 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    disabled={modalLoading || branchFinishedBrickProducts.length === 0}
+                    className="h-10 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-indigo-600/25 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {modalLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                     <span>Save Plant Mix Ratio</span>
