@@ -1,6 +1,6 @@
 import { getSecurityHeaders, decryptPayload } from "../utils/cryptoUtils";
 
-const defaultBase = "https://ser-numerous-rob-mounting.trycloudflare.com";
+const defaultBase = "https://retrieved-lot-consumption-stem.trycloudflare.com";
 export const BASE_URL = (import.meta.env?.VITE_API_URL as string) || `${defaultBase}/api`;
 export const FILE_BASE_URL = (import.meta.env?.VITE_FILE_URL as string) || defaultBase;
 export const BASE_URL_NO_API = (import.meta.env?.VITE_FILE_URL as string) || defaultBase;
