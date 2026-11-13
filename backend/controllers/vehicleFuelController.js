@@ -8,6 +8,30 @@ const { Op } = require("sequelize");
 /* CREATE */
 exports.createVehicleFuel = async (req, res) => {
   try {
+    // 🔐 Permission check: Only Admin (1) and Driver (2) are authorized to log fuel
+    if (req.user) {
+      const userRole = req.user.userRole;
+      if (userRole !== 1) {
+        if (userRole !== 2) {
+          return res.status(403).json({
+            success: false,
+            message: "Permission denied: Only Admin and Driver are authorized to log fuel fills.",
+          });
+        }
+        // If staff (role 2), verify they are a Driver, NOT an Operator or Stocker
+        const user = await db.User.findByPk(req.user.userid);
+        if (user && user.staffRole) {
+          const role = user.staffRole.toLowerCase().trim();
+          if (role.includes("operator") || role.includes("stock") || (!role.includes("driver") && !role.includes("pilot"))) {
+            return res.status(403).json({
+              success: false,
+              message: `Permission denied: ${user.staffRole} is not authorized to log fuel. Only Admin and Driver are allowed.`,
+            });
+          }
+        }
+      }
+    }
+
     const { vehicleId, bunkId, volume, amount, date, kilometer } = req.body;
 
     const fuel = await VehicleFuel.create({ vehicleId, bunkId, volume, amount, date, kilometer });

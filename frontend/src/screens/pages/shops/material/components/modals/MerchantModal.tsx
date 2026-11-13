@@ -474,7 +474,7 @@ const MerchantModal: React.FC<MerchantModalProps> = ({
                                             value={tagInput}
                                             onChange={(e) => setTagInput(e.target.value)}
                                             onKeyDown={(e) => {
-                                                if (e.key === "Enter" || e.key === ",") {
+                                                if (e.key === "Enter" || e.key === "," || e.keyCode === 13 || e.code === "Enter" || e.code === "NumpadEnter") {
                                                     e.preventDefault();
                                                     handleAddTag();
                                                 }

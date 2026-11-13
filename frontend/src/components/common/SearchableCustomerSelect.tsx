@@ -60,20 +60,40 @@ const SearchableCustomerSelect: React.FC<SearchableCustomerSelectProps> = ({
   const triggerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!externalInputRef) return;
-    if (typeof externalInputRef === "function") {
-      externalInputRef(triggerRef.current);
-    } else {
-      (externalInputRef as React.MutableRefObject<any>).current = triggerRef.current;
-    }
-  }, [externalInputRef]);
+  const isEnter = (e: React.KeyboardEvent | KeyboardEvent) =>
+    e.key === "Enter" || e.key === "Return" || e.keyCode === 13 || e.which === 13 || e.code === "Enter" || e.code === "NumpadEnter";
 
   // Selected customer object
   const selectedCustomer = useMemo(
     () => customers.find((c) => String(c.id) === String(value)),
     [customers, value]
   );
+
+  useEffect(() => {
+    if (!externalInputRef) return;
+    const refObj = {
+      focus: () => {
+        if (!selectedCustomer) {
+          setIsOpen(true);
+          setTimeout(() => searchInputRef.current?.focus(), 40);
+        } else {
+          triggerRef.current?.focus();
+        }
+      },
+      click: () => {
+        handleOpen();
+      },
+      scrollIntoView: (options?: any) => {
+        containerRef.current?.scrollIntoView(options);
+      }
+    };
+
+    if (typeof externalInputRef === "function") {
+      externalInputRef(refObj);
+    } else {
+      (externalInputRef as React.MutableRefObject<any>).current = refObj;
+    }
+  }, [externalInputRef, selectedCustomer]);
 
   // Recent customers list (for 1-click frequent customer selection)
   const recentCustomers = useMemo(() => {
@@ -129,7 +149,7 @@ const SearchableCustomerSelect: React.FC<SearchableCustomerSelectProps> = ({
     setIsOpen(false);
     setSearch("");
     if (onSelectNext) {
-      setTimeout(onSelectNext, 10);
+      setTimeout(onSelectNext, 40);
     }
   };
 
@@ -144,7 +164,7 @@ const SearchableCustomerSelect: React.FC<SearchableCustomerSelectProps> = ({
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isOpen) {
-      if (e.key === "Enter") {
+      if (isEnter(e)) {
         e.preventDefault();
         if (selectedCustomer && onSelectNext) {
           onSelectNext();
@@ -173,7 +193,7 @@ const SearchableCustomerSelect: React.FC<SearchableCustomerSelectProps> = ({
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setSelectedIndex((prev) => Math.max(prev - 1, 0));
-    } else if (e.key === "Enter") {
+    } else if (isEnter(e)) {
       e.preventDefault();
       const target = filteredCustomers[selectedIndex] || filteredCustomers[0];
       if (target) {
@@ -269,6 +289,7 @@ const SearchableCustomerSelect: React.FC<SearchableCustomerSelectProps> = ({
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="Type name or phone number..."
                 className="w-full bg-transparent outline-none text-xs font-semibold text-slate-800 placeholder:text-slate-400 placeholder:font-normal"
               />

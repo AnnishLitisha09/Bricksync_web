@@ -4,7 +4,7 @@ import {
   Search, ShieldCheck, Users, Phone, ExternalLink, Loader2,
   Plus, X, Pencil, Trash2, AlertTriangle, Upload, CheckCircle2,
   ListFilter, Download, LayoutGrid, List, MoreVertical, IndianRupee,
-  TrendingUp, UserCircle2, Package
+  TrendingUp, UserCircle2, Package, RefreshCw, ChevronDown
 } from "lucide-react";
 import type { CustomerData } from "../../../store/customers/useCustomerStore";
 import { useCustomerStore } from "../../../store/customers/useCustomerStore";
@@ -13,10 +13,8 @@ import { parseCustomerPdf, type ParsedCustomer } from "../../../utils/parseCusto
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import ExportCustomerModal from "./ExportCustomerModal";
-import LottieLoader from "../../../components/common/LottieLoader";
 
-
-// Grey-anchored palette — only Avatar keeps colour
+// Palette — only Avatar keeps colour
 const avatarColors = [
   "from-violet-500 to-purple-600",
   "from-blue-500 to-indigo-600",
@@ -25,17 +23,130 @@ const avatarColors = [
   "from-indigo-600 to-blue-600",
   "from-cyan-500 to-sky-600",
 ];
-const getAvatarColor = (name: string) => avatarColors[name.charCodeAt(0) % avatarColors.length];
+const getAvatarColor = (name: string) => avatarColors[(name?.charCodeAt(0) || 0) % avatarColors.length];
+
+/* ─── ATTRACTIVE SKELETON LOADERS ─── */
+
+const TableSkeletonRow: React.FC<{ index: number }> = ({ index }) => (
+  <tr className="border-b border-slate-50/70 animate-pulse" style={{ animationDelay: `${index * 75}ms` }}>
+    <td className="px-6 py-4">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-slate-200/80 shrink-0" />
+        <div className="space-y-1.5 min-w-0">
+          <div className="h-3.5 bg-slate-200/80 rounded-md w-36 sm:w-48" />
+          <div className="h-2.5 bg-slate-100 rounded-md w-16" />
+        </div>
+      </div>
+    </td>
+    <td className="px-6 py-4">
+      <div className="flex items-center gap-2">
+        <div className="w-3.5 h-3.5 rounded-full bg-slate-200/60 shrink-0" />
+        <div className="h-3 bg-slate-200/70 rounded-md w-24" />
+      </div>
+    </td>
+    <td className="px-6 py-4 hidden md:table-cell">
+      <div className="h-6 w-16 bg-slate-100/90 rounded-lg" />
+    </td>
+    <td className="px-6 py-4 text-right">
+      <div className="flex flex-col items-end gap-1">
+        <div className="h-4 bg-slate-200/80 rounded-md w-20" />
+        <div className="h-2 bg-slate-100 rounded-md w-8" />
+      </div>
+    </td>
+    <td className="px-6 py-4">
+      <div className="flex items-center justify-end gap-1.5">
+        <div className="w-8 h-8 rounded-xl bg-slate-100/80" />
+        <div className="w-8 h-8 rounded-xl bg-slate-100/80" />
+        <div className="w-8 h-8 rounded-xl bg-slate-100/80" />
+      </div>
+    </td>
+  </tr>
+);
+
+const TableSkeleton: React.FC<{ rows?: number }> = ({ rows = 8 }) => (
+  <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+    <div className="overflow-x-auto">
+      <table className="w-full text-left min-w-[560px]">
+        <thead>
+          <tr className="border-b border-slate-50">
+            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer</th>
+            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone</th>
+            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden md:table-cell">Category</th>
+            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Balance</th>
+            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-50/60">
+          {[...Array(rows)].map((_, i) => (
+            <TableSkeletonRow key={i} index={i} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
+const GridSkeletonCard: React.FC<{ index: number }> = ({ index }) => (
+  <div
+    className="bg-white rounded-2xl border border-slate-200/70 p-4 shadow-2xs space-y-4 animate-pulse flex flex-col justify-between"
+    style={{ animationDelay: `${index * 75}ms` }}
+  >
+    <div>
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-200/80 shrink-0" />
+          <div className="space-y-1.5">
+            <div className="h-3.5 bg-slate-200/80 rounded-md w-32" />
+            <div className="h-2.5 bg-slate-100 rounded-md w-16" />
+          </div>
+        </div>
+        <div className="w-6 h-6 rounded-lg bg-slate-100 shrink-0" />
+      </div>
+
+      <div className="my-3 border-t border-slate-100" />
+
+      <div className="space-y-2.5">
+        <div className="flex items-center gap-2">
+          <div className="w-3.5 h-3.5 rounded-full bg-slate-200/60" />
+          <div className="h-3 bg-slate-200/70 rounded-md w-24" />
+        </div>
+        <div className="h-8 rounded-xl bg-slate-100/90" />
+      </div>
+    </div>
+
+    <div className="pt-2">
+      <div className="h-9 w-full rounded-xl bg-indigo-50/60" />
+    </div>
+  </div>
+);
+
+const GridSkeleton: React.FC<{ count?: number }> = ({ count = 8 }) => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    {[...Array(count)].map((_, i) => (
+      <GridSkeletonCard key={i} index={i} />
+    ))}
+  </div>
+);
 
 /* ─────────────────────────────────────────────────── */
 
 const CustomerHub: React.FC = () => {
   const navigate = useNavigate();
-  const { customers, totalCustomers, loading, fetchCustomers, createCustomer, updateCustomer, deleteCustomer } = useCustomerStore();
+  const {
+    customers,
+    totalCustomers,
+    summary,
+    loading,
+    loadingMore,
+    error,
+    fetchCustomers,
+    createCustomer,
+    updateCustomer,
+    deleteCustomer
+  } = useCustomerStore();
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<CustomerData>({ name: "", email: "", phone_no: "", address: "", balance: 0, category: "other" });
   const [submitting, setSubmitting] = useState(false);
@@ -46,7 +157,8 @@ const CustomerHub: React.FC = () => {
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
   const [entryMode, setEntryMode] = useState<"manual" | "bulk">("manual");
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [parsedCustomers, setParsedCustomers] = useState<ParsedCustomer[]>([]);
@@ -54,34 +166,58 @@ const CustomerHub: React.FC = () => {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isInitialMount = useRef(true);
+
+  // Fetch logic: immediate on mount/sort, debounced on text search
   useEffect(() => {
-    const t = setTimeout(() => { setPage(1); setHasMore(true); fetchCustomers(search, 1, true, false, sortBy, sortOrder); }, 300);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      setPage(1);
+      fetchCustomers(search, 1, true, false, sortBy, sortOrder);
+      return;
+    }
+
+    const t = setTimeout(() => {
+      setPage(1);
+      fetchCustomers(search, 1, true, false, sortBy, sortOrder);
+    }, 300);
+
     return () => clearTimeout(t);
   }, [search, sortBy, sortOrder]);
 
-  useEffect(() => { setHasMore(customers.length < totalCustomers); }, [customers.length, totalCustomers]);
+  const hasMore = customers.length < totalCustomers;
 
-  const loadMore = useCallback(async () => {
-    if (loading || !hasMore) return;
-    const next = page + 1; setPage(next);
-    await fetchCustomers(search, next, false, true, sortBy, sortOrder);
-  }, [loading, hasMore, page, search, sortBy, sortOrder, fetchCustomers]);
+  // Infinite scroll load more handler
+  const handleLoadMore = useCallback(async () => {
+    if (loading || loadingMore || !hasMore) return;
+    const nextPage = page + 1;
+    setPage(nextPage);
+    await fetchCustomers(search, nextPage, true, true, sortBy, sortOrder);
+  }, [loading, loadingMore, hasMore, page, search, sortBy, sortOrder, fetchCustomers]);
 
-  const loadMoreRef = useRef(loadMore);
+  // Reliable IntersectionObserver callback ref: attaches whenever element is mounted
+  const sentinelCallbackRef = useCallback((node: HTMLDivElement | null) => {
+    if (loading || loadingMore) return;
+    if (observerRef.current) observerRef.current.disconnect();
+
+    if (node && hasMore) {
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          handleLoadMore();
+        }
+      }, { rootMargin: "250px" });
+      observerRef.current.observe(node);
+    }
+  }, [hasMore, loading, loadingMore, handleLoadMore]);
+
+  // Clean up observer on unmount
   useEffect(() => {
-    loadMoreRef.current = loadMore;
-  }, [loadMore]);
-
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) loadMoreRef.current();
-    }, { threshold: 0.1 });
-    obs.observe(el);
-    return () => obs.disconnect();
+    return () => {
+      if (observerRef.current) observerRef.current.disconnect();
+    };
   }, []);
 
+  // Click outside menus
   useEffect(() => {
     const h = (e: MouseEvent) => { if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) setShowSortMenu(false); };
     const c = (e: MouseEvent) => { const t = e.target as HTMLElement; if (!t.closest('[data-menu]')) setActiveMenu(null); };
@@ -129,8 +265,10 @@ const CustomerHub: React.FC = () => {
   const lc = "text-[10px] font-black text-slate-400 uppercase tracking-wider";
   const ic = "w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition text-sm font-medium text-slate-700";
 
-  const totalBalance = customers.reduce((s, c) => s + Number(c.balance || 0), 0);
-  const dueCount = customers.filter(c => Number(c.balance) > 0).length;
+  // Summary counts
+  const totalBalance = summary?.totalOutstanding ?? customers.reduce((s, c) => s + Number(c.balance || 0), 0);
+  const dueCount = summary?.dueCount ?? customers.filter(c => Number(c.balance) > 0).length;
+  const clientCount = summary?.totalClients ?? totalCustomers;
 
   return (
     <div className="space-y-6 font-sans animate-in">
@@ -143,7 +281,7 @@ const CustomerHub: React.FC = () => {
               <ShieldCheck size={11} /> Secure Ledger
             </span>
             <span className="text-xs font-bold text-slate-400">
-              • {loading && !customers.length ? "Loading..." : `${totalCustomers} Accounts`}
+              • {loading && !customers.length ? "Loading..." : `${clientCount} Accounts`}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
@@ -193,7 +331,11 @@ const CustomerHub: React.FC = () => {
         <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Clients</p>
-            <p className="text-2xl font-black text-slate-900 mt-1">{totalCustomers}</p>
+            {loading && !customers.length ? (
+              <div className="h-7 w-20 bg-slate-100 rounded-lg animate-pulse mt-1" />
+            ) : (
+              <p className="text-2xl font-black text-slate-900 mt-1">{clientCount}</p>
+            )}
           </div>
           <div className="size-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
             <Users size={18} />
@@ -204,7 +346,11 @@ const CustomerHub: React.FC = () => {
         <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Due Accounts</p>
-            <p className="text-2xl font-black text-amber-600 mt-1">{dueCount}</p>
+            {loading && !customers.length ? (
+              <div className="h-7 w-16 bg-amber-50 rounded-lg animate-pulse mt-1" />
+            ) : (
+              <p className="text-2xl font-black text-amber-600 mt-1">{dueCount}</p>
+            )}
           </div>
           <div className="size-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shrink-0">
             <TrendingUp size={18} />
@@ -215,9 +361,13 @@ const CustomerHub: React.FC = () => {
         <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Outstanding</p>
-            <p className="text-2xl font-black text-emerald-600 mt-1">
-              ₹{totalBalance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-            </p>
+            {loading && !customers.length ? (
+              <div className="h-7 w-28 bg-emerald-50 rounded-lg animate-pulse mt-1" />
+            ) : (
+              <p className="text-2xl font-black text-emerald-600 mt-1">
+                ₹{totalBalance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+              </p>
+            )}
           </div>
           <div className="size-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
             <IndianRupee size={18} />
@@ -236,14 +386,18 @@ const CustomerHub: React.FC = () => {
             onChange={e => setSearch(e.target.value)}
             className="w-full h-10 pl-9 pr-8 rounded-xl border border-slate-200/80 bg-white text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 shadow-2xs transition-all"
           />
-          {search && (
+          {loading && search ? (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Loader2 size={13} className="animate-spin text-indigo-600" />
+            </div>
+          ) : search ? (
             <button
               onClick={() => setSearch("")}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
             >
               <X size={13} />
             </button>
-          )}
+          ) : null}
         </div>
 
         {/* Sort */}
@@ -293,6 +447,7 @@ const CustomerHub: React.FC = () => {
                 ? 'bg-indigo-600 text-white shadow-2xs'
                 : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/50'
             }`}
+            title="Grid View"
           >
             <LayoutGrid size={14} />
           </button>
@@ -303,29 +458,43 @@ const CustomerHub: React.FC = () => {
                 ? 'bg-indigo-600 text-white shadow-2xs'
                 : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/50'
             }`}
+            title="Table View"
           >
             <List size={14} />
           </button>
         </div>
       </div>
 
-      {/* ─── CONTENT ─── */}
-      {loading && customers.length === 0 ? (
-        <LottieLoader
-          type="general"
-          message="Acquiring Client Records"
-          size={300}
-        />
+      {/* ─── ERROR STATE ─── */}
+      {error && customers.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 bg-white rounded-3xl border border-rose-100 shadow-sm text-center">
+          <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center mb-4 border border-rose-100">
+            <AlertTriangle size={26} />
+          </div>
+          <h3 className="text-lg font-black text-slate-800">Unable to Load Clients</h3>
+          <p className="text-slate-500 text-xs mt-1 max-w-md">
+            {error}
+          </p>
+          <button
+            onClick={() => fetchCustomers(search, 1, true, false, sortBy, sortOrder)}
+            className="mt-5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-indigo-600/20 flex items-center gap-2 cursor-pointer active:scale-95"
+          >
+            <RefreshCw size={14} /> Retry Connection
+          </button>
+        </div>
+      ) : loading && customers.length === 0 ? (
+        /* ─── ATTRACTIVE INITIAL SKELETON LOADING ─── */
+        viewMode === "table" ? <TableSkeleton rows={8} /> : <GridSkeleton count={8} />
       ) : (
         <>
-          {/* ── GRID ── */}
+          {/* ── GRID VIEW ── */}
           {viewMode === "grid" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               <AnimatePresence>
                 {customers.map((c, i) => (
                   <motion.div key={c.id}
                     initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0, transition: { delay: Math.min(i * 0.03, 0.25) } }}
+                    animate={{ opacity: 1, y: 0, transition: { delay: Math.min(i * 0.02, 0.2) } }}
                     exit={{ opacity: 0, scale: 0.96 }}
                     whileHover={{ y: -3, transition: { duration: 0.16, ease: "easeOut" } }}
                     onClick={() => navigate(`/customer/details/${c.id}`)}
@@ -335,9 +504,9 @@ const CustomerHub: React.FC = () => {
                     <div>
                       <div className="p-4 flex items-start justify-between gap-2.5">
                         <div className="flex items-center gap-3 min-w-0">
-                          {/* Tripzo Style Avatar */}
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-700 to-indigo-500 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-                            {c.name.charAt(0).toUpperCase()}
+                          {/* Gradient Avatar */}
+                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${getAvatarColor(c.name)} text-white font-black text-sm flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform`}>
+                            {c.name ? c.name.charAt(0).toUpperCase() : "?"}
                           </div>
                           <div className="min-w-0">
                             <h3 className="font-black text-slate-800 text-sm truncate max-w-[170px] sm:max-w-[200px] group-hover:text-indigo-600 transition-colors uppercase tracking-tight" title={c.name}>
@@ -424,10 +593,18 @@ const CustomerHub: React.FC = () => {
                   </motion.div>
                 ))}
               </AnimatePresence>
+
+              {/* Streaming loading skeleton cards in Grid View */}
+              {loadingMore && (
+                <>
+                  <GridSkeletonCard index={0} />
+                  <GridSkeletonCard index={1} />
+                </>
+              )}
             </div>
           )}
 
-          {/* ── TABLE ── */}
+          {/* ── TABLE VIEW ── */}
           {viewMode === "table" && (
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
@@ -445,14 +622,14 @@ const CustomerHub: React.FC = () => {
                     <AnimatePresence>
                       {customers.map((c, i) => (
                         <motion.tr key={c.id}
-                          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0, transition: { delay: i * 0.03 } }} exit={{ opacity: 0 }}
+                          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0, transition: { delay: Math.min(i * 0.02, 0.2) } }} exit={{ opacity: 0 }}
                           onClick={() => navigate(`/customer/details/${c.id}`)}
                           className="border-b border-slate-50/60 hover:bg-slate-50/40 transition-colors group cursor-pointer">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              {/* Gradient avatar in list view */}
+                              {/* Gradient avatar */}
                               <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${getAvatarColor(c.name)} flex items-center justify-center text-white font-black text-sm shrink-0 shadow-sm`}>
-                                {c.name.charAt(0).toUpperCase()}
+                                {c.name ? c.name.charAt(0).toUpperCase() : "?"}
                               </div>
                               <div className="min-w-0">
                                 <p className="font-bold text-slate-800 text-sm truncate max-w-[180px] group-hover:text-slate-900 transition-colors uppercase tracking-tight" title={c.name}>{c.name}</p>
@@ -469,7 +646,6 @@ const CustomerHub: React.FC = () => {
                             <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black uppercase">{c.category || "Other"}</span>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            {/* Green text, no background */}
                             <p className={`text-sm font-black tabular-nums ${Number(c.balance) > 0 ? "text-emerald-500" : "text-slate-400"}`}>
                               ₹{Number(c.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </p>
@@ -477,35 +653,84 @@ const CustomerHub: React.FC = () => {
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center justify-end gap-1.5">
-                               <button onClick={(e) => { e.stopPropagation(); navigate(`/customer/details/${c.id}`); }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all" title="View Ledger"><ExternalLink size={13} /></button>
-                              <button onClick={(e) => { e.stopPropagation(); setFormData(c); setIsModalOpen(true); }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-all" title="Edit"><Pencil size={13} /></button>
-                              <button onClick={(e) => { e.stopPropagation(); setDeleteId(c.id!); }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all" title="Delete"><Trash2 size={13} /></button>
+                              <button onClick={(e) => { e.stopPropagation(); navigate(`/customer/details/${c.id}`); }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all cursor-pointer" title="View Ledger"><ExternalLink size={13} /></button>
+                              <button onClick={(e) => { e.stopPropagation(); setFormData(c); setIsModalOpen(true); }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-all cursor-pointer" title="Edit"><Pencil size={13} /></button>
+                              <button onClick={(e) => { e.stopPropagation(); setDeleteId(c.id!); }} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all cursor-pointer" title="Delete"><Trash2 size={13} /></button>
                             </div>
                           </td>
                         </motion.tr>
                       ))}
                     </AnimatePresence>
+
+                    {/* Streaming skeleton rows in Table View */}
+                    {loadingMore && (
+                      <>
+                        <TableSkeletonRow index={0} />
+                        <TableSkeletonRow index={1} />
+                        <TableSkeletonRow index={2} />
+                      </>
+                    )}
                   </tbody>
                 </table>
               </div>
             </motion.div>
           )}
 
-          {/* Empty */}
-          {customers.length === 0 && (
+          {/* Empty state (only when search finished and strictly 0 results) */}
+          {!loading && customers.length === 0 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-28 bg-white rounded-3xl border border-slate-100">
-              <UserCircle2 size={56} className="text-slate-200 mb-4" strokeWidth={1.5} />
-              <h2 className="text-xl font-black text-slate-600">No Clients Found</h2>
-              <p className="text-slate-400 text-sm mt-1.5">Try a different search or add your first client.</p>
-              <button onClick={() => setSearch("")} className="mt-6 px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition text-sm shadow-md shadow-indigo-600/20 cursor-pointer">Clear Search</button>
+              className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-slate-100 shadow-sm text-center">
+              <UserCircle2 size={56} className="text-slate-200 mb-3" strokeWidth={1.5} />
+              <h2 className="text-lg font-black text-slate-700">No Clients Found</h2>
+              <p className="text-slate-400 text-xs mt-1">
+                {search ? `No customer records matched "${search}"` : "Try adding your first client to get started."}
+              </p>
+              {search && (
+                <button onClick={() => setSearch("")} className="mt-5 px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition text-xs shadow-md shadow-indigo-600/20 cursor-pointer">
+                  Clear Search Filter
+                </button>
+              )}
             </motion.div>
           )}
 
-          {/* Sentinel */}
-          <div ref={sentinelRef} className="h-8" />
-          {loading && customers.length > 0 && <div className="flex justify-center py-5"><Loader2 className="animate-spin text-indigo-600" size={22} /></div>}
-          {!hasMore && customers.length > 0 && <p className="text-center text-[10px] font-black text-slate-300 uppercase tracking-widest py-3">All {totalCustomers} clients loaded</p>}
+          {/* ─── INFINITE SCROLL SENTINEL & LOAD MORE CONTROL ─── */}
+          {hasMore && customers.length > 0 && (
+            <div className="flex flex-col items-center justify-center gap-3 py-6">
+              {/* Invisible sentinel observed by IntersectionObserver for auto-scroll */}
+              <div ref={sentinelCallbackRef} className="h-4 w-full" />
+
+              {/* Explicit attractive Load More button */}
+              <button
+                onClick={() => handleLoadMore()}
+                disabled={loadingMore || loading}
+                className="px-6 py-2.5 bg-white hover:bg-indigo-50/70 text-indigo-700 hover:text-indigo-800 border border-indigo-200/80 rounded-xl text-xs font-bold transition-all shadow-2xs hover:shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95 group"
+              >
+                {loadingMore ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin text-indigo-600" />
+                    <span>Loading more clients...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Load More Clients</span>
+                    <span className="px-1.5 py-0.5 rounded-md bg-indigo-100/70 text-[10px] font-black text-indigo-700 group-hover:bg-indigo-200/80 transition-colors">
+                      {Math.max(0, totalCustomers - customers.length)} remaining
+                    </span>
+                    <ChevronDown size={14} className="group-hover:translate-y-0.5 transition-transform" />
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* All loaded indicator */}
+          {!hasMore && customers.length > 0 && (
+            <div className="text-center py-6">
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                ✓ All {totalCustomers} clients loaded
+              </p>
+            </div>
+          )}
         </>
       )}
 

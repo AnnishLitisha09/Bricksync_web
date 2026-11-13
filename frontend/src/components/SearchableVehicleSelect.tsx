@@ -93,12 +93,15 @@ const SearchableVehicleSelect: React.FC<SearchableVehicleSelectProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const isEnter = (e: React.KeyboardEvent | KeyboardEvent) =>
+    e.key === "Enter" || e.key === "Return" || e.keyCode === 13 || e.which === 13 || e.code === "Enter" || e.code === "NumpadEnter";
+
   const handleSelect = (id: number) => {
     onChange(String(id));
     setIsOpen(false);
     setQuery("");
     if (onSelectNext) {
-      setTimeout(onSelectNext, 20);
+      setTimeout(onSelectNext, 40);
     }
   };
 
@@ -115,7 +118,9 @@ const SearchableVehicleSelect: React.FC<SearchableVehicleSelectProps> = ({
     setIsOpen(true);
     setQuery("");
     // Select all existing text so typing immediately replaces it
-    e.target.select();
+    try {
+      e.target.select();
+    } catch (_) {}
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -139,7 +144,7 @@ const SearchableVehicleSelect: React.FC<SearchableVehicleSelectProps> = ({
       return;
     }
 
-    if (e.key === "Enter") {
+    if (isEnter(e)) {
       e.preventDefault();
       if (isOpen && filteredVehicles.length > 0) {
         const target = filteredVehicles[selectedIndex] || filteredVehicles[0];

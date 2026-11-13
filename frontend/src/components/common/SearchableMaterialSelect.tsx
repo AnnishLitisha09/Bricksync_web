@@ -114,6 +114,9 @@ const SearchableMaterialSelect: React.FC<SearchableMaterialSelectProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const isEnter = (e: React.KeyboardEvent | KeyboardEvent) =>
+    e.key === "Enter" || e.key === "Return" || e.keyCode === 13 || e.which === 13 || e.code === "Enter" || e.code === "NumpadEnter";
+
   const handleSelect = (product: MaterialOption) => {
     const pId = String(product.product_id);
     const price = product.price_per_stock ? Number(product.price_per_stock) : undefined;
@@ -121,7 +124,7 @@ const SearchableMaterialSelect: React.FC<SearchableMaterialSelectProps> = ({
     setIsOpen(false);
     setQuery("");
     if (onSelectNext) {
-      setTimeout(onSelectNext, 20);
+      setTimeout(onSelectNext, 40);
     }
   };
 
@@ -138,7 +141,9 @@ const SearchableMaterialSelect: React.FC<SearchableMaterialSelectProps> = ({
     setIsOpen(true);
     setQuery("");
     // Select all existing text so immediate typing replaces it
-    e.target.select();
+    try {
+      e.target.select();
+    } catch (_) {}
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -162,7 +167,7 @@ const SearchableMaterialSelect: React.FC<SearchableMaterialSelectProps> = ({
       return;
     }
 
-    if (e.key === "Enter") {
+    if (isEnter(e)) {
       e.preventDefault();
       if (isOpen && filteredProducts.length > 0) {
         const target = filteredProducts[selectedIndex] || filteredProducts[0];

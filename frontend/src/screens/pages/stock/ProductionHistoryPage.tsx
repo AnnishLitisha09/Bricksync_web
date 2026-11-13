@@ -16,8 +16,6 @@ import {
   ChevronRight,
   FlaskConical,
   Eye,
-  CheckCircle2,
-  AlertCircle,
   FileSpreadsheet
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
@@ -442,8 +440,8 @@ export default function ProductionHistoryPage() {
                     <th className="px-5 py-3.5">Plant Location</th>
                     <th className="px-5 py-3.5">Brick Product</th>
                     <th className="px-5 py-3.5 text-center">Volume Produced</th>
-                    <th className="px-5 py-3.5 text-center">Cement Used & Variance</th>
-                    <th className="px-5 py-3.5 text-center">BOM Deductions</th>
+                    <th className="px-5 py-3.5 text-center">Cement Used</th>
+                    <th className="px-5 py-3.5 text-center">Stock Details</th>
                     <th className="px-5 py-3.5 text-center">Labor Piece-Rate</th>
                     <th className="px-5 py-3.5 text-right">Actions</th>
                   </tr>
@@ -451,9 +449,10 @@ export default function ProductionHistoryPage() {
 
                 <tbody className="divide-y divide-slate-100">
                   {paginatedHistory.map((log) => {
-                    const cementItem = log.raw_materials_used?.find((m) => m.is_cement);
-                    const otherMaterials = log.raw_materials_used?.filter((m) => !m.is_cement) || [];
                     const stocks = parseFloat(log.number_of_stocks) || 0;
+                    const unitsProduced = parseFloat(log.unit_produced) || 0;
+                    const perStock = stocks > 0 ? unitsProduced / stocks : 0;
+                    const perStockDisplay = Number.isInteger(perStock) ? perStock : perStock.toFixed(1);
                     const pricePerStock = parseFloat(log.price_per_stock) || 0;
                     const totalWage = stocks * pricePerStock;
                     const staffCount = log.employees?.length || 1;
@@ -507,7 +506,7 @@ export default function ProductionHistoryPage() {
                               </div>
                               {stocks > 0 && (
                                 <span className="inline-block text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-100 mt-0.5">
-                                  {stocks} Stocks
+                                  {stocks} Stocks {perStock > 0 ? `• ${perStockDisplay} per stock` : ""}
                                 </span>
                               )}
                             </div>
@@ -519,60 +518,41 @@ export default function ProductionHistoryPage() {
                           <div className="inline-flex flex-col items-center">
                             <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-800 border border-indigo-100/90 rounded-xl font-black text-xs shadow-2xs whitespace-nowrap">
                               <span className="text-sm">{Number(log.unit_produced).toLocaleString("en-IN")}</span>
-                              <span className="text-[10px] uppercase text-indigo-600 font-extrabold">Units</span>
+                              <span className="text-[10px] uppercase text-indigo-600 font-extrabold">Bricks</span>
                             </span>
                           </div>
                         </td>
 
-                        {/* 5. Cement Used & Variance */}
+                        {/* 5. Cement Used */}
                         <td className="px-5 py-4 whitespace-nowrap text-center">
                           <div className="flex flex-col items-center gap-1">
                             <div className="inline-flex items-center gap-1.5 text-xs font-black text-slate-800">
                               <HardHat size={14} className="text-amber-500" />
                               <span>{log.cement_used} Bags</span>
                             </div>
-
-                            {/* Variance Status Pill */}
-                            {cementItem ? (
-                              cementItem.variance_status === "HIGH" ? (
-                                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                                  <AlertTriangle size={10} /> +{cementItem.variance} Bags High
-                                </span>
-                              ) : cementItem.variance_status === "LOW" ? (
-                                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                                  <AlertCircle size={10} /> {cementItem.variance} Bags Lean
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                                  <CheckCircle2 size={10} /> Optimal Formula
-                                </span>
-                              )
-                            ) : log.cementProduct ? (
+                            {log.cementProduct && (
                               <span className="text-[10px] font-bold text-slate-400 uppercase">
                                 {log.cementProduct.product_name.split(" ")[0]}
                               </span>
-                            ) : null}
+                            )}
                           </div>
                         </td>
 
-                        {/* 6. Raw Materials (BOM) */}
-                        <td className="px-5 py-4 text-center">
-                          {otherMaterials.length > 0 ? (
-                            <div className="flex flex-wrap justify-center gap-1 max-w-[180px] mx-auto">
-                              {otherMaterials.map((mat, i) => (
-                                <span
-                                  key={i}
-                                  className="inline-flex items-center gap-1 text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-200 px-1.5 py-0.5 rounded-md"
-                                >
-                                  <span className="text-slate-400 font-medium">{mat.material_name.split(" ")[0]}:</span>
-                                  <span className="text-indigo-700">{mat.standard_qty} {mat.unit}</span>
+                        {/* 6. Stock Details (Number of Stocks & Per Stock) */}
+                        <td className="px-5 py-4 text-center whitespace-nowrap">
+                          {stocks > 0 ? (
+                            <div className="inline-flex flex-col items-center">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg text-xs font-black">
+                                {stocks} Stocks
+                              </span>
+                              {perStock > 0 && (
+                                <span className="text-[10px] font-bold text-slate-500 mt-0.5">
+                                  {perStockDisplay} per stock
                                 </span>
-                              ))}
+                              )}
                             </div>
                           ) : (
-                            <span className="text-slate-400 text-[10px] font-semibold italic">
-                              Standard Recipe
-                            </span>
+                            <span className="text-slate-400 text-xs font-semibold">-</span>
                           )}
                         </td>
 
@@ -752,11 +732,19 @@ export default function ProductionHistoryPage() {
                       </span>
                       <div className="text-xl font-black text-indigo-600">
                         {Number(selectedDetailLog.unit_produced).toLocaleString("en-IN")}{" "}
-                        <span className="text-xs font-bold text-slate-600">Pcs</span>
+                        <span className="text-xs font-bold text-slate-600">Bricks</span>
                       </div>
-                      <span className="text-[11px] text-slate-500 font-bold block mt-0.5">
-                        {selectedDetailLog.number_of_stocks} Stocks
-                      </span>
+                      {(() => {
+                        const mStocks = parseFloat(selectedDetailLog.number_of_stocks) || 0;
+                        const mUnits = parseFloat(selectedDetailLog.unit_produced) || 0;
+                        const mPer = mStocks > 0 ? mUnits / mStocks : 0;
+                        const mPerDisplay = Number.isInteger(mPer) ? mPer : mPer.toFixed(1);
+                        return (
+                          <span className="text-[11px] text-slate-500 font-bold block mt-0.5">
+                            {selectedDetailLog.number_of_stocks} Stocks {mPer > 0 ? `(${mPerDisplay} per stock)` : ""}
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">

@@ -24,8 +24,10 @@ const { Op } = require("sequelize");
 // Get all Customers with search and pagination
 exports.getAllCustomers = async (req, res) => {
     try {
-        const { search, page = 1, limit = 12, sortBy = "name", sortOrder = "ASC" } = req.query;
-        const offset = (page - 1) * limit;
+        const { search, page = 1, limit = 20, sortBy = "name", sortOrder = "ASC" } = req.query;
+        const parsedLimit = Math.min(Math.max(parseInt(limit) || 20, 1), 100);
+        const parsedPage = Math.max(parseInt(page) || 1, 1);
+        const offset = (parsedPage - 1) * parsedLimit;
 
         const where = { is_deleted: false };
         if (search) {
@@ -57,40 +59,67 @@ exports.getAllCustomers = async (req, res) => {
                 }
             ],
             order: [[orderColumn, orderDir]],
-            limit: parseInt(limit),
-            offset: parseInt(offset),
+            limit: parsedLimit,
+            offset: offset,
             distinct: true
         });
 
-        // Compute sales and payments per customer
-        const [salesRows] = await sequelize.query(`
-            SELECT 
-                o.cus_id,
-                COALESCE(SUM(o.transport_charge), 0) + COALESCE(SUM(items.item_total), 0) AS total_sales
-            FROM orders o
-            LEFT JOIN (
-                SELECT order_id, SUM(quantity * price) AS item_total 
-                FROM order_items 
-                GROUP BY order_id
-            ) items ON o.order_id = items.order_id
-            WHERE o.is_deleted = 0
-            GROUP BY o.cus_id
-        `);
-
-        const [paidRows] = await sequelize.query(`
-            SELECT 
-                cus_id, 
-                COALESCE(SUM(amount), 0) AS total_paid
-            FROM customer_statements
-            WHERE is_deleted = 0
-            GROUP BY cus_id
-        `);
-
+        // Compute sales and payments ONLY for the current page of customers (fast scoped query)
+        const customerIds = rows.map(r => r.id);
         const salesMap = {};
-        salesRows.forEach(r => { salesMap[r.cus_id] = parseFloat(r.total_sales) || 0; });
-
         const paidMap = {};
-        paidRows.forEach(r => { paidMap[r.cus_id] = parseFloat(r.total_paid) || 0; });
+
+        if (customerIds.length > 0) {
+            const [salesRows] = await sequelize.query(`
+                SELECT 
+                    o.cus_id,
+                    COALESCE(SUM(o.transport_charge), 0) + COALESCE(SUM(items.item_total), 0) AS total_sales
+                FROM orders o
+                LEFT JOIN (
+                    SELECT order_id, SUM(quantity * price) AS item_total 
+                    FROM order_items 
+                    GROUP BY order_id
+                ) items ON o.order_id = items.order_id
+                WHERE o.is_deleted = 0 AND o.cus_id IN (:customerIds)
+                GROUP BY o.cus_id
+            `, {
+                replacements: { customerIds }
+            });
+
+            const [paidRows] = await sequelize.query(`
+                SELECT 
+                    cus_id, 
+                    COALESCE(SUM(amount), 0) AS total_paid
+                FROM customer_statements
+                WHERE is_deleted = 0 AND cus_id IN (:customerIds)
+                GROUP BY cus_id
+            `, {
+                replacements: { customerIds }
+            });
+
+            salesRows.forEach(r => { salesMap[r.cus_id] = parseFloat(r.total_sales) || 0; });
+            paidRows.forEach(r => { paidMap[r.cus_id] = parseFloat(r.total_paid) || 0; });
+        }
+
+        // Overall summary across all active customers
+        const [summaryRows] = await sequelize.query(`
+            SELECT 
+                COUNT(*) AS total_clients,
+                COALESCE(SUM(CASE WHEN balance > 0 THEN 1 ELSE 0 END), 0) AS due_count,
+                COALESCE(SUM(CASE WHEN balance > 0 THEN balance ELSE 0 END), 0) AS total_outstanding
+            FROM customers
+            WHERE is_deleted = 0
+        `);
+
+        const summary = summaryRows && summaryRows[0] ? {
+            totalClients: parseInt(summaryRows[0].total_clients) || count,
+            dueCount: parseInt(summaryRows[0].due_count) || 0,
+            totalOutstanding: parseFloat(summaryRows[0].total_outstanding) || 0
+        } : {
+            totalClients: count,
+            dueCount: 0,
+            totalOutstanding: 0
+        };
 
         const dataWithLastCall = rows.map(customer => {
             const raw = customer.toJSON();
@@ -111,10 +140,11 @@ exports.getAllCustomers = async (req, res) => {
             data: dataWithLastCall,
             pagination: {
                 total: count,
-                page: parseInt(page),
-                limit: parseInt(limit),
-                totalPages: Math.ceil(count / limit)
-            }
+                page: parsedPage,
+                limit: parsedLimit,
+                totalPages: Math.ceil(count / parsedLimit)
+            },
+            summary
         });
     } catch (error) {
         console.error("Error fetching customers:", error);

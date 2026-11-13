@@ -132,17 +132,48 @@ const AddMaterialPage: React.FC = () => {
     passed: boolean;
   } | null>(null);
 
+  // Cross-platform key check (Mac Return, Windows Enter, Numpad Enter, keyCode 13)
+  const isEnterKey = (e: React.KeyboardEvent | KeyboardEvent) => {
+    return (
+      e.key === "Enter" ||
+      e.key === "Return" ||
+      e.keyCode === 13 ||
+      e.which === 13 ||
+      e.code === "Enter" ||
+      e.code === "NumpadEnter"
+    );
+  };
+
+  // Cross-platform safe focus helper (handles Windows Chromium focus retention & animation delays)
+  const safeFocus = (el: HTMLElement | null | undefined, selectText = false) => {
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.focus();
+      if (selectText && el instanceof HTMLInputElement) {
+        try {
+          el.select();
+        } catch (_) {}
+      }
+    });
+    setTimeout(() => {
+      if (document.activeElement !== el) {
+        el.focus();
+        if (selectText && el instanceof HTMLInputElement) {
+          try {
+            el.select();
+          } catch (_) {}
+        }
+      }
+    }, 50);
+  };
+
   // Focus helpers for sequential keyboard flow
   const focusOffice = (index: number) => {
-    setTimeout(() => {
-      officeRefs.current[index]?.focus();
-    }, 30);
+    safeFocus(officeRefs.current[index]);
   };
 
   const focusMaterial = (index: number) => {
-    setTimeout(() => {
-      materialRefs.current[index]?.focus();
-    }, 30);
+    safeFocus(materialRefs.current[index]);
   };
 
   // Auto-focus on page load
@@ -509,7 +540,7 @@ const AddMaterialPage: React.FC = () => {
     ]);
     setTimeout(() => {
       const newIndex = materials.length;
-      materialRefs.current[newIndex]?.focus();
+      safeFocus(materialRefs.current[newIndex]);
     }, 60);
   };
 
@@ -527,7 +558,7 @@ const AddMaterialPage: React.FC = () => {
 
   // Global keyboard shortcuts (Cmd+Enter / Ctrl+Enter submits instantly from anywhere)
   const handleGlobalKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+    if ((e.metaKey || e.ctrlKey) && isEnterKey(e)) {
       e.preventDefault();
       if (entryMode === "today") {
         handleSubmit();
@@ -594,7 +625,12 @@ const AddMaterialPage: React.FC = () => {
           </div>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+          }}
+          className="space-y-6"
+        >
           <AnimatePresence mode="wait">
             {entryMode === "today" ? (
               <motion.div
@@ -621,7 +657,7 @@ const AddMaterialPage: React.FC = () => {
                         value={globalDate} 
                         onChange={(e) => setGlobalDate(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") {
+                          if (isEnterKey(e)) {
                             e.preventDefault();
                             if (!id || id === 'new') {
                               customerSelectRef.current?.focus();
@@ -740,10 +776,24 @@ const AddMaterialPage: React.FC = () => {
                              ref={(el) => { officeRefs.current[index] = el; }}
                              className={`${inputClass} pl-12 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all cursor-pointer`} 
                              value={mat.office_id} 
-                             onChange={(e) => updateMaterial(index, { office_id: e.target.value })}
+                             onChange={(e) => {
+                               const val = e.target.value;
+                               updateMaterial(index, { office_id: val });
+                               if (val) {
+                                 focusMaterial(index);
+                               }
+                             }}
                              onKeyDown={(e) => {
-                               if (e.key === "Enter") {
+                               if (isEnterKey(e)) {
                                  e.preventDefault();
+                                 e.stopPropagation();
+                                 focusMaterial(index);
+                               }
+                             }}
+                             onKeyUp={(e) => {
+                               if (isEnterKey(e)) {
+                                 e.preventDefault();
+                                 e.stopPropagation();
                                  focusMaterial(index);
                                }
                              }}
@@ -773,7 +823,7 @@ const AddMaterialPage: React.FC = () => {
                             updateMaterial(index, updates);
                           }}
                           onSelectNext={() => {
-                            setTimeout(() => vehicleRefs.current[index]?.focus(), 30);
+                            safeFocus(vehicleRefs.current[index]);
                           }}
                           placeholder="Select Material (type 'xl', name)..."
                           disabled={!mat.office_id}
@@ -789,7 +839,7 @@ const AddMaterialPage: React.FC = () => {
                           value={mat.vehicle_id}
                           onChange={(vId) => updateMaterial(index, { vehicle_id: vId })}
                           onSelectNext={() => {
-                            setTimeout(() => qtyRefs.current[index]?.focus(), 30);
+                            safeFocus(qtyRefs.current[index], true);
                           }}
                           placeholder="Search or pick vehicle..."
                         />
@@ -809,11 +859,15 @@ const AddMaterialPage: React.FC = () => {
                                 placeholder="0" 
                                 value={mat.qty} 
                                 onChange={(e) => updateMaterial(index, { qty: e.target.value })}
-                                onFocus={(e) => e.target.select()}
+                                onFocus={(e) => {
+                                  try {
+                                    e.target.select();
+                                  } catch (_) {}
+                                }}
                                 onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
+                                  if (isEnterKey(e)) {
                                     e.preventDefault();
-                                    rateRefs.current[index]?.focus();
+                                    safeFocus(rateRefs.current[index], true);
                                   }
                                 }}
                               />
@@ -831,14 +885,18 @@ const AddMaterialPage: React.FC = () => {
                                 placeholder="0" 
                                 value={mat.rate} 
                                 onChange={(e) => updateMaterial(index, { rate: e.target.value })}
-                                onFocus={(e) => e.target.select()}
+                                onFocus={(e) => {
+                                  try {
+                                    e.target.select();
+                                  } catch (_) {}
+                                }}
                                 onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
+                                  if (isEnterKey(e)) {
                                     e.preventDefault();
                                     if (e.shiftKey) {
-                                      submitButtonRef.current?.focus();
+                                      safeFocus(submitButtonRef.current);
                                     } else {
-                                      driverRefs.current[index]?.focus();
+                                      safeFocus(driverRefs.current[index]);
                                     }
                                   }
                                 }}
@@ -863,11 +921,20 @@ const AddMaterialPage: React.FC = () => {
                                 updateMaterial(index, { driver_ids: [...mat.driver_ids, Number(e.target.value)] });
                               }
                               e.target.value = "";
+                              safeFocus(loaderRefs.current[index]);
                             }}
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") {
+                              if (isEnterKey(e)) {
                                 e.preventDefault();
-                                loaderRefs.current[index]?.focus();
+                                e.stopPropagation();
+                                safeFocus(loaderRefs.current[index]);
+                              }
+                            }}
+                            onKeyUp={(e) => {
+                              if (isEnterKey(e)) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                safeFocus(loaderRefs.current[index]);
                               }
                             }}
                           >
@@ -882,11 +949,20 @@ const AddMaterialPage: React.FC = () => {
                                 updateMaterial(index, { loader_ids: [...mat.loader_ids, Number(e.target.value)] });
                               }
                               e.target.value = "";
+                              safeFocus(loaderChargeRefs.current[index], true);
                             }}
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") {
+                              if (isEnterKey(e)) {
                                 e.preventDefault();
-                                loaderChargeRefs.current[index]?.focus();
+                                e.stopPropagation();
+                                safeFocus(loaderChargeRefs.current[index], true);
+                              }
+                            }}
+                            onKeyUp={(e) => {
+                              if (isEnterKey(e)) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                safeFocus(loaderChargeRefs.current[index], true);
                               }
                             }}
                           >
@@ -901,14 +977,18 @@ const AddMaterialPage: React.FC = () => {
                               placeholder="Loader/Unit Charge"
                               value={mat.loader_charge_per_unit}
                               onChange={(e) => updateMaterial(index, { loader_charge_per_unit: e.target.value })}
-                              onFocus={(e) => e.target.select()}
+                              onFocus={(e) => {
+                                try {
+                                  e.target.select();
+                                } catch (_) {}
+                              }}
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") {
+                                if (isEnterKey(e)) {
                                   e.preventDefault();
                                   if (index < materials.length - 1) {
                                     focusOffice(index + 1);
                                   } else {
-                                    transportChargeRef.current?.focus();
+                                    safeFocus(transportChargeRef.current, true);
                                   }
                                 }
                               }}
@@ -940,7 +1020,7 @@ const AddMaterialPage: React.FC = () => {
                     type="button"
                     onClick={addMaterialRow}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") {
+                      if (isEnterKey(e)) {
                         e.preventDefault();
                         addMaterialRow();
                       }
@@ -1039,11 +1119,15 @@ const AddMaterialPage: React.FC = () => {
                             className="w-16 bg-transparent text-xs font-bold outline-none text-slate-800" 
                             value={transportCharge}
                             onChange={(e) => setTransportCharge(e.target.value)}
-                            onFocus={(e) => e.target.select()}
+                            onFocus={(e) => {
+                              try {
+                                e.target.select();
+                              } catch (_) {}
+                            }}
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") {
+                              if (isEnterKey(e)) {
                                 e.preventDefault();
-                                submitButtonRef.current?.focus();
+                                safeFocus(submitButtonRef.current);
                               }
                             }}
                           />
@@ -1065,7 +1149,7 @@ const AddMaterialPage: React.FC = () => {
                   disabled={isSubmitting || (entryMode === 'bulk' && !parsedLedger)}
                   className="w-full md:w-auto h-11 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs transition-colors shadow-2xs flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer focus:ring-4 focus:ring-indigo-500/30 focus:outline-none"
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") {
+                    if (isEnterKey(e)) {
                       e.preventDefault();
                       if (entryMode === 'today') handleSubmit();
                       else handleBulkSubmit();
@@ -1086,7 +1170,7 @@ const AddMaterialPage: React.FC = () => {
                       creditInfo?.isLocked ? "ring-4 ring-emerald-400/50 animate-pulse" : ""
                     }`}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") {
+                      if (isEnterKey(e)) {
                         e.preventDefault();
                         handleOpenDispatchWithPayment();
                       }

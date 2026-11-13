@@ -11,12 +11,23 @@ export interface CustomerData {
     balance: number;
     category: "engineer" | "shop" | "other";
     is_deleted?: boolean;
+    total_sales?: number;
+    total_paid?: number;
+    last_called_date?: string | null;
+}
+
+export interface CustomerSummary {
+    totalClients: number;
+    dueCount: number;
+    totalOutstanding: number;
 }
 
 interface CustomerStore {
     customers: CustomerData[];
     totalCustomers: number;
+    summary: CustomerSummary | null;
     loading: boolean;
+    loadingMore: boolean;
     error: string | null;
     lastFetched: number | null;
     lastSearch: string;
@@ -33,11 +44,32 @@ interface CustomerStore {
 }
 
 const TTL = 60_000; // 1 min – customer list changes often
+const DEFAULT_LIMIT = 20;
+
+let currentRequestId = 0;
+
+const dedupeCustomers = (list: CustomerData[]): CustomerData[] => {
+    const seen = new Set<number>();
+    const result: CustomerData[] = [];
+    for (const item of list) {
+        if (item.id !== undefined) {
+            if (!seen.has(item.id)) {
+                seen.add(item.id);
+                result.push(item);
+            }
+        } else {
+            result.push(item);
+        }
+    }
+    return result;
+};
 
 export const useCustomerStore = create<CustomerStore>((set, get) => ({
     customers: [],
     totalCustomers: 0,
+    summary: null,
     loading: false,
+    loadingMore: false,
     error: null,
     lastFetched: null,
     lastSearch: "",
@@ -48,21 +80,49 @@ export const useCustomerStore = create<CustomerStore>((set, get) => ({
     fetchCustomers: async (search = "", page = 1, force = false, append = false, sortBy = "name", sortOrder = "ASC") => {
         const { lastFetched, lastSearch, lastPage, lastSortBy, lastSortOrder, customers: currentCustomers } = get();
         const sameQuery = search === lastSearch && page === lastPage && sortBy === lastSortBy && sortOrder === lastSortOrder;
+
+        // Skip fetch if valid cache hit
         if (!force && sameQuery && !isStale(lastFetched, TTL)) return;
 
-        set({ loading: true, error: null });
+        const requestId = ++currentRequestId;
+
+        if (append) {
+            set({ loadingMore: true, error: null });
+        } else {
+            set({ loading: true, error: null });
+        }
+
         try {
-            const res = await fetch(
-                `${BASE_URL}/customers?search=${encodeURIComponent(search)}&page=${page}&limit=12&sortBy=${sortBy}&sortOrder=${sortOrder}`,
-                { headers: { ...getAuthHeader() } }
-            );
-            if (!res.ok) throw new Error("Failed to fetch customers");
+            const url = `${BASE_URL}/customers?search=${encodeURIComponent(search)}&page=${page}&limit=${DEFAULT_LIMIT}&sortBy=${sortBy}&sortOrder=${sortOrder}`;
+            const res = await fetch(url, { headers: { ...getAuthHeader() } });
+
+            if (!res.ok) {
+                const errJson = await res.json().catch(() => null);
+                throw new Error(errJson?.message || `Failed to fetch customers (${res.status})`);
+            }
+
             const data = await res.json();
 
+            // Discard stale responses if a newer request was dispatched
+            if (requestId !== currentRequestId) return;
+
+            const fetchedList: CustomerData[] = data.data || [];
+            const mergedList = append ? dedupeCustomers([...currentCustomers, ...fetchedList]) : fetchedList;
+            const totalCount = data.pagination?.total ?? mergedList.length;
+
+            const summaryData: CustomerSummary = data.summary || {
+                totalClients: totalCount,
+                dueCount: mergedList.filter(c => Number(c.balance) > 0).length,
+                totalOutstanding: mergedList.reduce((s, c) => s + Number(c.balance || 0), 0)
+            };
+
             set({
-                customers: append ? [...currentCustomers, ...(data.data || [])] : (data.data || []),
-                totalCustomers: data.pagination?.total || 0,
+                customers: mergedList,
+                totalCustomers: totalCount,
+                summary: summaryData,
                 loading: false,
+                loadingMore: false,
+                error: null,
                 lastFetched: Date.now(),
                 lastSearch: search,
                 lastPage: page,
@@ -70,7 +130,13 @@ export const useCustomerStore = create<CustomerStore>((set, get) => ({
                 lastSortOrder: sortOrder,
             });
         } catch (err: any) {
-            set({ error: err.message, loading: false });
+            if (requestId === currentRequestId) {
+                set({
+                    error: err.message || "Failed to load customers. Please check network connection.",
+                    loading: false,
+                    loadingMore: false
+                });
+            }
         }
     },
 
