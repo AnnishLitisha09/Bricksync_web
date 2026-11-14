@@ -1090,7 +1090,21 @@ const AddMaterialPage: React.FC = () => {
                                  value={mat.office_id} 
                                  onChange={(e) => {
                                    const val = e.target.value;
-                                   updateMaterial(index, { office_id: val });
+                                   let shouldResetMaterial = false;
+                                   if (mat.material_id) {
+                                     const stockInNewOffice = options.stocks.find(
+                                       (s: any) =>
+                                         String(s.product_id) === String(mat.material_id) &&
+                                         String(s.office_id) === String(val)
+                                     );
+                                     if (!stockInNewOffice || Number(stockInNewOffice.quantity) <= 0) {
+                                       shouldResetMaterial = true;
+                                     }
+                                   }
+                                   updateMaterial(index, { 
+                                     office_id: val,
+                                     ...(shouldResetMaterial ? { material_id: '', particulars: '', rate: '0' } : {})
+                                   });
                                    if (val) {
                                      focusMaterial(index);
                                    }
@@ -1137,7 +1151,7 @@ const AddMaterialPage: React.FC = () => {
                               onSelectNext={() => {
                                 safeFocus(vehicleRefs.current[index]);
                               }}
-                              placeholder="Select Material (type 'xl', name)..."
+                              placeholder={mat.office_id ? "Select Material (type 'xl', name)..." : "Select Dispatch Office first..."}
                               disabled={!mat.office_id}
                             />
                           </div>
@@ -1307,9 +1321,12 @@ const AddMaterialPage: React.FC = () => {
                           {cursorMode && (
                             <button
                               type="button"
-                              onClick={() => setShowUnloadCharge(!showUnloadCharge)}
+                              onClick={() => {
+                                setShowUnloadCharge(!showUnloadCharge);
+                                safeFocus(loaderChargeRefs.current[index], true);
+                              }}
                               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                                showUnloadCharge
+                                showUnloadCharge || Number(mat.loader_charge_per_unit) > 0
                                   ? "bg-indigo-600 text-white shadow-2xs"
                                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                               }`}
@@ -1376,50 +1393,76 @@ const AddMaterialPage: React.FC = () => {
                              {options.employees.map(emp => <option key={emp.employee_id} value={emp.employee_id}>{emp.employee_name}</option>)}
                           </select>
 
-                          {/* LOADER / UNLOAD CHARGE */}
-                          {(!cursorMode || showUnloadCharge || mat.loader_charge_per_unit) && (
-                            <div className="relative">
-                               <input 
-                                ref={(el) => { loaderChargeRefs.current[index] = el; }}
-                                type="number" 
-                                className={`${inputClass} py-3! text-[11px] pl-8`} 
-                                placeholder={cursorMode ? "Unload Price/Unit" : "Loader/Unit Charge"}
-                                value={mat.loader_charge_per_unit}
-                                onChange={(e) => updateMaterial(index, { loader_charge_per_unit: e.target.value })}
-                                onFocus={(e) => {
-                                  try {
-                                    e.target.select();
-                                  } catch (_) {}
-                                }}
-                                onKeyDown={(e) => {
-                                  if (isEnterKey(e)) {
-                                    e.preventDefault();
-                                    if (index < materials.length - 1) {
-                                      focusOffice(index + 1);
-                                    } else {
-                                      safeFocus(transportChargeRef.current, true);
-                                    }
+                          {/* LOADER / UNLOAD CHARGE - ALWAYS VISIBLE */}
+                          <div className="relative">
+                             <input 
+                              ref={(el) => { loaderChargeRefs.current[index] = el; }}
+                              type="number" 
+                              step="any"
+                              className={`${inputClass} py-3! text-[11px] pl-8 font-bold ${
+                                Number(mat.loader_charge_per_unit) > 0 ? "border-emerald-500 bg-emerald-50/20 text-emerald-900" : ""
+                              }`} 
+                              placeholder={cursorMode ? "Unload Price/Unit (₹)" : "Loader/Unit Charge (₹)"}
+                              value={mat.loader_charge_per_unit}
+                              onChange={(e) => updateMaterial(index, { loader_charge_per_unit: e.target.value })}
+                              onFocus={(e) => {
+                                try {
+                                  e.target.select();
+                                } catch (_) {}
+                              }}
+                              onKeyDown={(e) => {
+                                if (isEnterKey(e)) {
+                                  e.preventDefault();
+                                  if (index < materials.length - 1) {
+                                    focusOffice(index + 1);
+                                  } else {
+                                    safeFocus(transportChargeRef.current, true);
                                   }
-                                }}
-                               />
-                               <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={12} />
-                            </div>
-                          )}
+                                }
+                              }}
+                             />
+                             <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={12} />
+                          </div>
                        </div>
+
                        <div className="flex flex-wrap gap-2 mt-4">
                           {mat.driver_ids.map(eid => (
                             <span key={eid} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-black flex items-center gap-2">
-                              {options.employees.find(e => e.employee_id === eid)?.employee_name}
+                              <span>Driver: {options.employees.find(e => e.employee_id === eid)?.employee_name}</span>
                               <X size={12} className="cursor-pointer" onClick={() => updateMaterial(index, { driver_ids: mat.driver_ids.filter(d => d !== eid) })}/>
                             </span>
                           ))}
                           {mat.loader_ids.map(eid => (
                             <span key={eid} className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[10px] font-black flex items-center gap-2">
-                              {options.employees.find(e => e.employee_id === eid)?.employee_name}
+                              <span>Loader: {options.employees.find(e => e.employee_id === eid)?.employee_name}</span>
                               <X size={12} className="cursor-pointer" onClick={() => updateMaterial(index, { loader_ids: mat.loader_ids.filter(l => l !== eid) })}/>
                             </span>
                           ))}
                        </div>
+
+                       {/* Live Loader Salary Allocation Feedback */}
+                       {mat.loader_ids.length > 0 && Number(mat.loader_charge_per_unit) > 0 && (
+                         <div className="mt-3 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-between text-xs font-bold text-emerald-900">
+                           <div className="flex items-center gap-2">
+                             <span className="w-5 h-5 rounded-md bg-emerald-600 text-white flex items-center justify-center text-[10px]">₹</span>
+                             <span>
+                               Loader Salary Allocated: ₹{(Number(mat.qty || 0) * Number(mat.loader_charge_per_unit)).toLocaleString("en-IN")}
+                             </span>
+                             <span className="text-[10px] text-emerald-700 font-medium">
+                               ({mat.loader_ids.length} {mat.loader_ids.length === 1 ? "loader" : "loaders"} × ₹{((Number(mat.qty || 0) * Number(mat.loader_charge_per_unit)) / mat.loader_ids.length).toFixed(2)} each)
+                             </span>
+                           </div>
+                           <span className="text-[10px] uppercase tracking-wider text-emerald-600 font-extrabold hidden sm:inline">
+                             Syncs to Weekly Staff Salary
+                           </span>
+                         </div>
+                       )}
+
+                       {Number(mat.loader_charge_per_unit) > 0 && mat.loader_ids.length === 0 && (
+                         <div className="mt-2 text-[11px] text-amber-700 font-semibold bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200/60">
+                           ⚠️ Please select at least one Loader above so this unload price is added to staff salary.
+                         </div>
+                       )}
                     </div>
                   </motion.div>
                 ))}

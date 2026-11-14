@@ -69,6 +69,15 @@ exports.getWeeklySalaryOverview = async (req, res) => {
             endOfWeek.setHours(23, 59, 59, 999);
         }
 
+        const formatDateStr = (d) => {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        const startOfWeekStr = formatDateStr(startOfWeek);
+        const endOfWeekStr = formatDateStr(endOfWeek);
+
         // Fetch Global Driver Rate
         let driverRate = 750;
         try {
@@ -106,7 +115,7 @@ exports.getWeeklySalaryOverview = async (req, res) => {
                         required: false,
                         where: {
                             is_deleted: false,
-                            date: { [Op.between]: [startOfWeek, endOfWeek] }
+                            date: { [Op.between]: [startOfWeekStr, endOfWeekStr] }
                         }
                     }, {
                         model: OrderEmployee,
@@ -125,7 +134,7 @@ exports.getWeeklySalaryOverview = async (req, res) => {
         try {
             allAttendance = await Attendance.findAll({
                 where: {
-                    date: { [Op.between]: [startOfWeek, endOfWeek] },
+                    date: { [Op.between]: [startOfWeekStr, endOfWeekStr] },
                     [Op.or]: [{ forenoon: true }, { afternoon: true }]
                 }
             });
@@ -140,7 +149,7 @@ exports.getWeeklySalaryOverview = async (req, res) => {
             productionLogs = await ProductionLog.findAll({
                 where: {
                     is_deleted: false,
-                    production_date: { [Op.between]: [startOfWeek, endOfWeek] }
+                    production_date: { [Op.between]: [startOfWeekStr, endOfWeekStr] }
                 },
                 include: [{
                     model: ProductionEmployee,
@@ -157,8 +166,8 @@ exports.getWeeklySalaryOverview = async (req, res) => {
         const salaryData = (staff || []).map(member => {
             const memberRole = member.staffRole || "Driver";
             // Determine which earning categories are allowed based on staffRole
-            const canEarnAsLoader = ["Driver", "Loader"].includes(memberRole);
-            const canEarnAsDriver = memberRole === "Driver";
+            const canEarnAsLoader = true; // Any employee assigned as loader on an order earns loader wages
+            const canEarnAsDriver = true; // Drivers assigned to deliveries earn driver credits
             const canEarnAsOperator = ["Driver", "Operator", "Stocker"].includes(memberRole);
 
             // Loader Earnings (Amount Based - Shared among item loaders)
@@ -169,7 +178,7 @@ exports.getWeeklySalaryOverview = async (req, res) => {
             if (Array.isArray(allOrderStaff)) {
                 allOrderStaff.forEach(a => {
                     if (a && a.employee_id === member.userid && a.orderItem && a.orderItem.order) {
-                        if (a.role === "loader" && canEarnAsLoader) {
+                        if (a.role === "loader") {
                             const orderEmps = Array.isArray(a.orderItem.orderEmployees) ? a.orderItem.orderEmployees : [];
                             const numLoaders = orderEmps.filter(oe => oe && oe.role === "loader").length || 1;
                             const itemAmt = (parseFloat(a.orderItem.quantity) || 0) * (parseFloat(a.orderItem.loader_charge_per_unit) || 0);

@@ -318,6 +318,7 @@ exports.updateOrder = async (req, res) => {
             const validMaterialId = (item.material_id && Number(item.material_id) > 0) ? Number(item.material_id) : null;
             const validOfficeId = (item.office_id && Number(item.office_id) > 0) ? Number(item.office_id) : null;
 
+            const validCursorLoadId = (item.cursor_load_id && Number(item.cursor_load_id) > 0) ? Number(item.cursor_load_id) : null;
             const newItem = await OrderItem.create({
                 order_id: id,
                 product: item.product || item.particulars,
@@ -328,6 +329,8 @@ exports.updateOrder = async (req, res) => {
                 vehicle_id: (item.vehicle_id && Number(item.vehicle_id) > 0) ? Number(item.vehicle_id) : null,
                 loader_charge_per_unit: item.loader_charge_per_unit || 0,
                 places: item.places || item.place_of_delivery || null,
+                cursor_load_id: validCursorLoadId,
+                buy_price: Number(item.buy_price) || 0,
             }, { transaction });
 
             // Handle item-level employees

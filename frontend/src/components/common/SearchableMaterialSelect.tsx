@@ -70,23 +70,38 @@ const SearchableMaterialSelect: React.FC<SearchableMaterialSelectProps> = ({
     if (!selectedProduct || !officeId) return null;
     return stocks.find(
       (s) =>
-        s.product_id === selectedProduct.product_id &&
+        String(s.product_id) === String(selectedProduct.product_id) &&
         String(s.office_id) === String(officeId)
     );
   }, [selectedProduct, officeId, stocks]);
 
+  // Office-filtered products: strictly show materials with available stock (> 0) in the chosen Dispatch Office
+  const officeProducts = useMemo(() => {
+    if (!officeId || !stocks || stocks.length === 0) return products;
+
+    return products.filter((p) => {
+      const stockItem = stocks.find(
+        (s) =>
+          String(s.product_id) === String(p.product_id) &&
+          String(s.office_id) === String(officeId)
+      );
+      const qty = stockItem ? Number(stockItem.quantity) : 0;
+      return qty > 0;
+    });
+  }, [products, stocks, officeId]);
+
   // Filtered products based on query (case-insensitive substring match)
   const filteredProducts = useMemo(() => {
     const term = query.toLowerCase().trim();
-    if (!term) return products;
+    if (!term) return officeProducts;
 
     const terms = term.split(/\s+/).filter(Boolean);
-    return products.filter((p) => {
+    return officeProducts.filter((p) => {
       const name = p.product_name.toLowerCase();
       const cat = (p.category || "").toLowerCase();
       return terms.every((t) => name.includes(t) || cat.includes(t));
     });
-  }, [products, query]);
+  }, [officeProducts, query]);
 
   // Reset selected index when filtered list changes
   useEffect(() => {
@@ -300,7 +315,7 @@ const SearchableMaterialSelect: React.FC<SearchableMaterialSelectProps> = ({
             {/* Header info */}
             <div className="px-3 py-1.5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               <span>{query ? `Filtering for "${query}"` : "Type 'xl' or name to filter"}</span>
-              <span>{filteredProducts.length} materials</span>
+              <span>{filteredProducts.length} {filteredProducts.length === 1 ? "material" : "materials"} in stock</span>
             </div>
 
             {/* Material List */}
@@ -313,11 +328,11 @@ const SearchableMaterialSelect: React.FC<SearchableMaterialSelectProps> = ({
                   const stockItem = officeId
                     ? stocks.find(
                         (s) =>
-                          s.product_id === p.product_id &&
+                          String(s.product_id) === String(p.product_id) &&
                           String(s.office_id) === String(officeId)
                       )
                     : null;
-                  const qtyLeft = stockItem?.quantity ?? 0;
+                  const qtyLeft = stockItem ? Number(stockItem.quantity) : 0;
 
                   return (
                     <div
@@ -380,9 +395,17 @@ const SearchableMaterialSelect: React.FC<SearchableMaterialSelectProps> = ({
                 })
               ) : (
                 <div className="p-6 text-center text-slate-400">
-                  <AlertCircle size={20} className="mx-auto mb-1 opacity-40" />
-                  <p className="text-xs font-semibold">No materials matching "{query}"</p>
-                  <p className="text-[10px] mt-0.5">Press Escape or Backspace to clear</p>
+                  <AlertCircle size={20} className="mx-auto mb-1 opacity-40 text-slate-400" />
+                  <p className="text-xs font-semibold text-slate-600">
+                    {query
+                      ? `No materials matching "${query}" in this office`
+                      : "No materials available in this dispatch office"}
+                  </p>
+                  <p className="text-[10px] mt-0.5 text-slate-400">
+                    {query
+                      ? "Press Escape or Backspace to clear filter"
+                      : "Select another dispatch office (e.g. Thottam) or record production/stock"}
+                  </p>
                 </div>
               )}
             </div>
