@@ -45,13 +45,16 @@ class _DashboardTabState extends State<DashboardTab> {
   }
 
   void _onStoresUpdated() {
-    if (mounted) {
-      setState(() {
-        _totalBricks = stockStore.totalBricksInStock;
-        _totalReceivables = customerStore.totalReceivables;
-        _customerCount = customerStore.totalClientsCount;
-      });
-    }
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _totalBricks = stockStore.totalBricksInStock;
+          _totalReceivables = customerStore.totalReceivables;
+          _customerCount = customerStore.totalClientsCount;
+        });
+      }
+    });
   }
 
   Future<void> _fetchLiveMetrics() async {

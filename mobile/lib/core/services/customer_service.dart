@@ -416,4 +416,29 @@ class CustomerService {
     }
     return false;
   }
+
+  /// Creates a dispatch order on backend: POST /api/orders
+  static Future<Map<String, dynamic>> createDispatchOrder({
+    required int customerId,
+    required String date,
+    double transportCharge = 0.0,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final Map<String, dynamic> body = {
+      'cus_id': customerId,
+      'date': date,
+      'transport_charge': transportCharge,
+      'items': items,
+    };
+
+    final res = await ApiClient.post('/orders', body);
+    if (res.isSuccess) {
+      return {'success': true, 'data': res.data};
+    } else {
+      return {
+        'success': false,
+        'message': res.error ?? 'Failed to create dispatch order',
+      };
+    }
+  }
 }

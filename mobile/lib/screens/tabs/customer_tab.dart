@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/customer_service.dart';
 import '../../core/stores/customer_store.dart';
+import '../../core/stores/stock_store.dart';
 import '../../core/theme/app_colors.dart';
 import '../pages/customer_details_page.dart';
+import '../pages/material_outward_page.dart';
 
 class CustomerTab extends StatefulWidget {
   const CustomerTab({super.key});
@@ -26,7 +28,10 @@ class _CustomerTabState extends State<CustomerTab> {
   }
 
   void _onStoreUpdated() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   Future<void> _loadLiveCustomers() async {
@@ -1298,6 +1303,32 @@ class _CustomerTabState extends State<CustomerTab> {
                     ),
             ),
           ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: "fab_material_outward",
+        onPressed: () async {
+          final res = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MaterialOutwardPage(),
+            ),
+          );
+          if (res == true) {
+            customerStore.fetchCustomers(force: true);
+            stockStore.fetchStockData(force: true);
+          }
+        },
+        backgroundColor: AppColors.primary,
+        elevation: 4,
+        icon: const Icon(Icons.local_shipping_rounded, color: Colors.white, size: 20),
+        label: Text(
+          "Material Outward",
+          style: GoogleFonts.outfit(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
         ),
       ),
     );

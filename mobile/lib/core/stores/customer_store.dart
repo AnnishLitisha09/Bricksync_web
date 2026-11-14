@@ -115,6 +115,25 @@ class CustomerStore extends ChangeNotifier {
     }
     return success;
   }
+
+  /// Creates a material outward dispatch order and refreshes customer accounts
+  Future<Map<String, dynamic>> createDispatchOrder({
+    required int customerId,
+    required String date,
+    double transportCharge = 0.0,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final res = await CustomerService.createDispatchOrder(
+      customerId: customerId,
+      date: date,
+      transportCharge: transportCharge,
+      items: items,
+    );
+    if (res['success'] == true) {
+      await fetchCustomers(search: _lastSearch, force: true);
+    }
+    return res;
+  }
 }
 
 /// Global top-level accessor matching Zustand's store export

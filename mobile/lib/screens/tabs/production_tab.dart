@@ -42,7 +42,10 @@ class _ProductionTabState extends State<ProductionTab> {
   }
 
   void _onStoreUpdated() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   Future<void> _loadAllData() async {

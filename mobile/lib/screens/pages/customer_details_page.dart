@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/customer_service.dart';
 import '../../core/theme/app_colors.dart';
+import 'material_outward_page.dart';
 
 class CustomerDetailsPage extends StatefulWidget {
   final CustomerItem initialCustomer;
@@ -987,7 +988,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 // Row A: Primary Core Actions
                 Row(
                   children: [
-                    // + Add Material
+                    // Material Outward
                     Expanded(
                       flex: 1,
                       child: Container(
@@ -1000,8 +1001,8 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF4F46E5).withValues(alpha: 0.25),
-                              blurRadius: 8,
+                              color: const Color(0xFF4F46E5).withValues(alpha: 0.28),
+                              blurRadius: 10,
                               offset: const Offset(0, 3),
                             ),
                           ],
@@ -1010,23 +1011,28 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                           color: Colors.transparent,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(14),
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("Add Material for ${_customer.name}"),
-                                  backgroundColor: const Color(0xFF4F46E5),
+                            onTap: () async {
+                              final res = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MaterialOutwardPage(
+                                    initialCustomer: _customer,
+                                  ),
                                 ),
                               );
+                              if (res == true) {
+                                _loadCustomerLedger();
+                              }
                             },
                             child: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                                  const Icon(Icons.local_shipping_rounded, size: 18, color: Colors.white),
                                   const SizedBox(width: 6),
                                   Text(
-                                    "Add Material",
+                                    "Material Outward",
                                     style: GoogleFonts.outfit(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w800,
