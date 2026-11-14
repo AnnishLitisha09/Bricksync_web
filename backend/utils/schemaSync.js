@@ -93,7 +93,25 @@ async function ensureCursorAndBranchTables(sequelize) {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    // 5. Check and add columns to order_items
+    // 5. Create cursor_payments table
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS \`cursor_payments\` (
+        \`id\` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        \`cursor_id\` INT NOT NULL,
+        \`bank_id\` INT NULL,
+        \`amount\` DECIMAL(10, 2) NOT NULL,
+        \`payment_mode\` VARCHAR(50) NOT NULL DEFAULT 'BANK TRANSFER',
+        \`date\` DATE NOT NULL,
+        \`description\` TEXT NULL,
+        \`is_deleted\` TINYINT(1) DEFAULT 0,
+        \`createdAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        \`updatedAt\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX \`idx_cursor_payments_cursor_id\` (\`cursor_id\`),
+        CONSTRAINT \`fk_cursor_payments_cursor\` FOREIGN KEY (\`cursor_id\`) REFERENCES \`cursors\` (\`id\`) ON DELETE CASCADE ON UPDATE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 6. Check and add columns to order_items
     const [cols] = await sequelize.query(`
       SELECT COLUMN_NAME
       FROM information_schema.COLUMNS

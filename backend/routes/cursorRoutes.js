@@ -45,4 +45,9 @@ router.post("/:id/loads", cursorController.createLoad);
 router.put("/loads/:loadId/status", cursorController.updateLoadStatus);
 router.delete("/loads/:loadId", cursorController.deleteLoad);
 
+// Payments under Cursor
+router.post("/:id/payments", cursorController.createPayment);
+router.get("/:id/payments", cursorController.getCursorPayments);
+router.delete("/payments/:paymentId", cursorController.deletePayment);
+
 module.exports = router;

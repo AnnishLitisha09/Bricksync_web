@@ -56,6 +56,7 @@ import BomForecastingPage from "../screens/pages/stock/BomForecastingPage";
 import FactoryKioskPage from "../screens/pages/kiosk/FactoryKioskPage";
 import ProductionMixRatioPage from "../screens/pages/stock/ProductionMixRatioPage";
 import CursorsPage from "../screens/pages/cursors/CursorsPage";
+import CursorLedgerPage from "../screens/pages/cursors/CursorLedgerPage";
 import BranchLedgerDetail from "../screens/pages/customers/BranchLedgerDetail";
 
 // --- CUSTOMER & LEDGER IMPORTS ---
@@ -152,6 +153,10 @@ const privateRoutes = [
   {
     path: "/cursors",
     element: <CursorsPage />,
+  },
+  {
+    path: "/cursors/:id",
+    element: <CursorLedgerPage />,
   },
   {
     path: "/customer/add-material/:id?",

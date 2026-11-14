@@ -34,6 +34,10 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: "cursor_id",
       as: "loads",
     });
+    Cursor.hasMany(models.CursorPayment, {
+      foreignKey: "cursor_id",
+      as: "payments",
+    });
   };
 
   return Cursor;

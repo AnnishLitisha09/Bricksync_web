@@ -47,6 +47,22 @@ export interface CursorLoad {
   };
 }
 
+export interface CursorPayment {
+  id: number;
+  cursor_id: number;
+  bank_id?: number | null;
+  amount: number;
+  payment_mode: string;
+  date: string;
+  description?: string | null;
+  bank?: {
+    id: number;
+    name: string;
+    accountNumber: string;
+  };
+  createdAt?: string;
+}
+
 export interface CursorItem {
   id: number;
   name: string;
@@ -60,7 +76,13 @@ export interface CursorItem {
   activeLoadedQty?: number;
   products?: CursorProduct[];
   loads?: CursorLoad[];
+  payments?: CursorPayment[];
+  totalProcurementAmount?: number;
+  totalPaidAmount?: number;
+  balance?: number;
+  totalPaymentsCount?: number;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface BranchDeliveryLog {
@@ -304,5 +326,54 @@ export const addBranchDeliveryToStock = async (
   });
   const json = await res.json().catch(() => null);
   if (!res.ok) throw new Error(json?.message || "Failed to add delivery to stock");
+  return json;
+};
+
+/* =========================================================================
+   CURSOR PAYMENTS
+   ========================================================================= */
+
+export const createCursorPayment = async (
+  cursorId: number | string,
+  data: {
+    amount: number;
+    bank_id?: number | null;
+    payment_mode: string;
+    date?: string;
+    description?: string;
+  }
+): Promise<{ success: boolean; data: CursorPayment }> => {
+  const res = await fetch(`${BASE_URL}/cursors/${cursorId}/payments`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify(data),
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(json?.message || "Failed to record payment");
+  return json;
+};
+
+export const fetchCursorPayments = async (
+  cursorId: number | string
+): Promise<{ success: boolean; data: CursorPayment[] }> => {
+  const res = await fetch(`${BASE_URL}/cursors/${cursorId}/payments`, {
+    headers: { ...getAuthHeader() },
+  });
+  if (!res.ok) throw new Error("Failed to fetch payments");
+  return await res.json();
+};
+
+export const deleteCursorPayment = async (
+  paymentId: number | string
+): Promise<{ success: boolean; message: string }> => {
+  const res = await fetch(`${BASE_URL}/cursors/payments/${paymentId}`, {
+    method: "DELETE",
+    headers: { ...getAuthHeader() },
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(json?.message || "Failed to delete payment");
   return json;
 };

@@ -28,7 +28,6 @@ import {
   updateCursor,
   deleteCursor,
   addCursorProduct,
-  deleteCursorProduct,
   createCursorLoad,
   type CursorItem,
 } from "../../../api/cursor";
@@ -57,7 +56,6 @@ const CursorsPage: React.FC = () => {
 
   // Selected cursor for detail view
   const [selectedCursor, setSelectedCursor] = useState<CursorItem | null>(null);
-  const [activeTab, setActiveTab] = useState<"products" | "loads">("products");
 
   // Add Product modal
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -215,17 +213,6 @@ const CursorsPage: React.FC = () => {
       toast.error(err.message || "Failed to add product");
     } finally {
       setSubmittingProduct(false);
-    }
-  };
-
-  const handleDeleteProduct = async (productId: number) => {
-    if (!window.confirm("Remove this product from cursor?")) return;
-    try {
-      await deleteCursorProduct(productId);
-      toast.success("Product removed");
-      await loadData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to remove product");
     }
   };
 
@@ -445,7 +432,10 @@ const CursorsPage: React.FC = () => {
               <div>
                 {/* Header */}
                 <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    onClick={() => navigate(`/cursors/${cursor.id}`)}
+                    className="flex items-center gap-3 min-w-0 cursor-pointer"
+                  >
                     <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-sm">
                       {cursor.name.slice(0, 2).toUpperCase()}
                     </div>
@@ -507,10 +497,7 @@ const CursorsPage: React.FC = () => {
               <div className="pt-4 border-t border-slate-100 flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setSelectedCursor(cursor);
-                    setActiveTab("products");
-                  }}
+                  onClick={() => navigate(`/cursors/${cursor.id}`)}
                   className="flex-1 h-9 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <span>View Details</span>
@@ -531,250 +518,6 @@ const CursorsPage: React.FC = () => {
           ))}
         </div>
       )}
-
-      {/* ─── CURSOR DETAIL MODAL / DRAWER ─── */}
-      <AnimatePresence>
-        {selectedCursor && !isLoadingModalOpen && !isProductModalOpen && (
-          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden"
-            >
-              {/* Modal Header */}
-              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-base shadow-sm">
-                    {selectedCursor.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-black text-slate-900">{selectedCursor.name}</h2>
-                    <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
-                      {selectedCursor.location && (
-                        <span className="flex items-center gap-1">
-                          <MapPin size={12} /> {selectedCursor.location}
-                        </span>
-                      )}
-                      {selectedCursor.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone size={12} /> {selectedCursor.phone}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenLoadingModal(selectedCursor)}
-                    className="h-9 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Truck size={14} />
-                    <span>+ Loading</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCursor(null)}
-                    className="w-9 h-9 rounded-xl hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Tabs */}
-              <div className="px-6 pt-3 border-b border-slate-100 flex items-center gap-6">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("products")}
-                  className={`pb-3 text-xs font-bold transition-colors border-b-2 cursor-pointer ${
-                    activeTab === "products"
-                      ? "text-indigo-600 border-indigo-600"
-                      : "text-slate-400 border-transparent hover:text-slate-700"
-                  }`}
-                >
-                  Products Added ({selectedCursor.products?.length || 0})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("loads")}
-                  className={`pb-3 text-xs font-bold transition-colors border-b-2 cursor-pointer ${
-                    activeTab === "loads"
-                      ? "text-indigo-600 border-indigo-600"
-                      : "text-slate-400 border-transparent hover:text-slate-700"
-                  }`}
-                >
-                  Vehicle Loads ({selectedCursor.loads?.length || 0})
-                </button>
-              </div>
-
-              {/* Tab Contents */}
-              <div className="p-6 overflow-y-auto flex-1">
-                {activeTab === "products" ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-800">Materials Available at this Cursor</h4>
-                        <p className="text-[11px] text-slate-400">
-                          Add the product name and category alone (sand, cement, brick)
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenAddProduct(selectedCursor)}
-                        className="h-8 px-3.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Plus size={14} />
-                        <span>Add Product</span>
-                      </button>
-                    </div>
-
-                    {!selectedCursor.products || selectedCursor.products.length === 0 ? (
-                      <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                        <Boxes size={28} className="mx-auto text-slate-300 mb-2" />
-                        <p className="text-xs font-bold text-slate-700">No products added yet</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          Click "+ Add Product" to add materials like M-Sand, P-Sand, Cement, Bricks
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                        {selectedCursor.products.map((p) => (
-                          <div
-                            key={p.id}
-                            className="p-3.5 rounded-xl border border-slate-200/80 bg-white flex items-center justify-between group hover:border-indigo-300 transition-colors"
-                          >
-                            <div>
-                              <p className="text-xs font-bold text-slate-900">{p.product_name}</p>
-                              <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600">
-                                {p.category}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteProduct(p.id)}
-                              className="p-1.5 text-slate-300 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
-                              title="Delete Product"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-800">Quarry Loading History</h4>
-                        <p className="text-[11px] text-slate-400">
-                          Loads recorded when our vehicles arrive and load materials at this cursor
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenLoadingModal(selectedCursor)}
-                        className="h-8 px-3.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Plus size={14} />
-                        <span>+ Record Loading</span>
-                      </button>
-                    </div>
-
-                    {!selectedCursor.loads || selectedCursor.loads.length === 0 ? (
-                      <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                        <Truck size={28} className="mx-auto text-slate-300 mb-2" />
-                        <p className="text-xs font-bold text-slate-700">No loading entries recorded</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          Click "+ Record Loading" when a vehicle loads material at this cursor
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="border border-slate-200/80 rounded-2xl overflow-hidden shadow-2xs">
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                              <th className="py-3 px-4">Date</th>
-                              <th className="py-3 px-4">Material</th>
-                              <th className="py-3 px-4">Vehicle & Driver</th>
-                              <th className="py-3 px-4 text-right">Loaded Qty</th>
-                              <th className="py-3 px-4 text-right">Remaining</th>
-                              <th className="py-3 px-4 text-right">Buy Rate (₹)</th>
-                              <th className="py-3 px-4 text-center">Status</th>
-                              <th className="py-3 px-4 text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 text-xs">
-                            {selectedCursor.loads.map((load) => (
-                              <tr key={load.id} className="hover:bg-slate-50/60 transition-colors">
-                                <td className="py-3 px-4 font-semibold text-slate-600">{load.date}</td>
-                                <td className="py-3 px-4">
-                                  <p className="font-bold text-slate-900">{load.product_name}</p>
-                                  {load.category && (
-                                    <span className="text-[10px] text-slate-400 font-semibold">{load.category}</span>
-                                  )}
-                                </td>
-                                <td className="py-3 px-4">
-                                  <p className="font-bold text-slate-800">{load.vehicle_number}</p>
-                                  <p className="text-[11px] text-slate-400">{load.driver_name}</p>
-                                </td>
-                                <td className="py-3 px-4 text-right font-black text-slate-900">
-                                  {Number(load.qty).toLocaleString()}
-                                </td>
-                                <td className="py-3 px-4 text-right font-black text-amber-700">
-                                  {Number(load.remaining_qty).toLocaleString()}
-                                </td>
-                                <td className="py-3 px-4 text-right font-black text-slate-900">
-                                  ₹{Number(load.price_per_qty).toLocaleString()}
-                                  {load.has_loading_charge && (
-                                    <span className="block text-[10px] text-slate-400 font-semibold">
-                                      +₹{Number(load.loading_charge_per_unit)}/u load
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="py-3 px-4 text-center">
-                                  <span
-                                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                      load.status === "loaded"
-                                        ? "bg-amber-50 text-amber-700 border border-amber-200"
-                                        : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                    }`}
-                                  >
-                                    {load.status === "loaded" ? "Loaded" : "Delivered"}
-                                  </span>
-                                </td>
-                                <td className="py-3 px-4 text-right">
-                                  {load.status === "loaded" && Number(load.remaining_qty) > 0 && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setSelectedCursor(null);
-                                        navigate("/customer/add-material/new", {
-                                          state: { cursorLoadId: load.id },
-                                        });
-                                      }}
-                                      className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
-                                    >
-                                      Dispatch
-                                    </button>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* ─── ADD / EDIT CURSOR MODAL ─── */}
       <AnimatePresence>

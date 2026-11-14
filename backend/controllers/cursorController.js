@@ -4,6 +4,7 @@ const {
   Cursor,
   CursorProduct,
   CursorLoad,
+  CursorPayment,
   BranchDeliveryLog,
   Office,
   Product,
@@ -11,6 +12,7 @@ const {
   Vehicle,
   Employee,
   Customer,
+  BankTable,
   sequelize,
 } = require("../models");
 const { Op } = require("sequelize");
@@ -62,6 +64,12 @@ exports.getAllCursors = async (req, res) => {
             where: { is_deleted: false },
             required: false,
           },
+          {
+            model: CursorPayment,
+            as: "payments",
+            where: { is_deleted: false },
+            required: false,
+          },
         ],
         order: [["id", "DESC"]],
       })
@@ -73,6 +81,32 @@ exports.getAllCursors = async (req, res) => {
         (l) => l.status === "loaded" && Number(l.remaining_qty) > 0
       );
       const deliveredLoads = allLoads.filter((l) => l.status === "delivered");
+      const productsList = (c.products || []).map((p) => ({
+        id: p.id,
+        cursor_id: p.cursor_id,
+        product_name: p.product_name,
+        category: p.category,
+        product_id: p.product_id,
+        createdAt: p.createdAt,
+      }));
+
+      // Calculate total procurement amount (Loads)
+      const totalProcurementAmount = allLoads.reduce((sum, l) => {
+        const itemTotal = Number(l.qty || 0) * Number(l.price_per_qty || 0);
+        const loadCharge = l.has_loading_charge
+          ? Number(l.qty || 0) * Number(l.loading_charge_per_unit || 0)
+          : 0;
+        return sum + itemTotal + loadCharge;
+      }, 0);
+
+      // Calculate total payments made
+      const allPayments = c.payments || [];
+      const totalPaidAmount = allPayments.reduce(
+        (sum, p) => sum + Number(p.amount || 0),
+        0
+      );
+      const balance = totalProcurementAmount - totalPaidAmount;
+
       return {
         id: c.id,
         name: c.name,
@@ -80,7 +114,8 @@ exports.getAllCursors = async (req, res) => {
         location: c.location,
         notes: c.notes,
         createdAt: c.createdAt,
-        productsCount: (c.products || []).length,
+        productsCount: productsList.length,
+        products: productsList,
         totalLoadsCount: allLoads.length,
         activeLoadedCount: loadedLoads.length,
         deliveredCount: deliveredLoads.length,
@@ -88,6 +123,9 @@ exports.getAllCursors = async (req, res) => {
           (sum, l) => sum + Number(l.remaining_qty || 0),
           0
         ),
+        totalProcurementAmount,
+        totalPaidAmount,
+        balance,
       };
     });
 
@@ -132,11 +170,27 @@ exports.getCursorById = async (req, res) => {
               },
             ],
           },
+          {
+            model: CursorPayment,
+            as: "payments",
+            where: { is_deleted: false },
+            required: false,
+            include: [
+              {
+                model: BankTable,
+                as: "bank",
+                attributes: ["id", "name", "accountNumber"],
+                required: false,
+              },
+            ],
+          },
         ],
         order: [
           [{ model: CursorProduct, as: "products" }, "id", "DESC"],
           [{ model: CursorLoad, as: "loads" }, "date", "DESC"],
           [{ model: CursorLoad, as: "loads" }, "id", "DESC"],
+          [{ model: CursorPayment, as: "payments" }, "date", "DESC"],
+          [{ model: CursorPayment, as: "payments" }, "id", "DESC"],
         ],
       })
     );
@@ -145,7 +199,53 @@ exports.getCursorById = async (req, res) => {
       return res.status(404).json({ success: false, message: "Cursor not found" });
     }
 
-    return res.json({ success: true, data: cursor });
+    const c = cursor;
+    const allLoads = c.loads || [];
+    const allPayments = c.payments || [];
+    const productsList = (c.products || []).map((p) => ({
+      id: p.id,
+      cursor_id: p.cursor_id,
+      product_name: p.product_name,
+      category: p.category,
+      product_id: p.product_id,
+      createdAt: p.createdAt,
+    }));
+
+    const totalProcurementAmount = allLoads.reduce((sum, l) => {
+      const itemTotal = Number(l.qty || 0) * Number(l.price_per_qty || 0);
+      const loadCharge = l.has_loading_charge
+        ? Number(l.qty || 0) * Number(l.loading_charge_per_unit || 0)
+        : 0;
+      return sum + itemTotal + loadCharge;
+    }, 0);
+
+    const totalPaidAmount = allPayments.reduce(
+      (sum, p) => sum + Number(p.amount || 0),
+      0
+    );
+    const balance = totalProcurementAmount - totalPaidAmount;
+
+    return res.json({
+      success: true,
+      data: {
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        location: c.location,
+        notes: c.notes,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+        products: productsList,
+        loads: allLoads,
+        payments: allPayments,
+        totalProcurementAmount,
+        totalPaidAmount,
+        balance,
+        productsCount: productsList.length,
+        totalLoadsCount: allLoads.length,
+        totalPaymentsCount: allPayments.length,
+      },
+    });
   } catch (error) {
     console.error("Error fetching cursor by id:", error);
     return res.status(500).json({ success: false, message: error.message });
@@ -744,6 +844,118 @@ exports.addBranchDeliveryToStock = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error("Error adding delivery to stock:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* =========================================================================
+   CURSOR PAYMENTS
+   ========================================================================= */
+
+// Record payment to cursor
+exports.createPayment = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const { amount, bank_id, payment_mode, date, description } = req.body;
+
+    if (!amount || Number(amount) <= 0) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: "Valid payment amount is required" });
+    }
+
+    const cursor = await Cursor.findOne({
+      where: { id, is_deleted: false },
+      transaction: t,
+    });
+    if (!cursor) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: "Cursor not found" });
+    }
+
+    let parsedBankId = bank_id ? Number(bank_id) : null;
+    if (parsedBankId) {
+      const bank = await BankTable.findByPk(parsedBankId, { transaction: t });
+      if (bank) {
+        await bank.decrement("amount", { by: Number(amount), transaction: t });
+      }
+    }
+
+    const paymentDate = date || new Date().toISOString().split("T")[0];
+
+    const payment = await CursorPayment.create(
+      {
+        cursor_id: cursor.id,
+        bank_id: parsedBankId,
+        amount: Number(amount),
+        payment_mode: payment_mode || "BANK TRANSFER",
+        date: paymentDate,
+        description: description ? description.trim() : null,
+      },
+      { transaction: t }
+    );
+
+    await t.commit();
+
+    const createdPayment = await CursorPayment.findByPk(payment.id, {
+      include: [{ model: BankTable, as: "bank", attributes: ["id", "name", "accountNumber"] }],
+    });
+
+    return res.status(201).json({ success: true, data: createdPayment });
+  } catch (error) {
+    await t.rollback();
+    console.error("Error creating cursor payment:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get payments for a cursor
+exports.getCursorPayments = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const payments = await withSchemaHealing(() =>
+      CursorPayment.findAll({
+        where: { cursor_id: id, is_deleted: false },
+        include: [{ model: BankTable, as: "bank", attributes: ["id", "name", "accountNumber"] }],
+        order: [["date", "DESC"], ["id", "DESC"]],
+      })
+    );
+    return res.json({ success: true, data: payments });
+  } catch (error) {
+    console.error("Error fetching cursor payments:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Delete payment
+exports.deletePayment = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const { paymentId } = req.params;
+    const payment = await CursorPayment.findOne({
+      where: { id: paymentId, is_deleted: false },
+      transaction: t,
+    });
+    if (!payment) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: "Payment not found" });
+    }
+
+    // Restore bank amount
+    if (payment.bank_id) {
+      const bank = await BankTable.findByPk(payment.bank_id, { transaction: t });
+      if (bank) {
+        await bank.increment("amount", { by: Number(payment.amount), transaction: t });
+      }
+    }
+
+    await payment.update({ is_deleted: true }, { transaction: t });
+    await t.commit();
+
+    return res.json({ success: true, message: "Payment removed successfully" });
+  } catch (error) {
+    await t.rollback();
+    console.error("Error deleting cursor payment:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
