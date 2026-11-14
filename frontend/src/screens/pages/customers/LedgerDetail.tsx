@@ -8,7 +8,7 @@ import {
   Pencil, Trash2, CreditCard, Navigation,
   ChevronLeft, ChevronRight, Download
 } from "lucide-react";
-import { fetchCustomerById, deleteCustomerStatement } from "../../../api/customer";
+import { fetchCustomerById, deleteCustomerStatement, updateCustomer } from "../../../api/customer";
 import { createCallLog } from "../../../api/callLog";
 import { deleteOrder } from "../../../api/order";
 import RecordPaymentModal from "./RecordPaymentModal";
@@ -25,6 +25,11 @@ const CustomerDetails: React.FC = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [editPaymentData, setEditPaymentData] = useState<any>(null);
+
+  // Edit Due (Balance) Modal State
+  const [isEditDueModalOpen, setIsEditDueModalOpen] = useState(false);
+  const [editDueAmount, setEditDueAmount] = useState<string>("0");
+  const [isSavingDue, setIsSavingDue] = useState(false);
 
   const [callDetails, setCallDetails] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -87,8 +92,34 @@ const CustomerDetails: React.FC = () => {
       const itemsVal = (tx.items || []).reduce((iSum: number, item: any) => iSum + (Number(item.quantity || 0) * Number(item.price || 0)), 0);
       return sum + itemsVal + Number(tx.transport_charge || 0);
     }, 0);
-    return { debit, credit, balance: credit - debit };
+    // Real authoritative balance from DB customer table (preserves edited due amount)
+    const balance = (customer.balance !== undefined && customer.balance !== null)
+      ? Number(customer.balance)
+      : (credit - debit);
+    return { debit, credit, balance };
   }, [customer]);
+
+  const handleUpdateDue = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id) return;
+    const numVal = parseFloat(editDueAmount);
+    if (isNaN(numVal)) {
+      toast.error("Please enter a valid balance amount");
+      return;
+    }
+    try {
+      setIsSavingDue(true);
+      await updateCustomer(Number(id), { balance: numVal });
+      toast.success(`Outstanding balance updated to ₹${numVal.toLocaleString('en-IN')}`);
+      setIsEditDueModalOpen(false);
+      loadData();
+    } catch (error: any) {
+      console.error("Failed to update balance:", error);
+      toast.error(error?.message || "Failed to update balance");
+    } finally {
+      setIsSavingDue(false);
+    }
+  };
 
   const handleCallSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,6 +234,17 @@ const CustomerDetails: React.FC = () => {
                   <ArrowLeft size={12} /> Client Hub
                 </button>
                 <span className="text-xs font-bold text-slate-400">• Account #{customer.id}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditDueAmount(String(customer?.balance ?? totals.balance ?? 0));
+                    setIsEditDueModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/90 rounded-full font-bold text-[11px] transition-all cursor-pointer shadow-2xs active:scale-95"
+                >
+                  <Pencil size={11} className="text-amber-600" />
+                  <span>Edit Due</span>
+                </button>
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 {customer.name} <span className="text-indigo-600">Ledger</span>
@@ -238,6 +280,20 @@ const CustomerDetails: React.FC = () => {
               </button>
 
               <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setEditDueAmount(String(customer?.balance ?? totals.balance ?? 0));
+                  setIsEditDueModalOpen(true);
+                }}
+                className="h-10 px-3.5 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 rounded-xl font-bold text-xs text-amber-800 transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Pencil size={14} className="text-amber-600" />
+                <span>Edit Due</span>
+              </button>
+
+              <button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -269,8 +325,28 @@ const CustomerDetails: React.FC = () => {
             {/* Outstanding Balance */}
             <div className="bg-slate-900 rounded-2xl p-4 text-white shadow-2xs flex items-center justify-between relative overflow-hidden group">
               <div className="relative z-10">
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">Outstanding Balance</p>
-                <p className="text-2xl font-black text-white mt-1">₹{totals.balance.toLocaleString('en-IN')}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">Outstanding Balance</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditDueAmount(String(customer?.balance ?? totals.balance ?? 0));
+                      setIsEditDueModalOpen(true);
+                    }}
+                    className="text-[10px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer bg-amber-400/10 hover:bg-amber-400/20 px-2 py-0.5 rounded-md transition-colors"
+                    title="Click to edit due amount"
+                  >
+                    <Pencil size={10} /> Edit Due
+                  </button>
+                </div>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <p className="text-2xl font-black text-white">₹{totals.balance.toLocaleString('en-IN')}</p>
+                  {totals.balance === 0 && (
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      Settled
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="size-11 rounded-xl bg-white/10 text-white flex items-center justify-center shrink-0 z-10">
                 <Wallet size={18} />
@@ -542,6 +618,128 @@ const CustomerDetails: React.FC = () => {
         document.body
       )}
 
+
+      {/* EDIT DUE MODAL */}
+      {isEditDueModalOpen && createPortal(
+        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isSavingDue) setIsEditDueModalOpen(false);
+            }}
+          />
+          <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-md p-6 sm:p-7 shadow-2xl relative z-10 animate-in zoom-in-95 duration-200 border border-slate-200/80">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shrink-0">
+                  <Pencil size={18} />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Update Balance</h3>
+                  <p className="text-slate-500 text-xs font-semibold">Account #{customer?.id} • {customer?.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => !isSavingDue && setIsEditDueModalOpen(false)}
+                className="size-8 bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-600 rounded-xl flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateDue} className="space-y-4">
+              <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                Edit outstanding opening balance for <span className="font-bold text-slate-800">{customer?.name}</span>. Setting to ₹0 marks this account as settled.
+              </p>
+
+              {/* Quick Preset Buttons */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setEditDueAmount("0")}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 hover:border-emerald-200 border border-slate-200/80 transition-all cursor-pointer"
+                >
+                  ₹0 (Settled)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditDueAmount((prev) => String((parseFloat(prev) || 0) + 500))}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 hover:border-indigo-200 border border-slate-200/80 transition-all cursor-pointer"
+                >
+                  +₹500
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditDueAmount((prev) => String((parseFloat(prev) || 0) + 1000))}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 hover:border-indigo-200 border border-slate-200/80 transition-all cursor-pointer"
+                >
+                  +₹1,000
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditDueAmount((prev) => String((parseFloat(prev) || 0) + 5000))}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 hover:border-indigo-200 border border-slate-200/80 transition-all cursor-pointer"
+                >
+                  +₹5,000
+                </button>
+              </div>
+
+              {/* Input field */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  Outstanding Balance (₹)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-indigo-600 text-lg">
+                    ₹
+                  </span>
+                  <input
+                    type="number"
+                    step="any"
+                    required
+                    value={editDueAmount}
+                    onChange={(e) => setEditDueAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 font-black text-slate-900 text-lg focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  disabled={isSavingDue}
+                  onClick={() => setIsEditDueModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingDue}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/25 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+                >
+                  {isSavingDue ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Pencil size={14} />
+                      <span>Save Balance</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
 
       <RecordPaymentModal
         isOpen={isPaymentModalOpen}

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/customer_service.dart';
+import '../../core/stores/customer_store.dart';
 import '../../core/theme/app_colors.dart';
 import 'material_outward_page.dart';
 
@@ -246,7 +247,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                               final messenger = ScaffoldMessenger.of(context);
                               final nav = Navigator.of(dialogCtx);
                               setDialogState(() => isSaving = true);
-                              final success = await CustomerService.updateCustomerBalance(_customer.id, newBal);
+                              final success = await CustomerStore().updateCustomerBalance(_customer.id, newBal);
                               if (!mounted) return;
                               setDialogState(() => isSaving = false);
 

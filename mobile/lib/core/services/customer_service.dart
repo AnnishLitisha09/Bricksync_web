@@ -324,9 +324,8 @@ class CustomerService {
       }
     }
 
-    final double outstanding = customer.outstandingBalance != 0.0
-        ? customer.outstandingBalance
-        : (totalBilled - totalPaid);
+    // Authoritative customer balance from DB (respects edited balance, including ₹0 Settled)
+    final double outstanding = customer.outstandingBalance;
 
     return CustomerDetailData(
       customer: customer,
