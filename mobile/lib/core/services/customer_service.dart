@@ -1,5 +1,47 @@
 import 'api_client.dart';
 
+class BankAccountModel {
+  final int id;
+  final String name;
+  final String accountNumber;
+  final String holderName;
+  final double amount;
+  final bool bankTransfer;
+  final bool phonepe;
+  final bool gpay;
+
+  BankAccountModel({
+    required this.id,
+    required this.name,
+    required this.accountNumber,
+    required this.holderName,
+    required this.amount,
+    required this.bankTransfer,
+    required this.phonepe,
+    required this.gpay,
+  });
+
+  String get displayName {
+    if (accountNumber.isNotEmpty) {
+      return "$name - $accountNumber";
+    }
+    return name;
+  }
+
+  factory BankAccountModel.fromJson(Map<String, dynamic> json) {
+    return BankAccountModel(
+      id: int.tryParse((json['id'] ?? '0').toString()) ?? 0,
+      name: (json['name'] ?? 'Bank').toString().trim(),
+      accountNumber: (json['accountNumber'] ?? '').toString().trim(),
+      holderName: (json['holderName'] ?? '').toString().trim(),
+      amount: double.tryParse((json['amount'] ?? '0').toString()) ?? 0.0,
+      bankTransfer: json['bankTransfer'] == true || json['bankTransfer'] == 1 || json['bankTransfer'] == '1',
+      phonepe: json['phonepe'] == true || json['phonepe'] == 1 || json['phonepe'] == '1',
+      gpay: json['gpay'] == true || json['gpay'] == 1 || json['gpay'] == '1',
+    );
+  }
+}
+
 class CustomerItem {
   final int id;
   final String name;
@@ -131,6 +173,8 @@ class CustomerDetailData {
     required this.entries,
     required this.callLogs,
   });
+
+  List<CustomerLedgerEntry> get ledgerEntries => entries;
 }
 
 class CustomerService {
@@ -351,6 +395,28 @@ class CustomerService {
       return true;
     }
     return false;
+  }
+
+  /// Fetches bank accounts and cash accounts: /api/banks
+  static Future<List<BankAccountModel>> fetchBanks() async {
+    try {
+      final res = await ApiClient.get('/banks');
+      if (res.isSuccess && res.data != null) {
+        final dynamic raw = res.data;
+        List? list;
+        if (raw is List) {
+          list = raw;
+        } else if (raw is Map && raw['data'] is List) {
+          list = raw['data'] as List;
+        }
+        if (list != null) {
+          return list
+              .map((item) => BankAccountModel.fromJson(Map<String, dynamic>.from(item)))
+              .toList();
+        }
+      }
+    } catch (_) {}
+    return [];
   }
 
   /// Records a customer payment statement

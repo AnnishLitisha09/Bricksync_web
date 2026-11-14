@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -40,6 +41,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    if (kDebugMode) {
+      _emailController.text = "maswath55@gmail.com";
+      _passwordController.text = "123456";
+    }
     if (widget.sessionExpiredMessage != null) {
       _backendError = widget.sessionExpiredMessage;
     }
