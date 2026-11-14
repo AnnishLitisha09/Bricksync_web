@@ -1744,6 +1744,53 @@ export default function CursorLedgerPage() {
                   />
                 </div>
 
+                {/* Total Price Banner (Live Calculation) */}
+                {(() => {
+                  const qtyVal = Number(loadingFormData.qty) || 0;
+                  const priceVal = Number(loadingFormData.price_per_qty) || 0;
+                  const loadChargeVal = loadingFormData.has_loading_charge
+                    ? Number(loadingFormData.loading_charge_per_unit) || 0
+                    : 0;
+                  const baseCost = qtyVal * priceVal;
+                  const totalLoadingCharge = qtyVal * loadChargeVal;
+                  const totalPrice = baseCost + totalLoadingCharge;
+
+                  return (
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-900/40 shadow-sm flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-indigo-300 block mb-0.5">
+                          Total Price
+                        </span>
+                        <span className="text-xs text-slate-300 font-semibold">
+                          {qtyVal > 0 && priceVal > 0 ? (
+                            <>
+                              {qtyVal} × ₹{priceVal.toLocaleString("en-IN")} = ₹{baseCost.toLocaleString("en-IN")}
+                              {totalLoadingCharge > 0 && (
+                                <span className="text-amber-300 font-medium ml-1">
+                                  (+₹{totalLoadingCharge.toLocaleString("en-IN")} load)
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-slate-400">Enter quantity & buy price</span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-baseline justify-end gap-1">
+                          <span className="text-2xl sm:text-3xl font-black text-emerald-400 tabular-nums tracking-tight">
+                            ₹{totalPrice.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                          </span>
+                          <span className="text-[11px] font-bold text-slate-400">INR</span>
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300 block">
+                          Total Amount
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="pt-2 flex items-center gap-2">
                   <button
                     type="button"
