@@ -3,9 +3,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/models/user_model.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/services/stock_service.dart';
-import '../../core/services/customer_service.dart';
 import '../../core/services/fleet_service.dart';
+import '../../core/stores/stock_store.dart';
+import '../../core/stores/customer_store.dart';
 
 class DashboardTab extends StatefulWidget {
   final UserModel user;
@@ -32,14 +32,33 @@ class _DashboardTabState extends State<DashboardTab> {
   @override
   void initState() {
     super.initState();
+    stockStore.addListener(_onStoresUpdated);
+    customerStore.addListener(_onStoresUpdated);
     _fetchLiveMetrics();
+  }
+
+  @override
+  void dispose() {
+    stockStore.removeListener(_onStoresUpdated);
+    customerStore.removeListener(_onStoresUpdated);
+    super.dispose();
+  }
+
+  void _onStoresUpdated() {
+    if (mounted) {
+      setState(() {
+        _totalBricks = stockStore.totalBricksInStock;
+        _totalReceivables = customerStore.totalReceivables;
+        _customerCount = customerStore.totalClientsCount;
+      });
+    }
   }
 
   Future<void> _fetchLiveMetrics() async {
     setState(() => _isLoading = true);
     await Future.wait([
-      StockService.fetchStock(),
-      CustomerService.fetchCustomers(),
+      stockStore.fetchStockData(force: true),
+      customerStore.fetchCustomers(force: true),
       FleetService.fetchVehicles(),
       FleetService.fetchOrdersCount(),
     ]);
@@ -47,11 +66,11 @@ class _DashboardTabState extends State<DashboardTab> {
     if (!mounted) return;
 
     setState(() {
-      _totalBricks = StockService.totalBricksInStock;
+      _totalBricks = stockStore.totalBricksInStock;
       _activeVehicles = FleetService.activeVehiclesCount;
       _totalOrders = FleetService.totalOrdersCount;
-      _totalReceivables = CustomerService.totalReceivables;
-      _customerCount = CustomerService.totalClientsCount;
+      _totalReceivables = customerStore.totalReceivables;
+      _customerCount = customerStore.totalClientsCount;
       _isLoading = false;
     });
   }

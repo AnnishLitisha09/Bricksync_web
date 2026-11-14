@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/models/user_model.dart';
 import '../core/theme/app_colors.dart';
+import '../core/stores/stock_store.dart';
+import '../core/stores/customer_store.dart';
 import 'tabs/dashboard_tab.dart';
 import 'tabs/production_tab.dart';
 import 'tabs/customer_tab.dart';
@@ -25,7 +27,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
 
   void _onSelectTab(int index) {
-    setState(() => _currentIndex = index);
+    if (_currentIndex != index) {
+      setState(() => _currentIndex = index);
+
+      // Automatically fetch latest data from backend on tab switch (Zustand reactive store)
+      if (index == 1) {
+        // Switched to Product / Production tab -> auto-fetch stock & production history from backend
+        stockStore.fetchStockData(force: true);
+        stockStore.fetchProductionHistory(force: true);
+      } else if (index == 2) {
+        // Switched to Customer tab -> auto-fetch customer accounts & ledgers from backend
+        customerStore.fetchCustomers(force: true);
+      } else if (index == 0) {
+        // Switched to Dashboard tab -> refresh metrics from backend
+        stockStore.fetchStockData(force: false);
+        customerStore.fetchCustomers(force: false);
+      }
+    }
   }
 
   @override

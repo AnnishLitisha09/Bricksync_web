@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/customer_service.dart';
+import '../../core/stores/customer_store.dart';
 import '../../core/theme/app_colors.dart';
 import '../pages/customer_details_page.dart';
 
@@ -15,22 +16,24 @@ class CustomerTab extends StatefulWidget {
 class _CustomerTabState extends State<CustomerTab> {
   String _search = "";
   final TextEditingController _searchController = TextEditingController();
-  bool _isLoading = true;
+  bool get _isLoading => customerStore.loading && customerStore.customers.isEmpty;
 
   @override
   void initState() {
     super.initState();
+    customerStore.addListener(_onStoreUpdated);
     _loadLiveCustomers();
   }
 
-  Future<void> _loadLiveCustomers() async {
-    setState(() => _isLoading = true);
-    await CustomerService.fetchCustomers(search: _search);
-    if (!mounted) return;
-    setState(() => _isLoading = false);
+  void _onStoreUpdated() {
+    if (mounted) setState(() {});
   }
 
-  List<CustomerItem> get _customers => CustomerService.currentCustomers;
+  Future<void> _loadLiveCustomers() async {
+    await customerStore.fetchCustomers(search: _search, force: true);
+  }
+
+  List<CustomerItem> get _customers => customerStore.customers;
 
   Color _getAvatarColor(String name) {
     if (name.isEmpty) return AppColors.primary;
@@ -364,7 +367,7 @@ class _CustomerTabState extends State<CustomerTab> {
                                       final messenger = ScaffoldMessenger.of(context);
                                       final nav = Navigator.of(dialogCtx);
 
-                                      final success = await CustomerService.createCustomer(
+                                      final success = await customerStore.createCustomer(
                                         name: name,
                                         phone: phone,
                                         category: selectedCategory,
@@ -683,7 +686,7 @@ class _CustomerTabState extends State<CustomerTab> {
                               final messenger = ScaffoldMessenger.of(context);
                               final nav = Navigator.of(dialogCtx);
                               setDialogState(() => isSaving = true);
-                              final success = await CustomerService.updateCustomerBalance(customer.id, newBal);
+                              final success = await customerStore.updateCustomerBalance(customer.id, newBal);
                               if (!mounted) return;
                               setDialogState(() => isSaving = false);
 
@@ -801,18 +804,19 @@ class _CustomerTabState extends State<CustomerTab> {
 
   @override
   void dispose() {
+    customerStore.removeListener(_onStoreUpdated);
     _searchController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final totalOutstanding = CustomerService.totalReceivables > 0
-        ? CustomerService.totalReceivables
+    final totalOutstanding = customerStore.totalReceivables > 0
+        ? customerStore.totalReceivables
         : _customers.fold(0.0, (sum, c) => sum + c.outstandingBalance);
 
-    final totalClients = CustomerService.totalClientsCount > 0
-        ? CustomerService.totalClientsCount
+    final totalClients = customerStore.totalClientsCount > 0
+        ? customerStore.totalClientsCount
         : _customers.length;
 
     return Scaffold(
@@ -822,9 +826,8 @@ class _CustomerTabState extends State<CustomerTab> {
           children: [
             // Top Bar
             Padding(
-              padding: const EdgeInsets.only(left: 20, right: 16, top: 16, bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Column(
@@ -848,6 +851,17 @@ class _CustomerTabState extends State<CustomerTab> {
                                 color: AppColors.primary,
                               ),
                             ),
+                            if (customerStore.isSyncing) ...[
+                              const SizedBox(width: 8),
+                              const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                         Text(
@@ -864,12 +878,12 @@ class _CustomerTabState extends State<CustomerTab> {
                     ),
                   ),
 
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
 
                   GestureDetector(
                     onTap: _showNewClientDialog,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                       decoration: BoxDecoration(
                         gradient: AppColors.buttonGradient,
                         borderRadius: BorderRadius.circular(14),
@@ -884,8 +898,8 @@ class _CustomerTabState extends State<CustomerTab> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                          const SizedBox(width: 5),
+                          const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                          const SizedBox(width: 4),
                           Text(
                             "Client",
                             style: GoogleFonts.outfit(

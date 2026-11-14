@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/models/stock_item.dart';
 import '../../core/models/production_log_item.dart';
 import '../../core/services/stock_service.dart';
+import '../../core/stores/stock_store.dart';
 import '../../core/theme/app_colors.dart';
 import '../pages/new_production_entry_page.dart';
 
@@ -30,35 +31,30 @@ class _ProductionTabState extends State<ProductionTab> {
   String _historySearchQuery = "";
   final TextEditingController _historySearchController = TextEditingController();
 
-  bool _isLoading = true;
-  bool _isHistoryLoading = false;
+  bool get _isLoading => stockStore.loading && stockStore.stock.isEmpty;
+  bool get _isHistoryLoading => stockStore.historyLoading && stockStore.history.isEmpty;
 
   @override
   void initState() {
     super.initState();
+    stockStore.addListener(_onStoreUpdated);
     _loadAllData();
   }
 
+  void _onStoreUpdated() {
+    if (mounted) setState(() {});
+  }
+
   Future<void> _loadAllData() async {
-    setState(() => _isLoading = true);
-    await Future.wait([
-      StockService.fetchStock(),
-      StockService.fetchOffices(),
-      StockService.fetchProductionHistory(),
-    ]);
-    if (!mounted) return;
-    setState(() => _isLoading = false);
+    await stockStore.refreshAll(force: true);
   }
 
   Future<void> _loadHistoryData() async {
-    setState(() => _isHistoryLoading = true);
-    await StockService.fetchProductionHistory();
-    if (!mounted) return;
-    setState(() => _isHistoryLoading = false);
+    await stockStore.fetchProductionHistory(force: true);
   }
 
   List<StockItem> get _filteredStockItems {
-    return StockService.getFilteredItems(
+    return stockStore.getFilteredItems(
       filter: _selectedStoreFilter,
       category: _selectedCategory,
       searchQuery: _stockSearchQuery,
@@ -66,7 +62,7 @@ class _ProductionTabState extends State<ProductionTab> {
   }
 
   List<ProductionLogItem> get _filteredHistoryItems {
-    return StockService.getFilteredHistory(
+    return stockStore.getFilteredHistory(
       office: _historyOfficeFilter,
       timeRange: _historyTimeRange,
       searchQuery: _historySearchQuery,
@@ -79,11 +75,7 @@ class _ProductionTabState extends State<ProductionTab> {
       MaterialPageRoute(
         builder: (context) => NewProductionEntryPage(
           onSaved: () async {
-            await Future.wait([
-              StockService.fetchStock(),
-              StockService.fetchProductionHistory(),
-            ]);
-            if (mounted) setState(() {});
+            await stockStore.refreshAll(force: true);
           },
         ),
       ),
@@ -342,6 +334,7 @@ class _ProductionTabState extends State<ProductionTab> {
 
   @override
   void dispose() {
+    stockStore.removeListener(_onStoreUpdated);
     _stockSearchController.dispose();
     _historySearchController.dispose();
     super.dispose();
@@ -381,6 +374,17 @@ class _ProductionTabState extends State<ProductionTab> {
                               color: AppColors.primary,
                             ),
                           ),
+                          if (stockStore.isSyncing) ...[
+                            const SizedBox(width: 8),
+                            const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       Text(
