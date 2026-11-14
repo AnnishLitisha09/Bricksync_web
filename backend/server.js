@@ -207,11 +207,16 @@ const http = require("http");
 const { initSocket } = require("./utils/socket");
 const { startTelemetryStream } = require("./utils/telemetryStreamer");
 
+const { ensureCursorAndBranchTables } = require("./utils/schemaSync");
+
 const server = http.createServer(app);
 
 db.sequelize.authenticate()
-    .then(() => {
+    .then(async () => {
         console.log("🟢 DB Connected");
+
+        // Self-heal and guarantee cursor & branch delivery tables exist
+        await ensureCursorAndBranchTables(db.sequelize);
 
         // Start background services only after DB connection succeeds
         initSocket(server);

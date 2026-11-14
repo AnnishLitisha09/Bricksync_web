@@ -14,6 +14,30 @@ const {
   sequelize,
 } = require("../models");
 const { Op } = require("sequelize");
+const { ensureCursorAndBranchTables } = require("../utils/schemaSync");
+
+/**
+ * Executes a database action with automatic schema self-healing
+ * if tables or columns have not yet been migrated.
+ */
+async function withSchemaHealing(fn) {
+  try {
+    return await fn();
+  } catch (error) {
+    if (
+      error &&
+      error.message &&
+      (error.message.includes("doesn't exist") ||
+        error.message.includes("ER_NO_SUCH_TABLE") ||
+        error.message.includes("Unknown column"))
+    ) {
+      console.warn("⚠️ [Schema Healing] Missing database entity detected. Executing auto-migration...");
+      await ensureCursorAndBranchTables(sequelize);
+      return await fn();
+    }
+    throw error;
+  }
+}
 
 /* =========================================================================
    CURSOR CRUD
@@ -22,24 +46,26 @@ const { Op } = require("sequelize");
 // Get all cursors with summary counts
 exports.getAllCursors = async (req, res) => {
   try {
-    const cursors = await Cursor.findAll({
-      where: { is_deleted: false },
-      include: [
-        {
-          model: CursorProduct,
-          as: "products",
-          where: { is_deleted: false },
-          required: false,
-        },
-        {
-          model: CursorLoad,
-          as: "loads",
-          where: { is_deleted: false },
-          required: false,
-        },
-      ],
-      order: [["id", "DESC"]],
-    });
+    const cursors = await withSchemaHealing(() =>
+      Cursor.findAll({
+        where: { is_deleted: false },
+        include: [
+          {
+            model: CursorProduct,
+            as: "products",
+            where: { is_deleted: false },
+            required: false,
+          },
+          {
+            model: CursorLoad,
+            as: "loads",
+            where: { is_deleted: false },
+            required: false,
+          },
+        ],
+        order: [["id", "DESC"]],
+      })
+    );
 
     const data = cursors.map((c) => {
       const allLoads = c.loads || [];
@@ -76,42 +102,44 @@ exports.getAllCursors = async (req, res) => {
 exports.getCursorById = async (req, res) => {
   try {
     const { id } = req.params;
-    const cursor = await Cursor.findOne({
-      where: { id, is_deleted: false },
-      include: [
-        {
-          model: CursorProduct,
-          as: "products",
-          where: { is_deleted: false },
-          required: false,
-        },
-        {
-          model: CursorLoad,
-          as: "loads",
-          where: { is_deleted: false },
-          required: false,
-          include: [
-            {
-              model: Vehicle,
-              as: "vehicle",
-              attributes: ["id", "vehicleName", "vehicleNumber"],
-              required: false,
-            },
-            {
-              model: Employee,
-              as: "driver",
-              attributes: ["employee_id", "employee_name"],
-              required: false,
-            },
-          ],
-        },
-      ],
-      order: [
-        [{ model: CursorProduct, as: "products" }, "id", "DESC"],
-        [{ model: CursorLoad, as: "loads" }, "date", "DESC"],
-        [{ model: CursorLoad, as: "loads" }, "id", "DESC"],
-      ],
-    });
+    const cursor = await withSchemaHealing(() =>
+      Cursor.findOne({
+        where: { id, is_deleted: false },
+        include: [
+          {
+            model: CursorProduct,
+            as: "products",
+            where: { is_deleted: false },
+            required: false,
+          },
+          {
+            model: CursorLoad,
+            as: "loads",
+            where: { is_deleted: false },
+            required: false,
+            include: [
+              {
+                model: Vehicle,
+                as: "vehicle",
+                attributes: ["id", "vehicleName", "vehicleNumber"],
+                required: false,
+              },
+              {
+                model: Employee,
+                as: "driver",
+                attributes: ["employee_id", "employee_name"],
+                required: false,
+              },
+            ],
+          },
+        ],
+        order: [
+          [{ model: CursorProduct, as: "products" }, "id", "DESC"],
+          [{ model: CursorLoad, as: "loads" }, "date", "DESC"],
+          [{ model: CursorLoad, as: "loads" }, "id", "DESC"],
+        ],
+      })
+    );
 
     if (!cursor) {
       return res.status(404).json({ success: false, message: "Cursor not found" });
@@ -132,12 +160,14 @@ exports.createCursor = async (req, res) => {
       return res.status(400).json({ success: false, message: "Cursor name is required" });
     }
 
-    const cursor = await Cursor.create({
-      name: name.trim(),
-      phone: phone ? phone.trim() : null,
-      location: location ? location.trim() : null,
-      notes: notes ? notes.trim() : null,
-    });
+    const cursor = await withSchemaHealing(() =>
+      Cursor.create({
+        name: name.trim(),
+        phone: phone ? phone.trim() : null,
+        location: location ? location.trim() : null,
+        notes: notes ? notes.trim() : null,
+      })
+    );
 
     return res.status(201).json({ success: true, data: cursor });
   } catch (error) {
@@ -363,34 +393,36 @@ exports.createLoad = async (req, res) => {
 // Get all loads where status is "loaded" (for dropdown in /customer/add-material/new)
 exports.getLoadedMaterials = async (req, res) => {
   try {
-    const loads = await CursorLoad.findAll({
-      where: {
-        is_deleted: false,
-        status: "loaded",
-        remaining_qty: { [Op.gt]: 0 },
-      },
-      include: [
-        {
-          model: Cursor,
-          as: "cursor",
-          attributes: ["id", "name", "location", "phone"],
-          where: { is_deleted: false },
+    const loads = await withSchemaHealing(() =>
+      CursorLoad.findAll({
+        where: {
+          is_deleted: false,
+          status: "loaded",
+          remaining_qty: { [Op.gt]: 0 },
         },
-        {
-          model: Vehicle,
-          as: "vehicle",
-          attributes: ["id", "vehicleName", "vehicleNumber"],
-          required: false,
-        },
-        {
-          model: Employee,
-          as: "driver",
-          attributes: ["employee_id", "employee_name"],
-          required: false,
-        },
-      ],
-      order: [["date", "DESC"], ["id", "DESC"]],
-    });
+        include: [
+          {
+            model: Cursor,
+            as: "cursor",
+            attributes: ["id", "name", "location", "phone"],
+            where: { is_deleted: false },
+          },
+          {
+            model: Vehicle,
+            as: "vehicle",
+            attributes: ["id", "vehicleName", "vehicleNumber"],
+            required: false,
+          },
+          {
+            model: Employee,
+            as: "driver",
+            attributes: ["employee_id", "employee_name"],
+            required: false,
+          },
+        ],
+        order: [["date", "DESC"], ["id", "DESC"]],
+      })
+    );
 
     return res.json({ success: true, data: loads });
   } catch (error) {
@@ -407,29 +439,31 @@ exports.getAllLoads = async (req, res) => {
     if (cursor_id) where.cursor_id = cursor_id;
     if (status) where.status = status;
 
-    const loads = await CursorLoad.findAll({
-      where,
-      include: [
-        {
-          model: Cursor,
-          as: "cursor",
-          attributes: ["id", "name", "location"],
-        },
-        {
-          model: Vehicle,
-          as: "vehicle",
-          attributes: ["id", "vehicleName", "vehicleNumber"],
-          required: false,
-        },
-        {
-          model: Employee,
-          as: "driver",
-          attributes: ["employee_id", "employee_name"],
-          required: false,
-        },
-      ],
-      order: [["date", "DESC"], ["id", "DESC"]],
-    });
+    const loads = await withSchemaHealing(() =>
+      CursorLoad.findAll({
+        where,
+        include: [
+          {
+            model: Cursor,
+            as: "cursor",
+            attributes: ["id", "name", "location"],
+          },
+          {
+            model: Vehicle,
+            as: "vehicle",
+            attributes: ["id", "vehicleName", "vehicleNumber"],
+            required: false,
+          },
+          {
+            model: Employee,
+            as: "driver",
+            attributes: ["employee_id", "employee_name"],
+            required: false,
+          },
+        ],
+        order: [["date", "DESC"], ["id", "DESC"]],
+      })
+    );
 
     return res.json({ success: true, data: loads });
   } catch (error) {

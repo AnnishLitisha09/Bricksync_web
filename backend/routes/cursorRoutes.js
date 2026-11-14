@@ -4,6 +4,22 @@ const express = require("express");
 const router = express.Router();
 const cursorController = require("../controllers/cursorController");
 const authMiddleware = require("../middleware/authMiddleware");
+const { ensureCursorAndBranchTables } = require("../utils/schemaSync");
+const { sequelize } = require("../models");
+
+// Self-healing middleware: ensures database tables exist before query execution
+let schemaInitialized = false;
+router.use(async (req, res, next) => {
+  if (!schemaInitialized) {
+    try {
+      await ensureCursorAndBranchTables(sequelize);
+      schemaInitialized = true;
+    } catch (err) {
+      console.warn("Schema initialization check warning in cursorRoutes:", err.message);
+    }
+  }
+  next();
+});
 
 router.use(authMiddleware);
 
