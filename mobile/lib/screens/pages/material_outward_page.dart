@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/models/cursor_model.dart';
 import '../../core/models/stock_item.dart';
+import '../../core/services/cursor_service.dart';
 import '../../core/services/customer_service.dart';
 import '../../core/services/fleet_service.dart';
 import '../../core/services/stock_service.dart';
@@ -22,6 +24,8 @@ class MaterialItemRow {
   List<int> driverIds;
   List<int> loaderIds;
   double loaderChargePerUnit;
+  int? cursorLoadId;
+  double? buyPrice;
 
   MaterialItemRow({
     this.officeName = "Office",
@@ -37,10 +41,13 @@ class MaterialItemRow {
     List<int>? driverIds,
     List<int>? loaderIds,
     this.loaderChargePerUnit = 0.0,
+    this.cursorLoadId,
+    this.buyPrice,
   })  : driverIds = driverIds ?? [],
         loaderIds = loaderIds ?? [];
 
   double get subtotal => quantity * rate;
+  double get profit => (rate - (buyPrice ?? 0.0)) * quantity;
 }
 
 class MaterialOutwardPage extends StatefulWidget {
@@ -67,6 +74,9 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
 
   bool _isLoadingInitial = true;
   bool _isSubmitting = false;
+
+  bool _cursorMode = false;
+  List<CursorLoadItem> _loadedCursorMaterials = [];
 
   List<CustomerItem> _allCustomers = [];
   List<StockItem> _allStock = [];
@@ -117,6 +127,7 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
         FleetService.fetchVehicles(),
         StockService.fetchEmployees(),
         StockService.fetchOffices(),
+        CursorService.getLoadedMaterials(),
       ]);
 
       _allCustomers = results[0] as List<CustomerItem>;
@@ -125,6 +136,7 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
       _allStaff = StockService.currentStaffMembers;
       final off = results[4] as List<String>;
       if (off.isNotEmpty) _offices = off;
+      _loadedCursorMaterials = results[5] as List<CursorLoadItem>;
 
       // If initial customer provided, ensure we match up with freshest backend data
       if (_selectedCustomer != null) {
@@ -142,6 +154,13 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
     } finally {
       if (mounted) setState(() => _isLoadingInitial = false);
     }
+  }
+
+  Future<void> _refreshLoadedMaterials() async {
+    try {
+      final loads = await CursorService.getLoadedMaterials();
+      if (mounted) setState(() => _loadedCursorMaterials = loads);
+    } catch (_) {}
   }
 
   @override
@@ -383,7 +402,7 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
       backgroundColor: Colors.transparent,
       builder: (modalCtx) => StatefulBuilder(
         builder: (ctx, setModalState) {
-          // Available stock for selected office
+          // Available stock for selected office (only items with available quantity > 0)
           final availableInOffice = _allStock.where((s) {
             final matchesOffice = s.officeId == row.officeId ||
                 s.officeName.toLowerCase().contains(row.officeName.toLowerCase().substring(0, 3));
@@ -391,7 +410,8 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
             final matchesSearch = q.isEmpty ||
                 s.productName.toLowerCase().contains(q) ||
                 s.category.toLowerCase().contains(q);
-            return matchesOffice && matchesSearch;
+            final hasStock = s.quantity > 0;
+            return matchesOffice && matchesSearch && hasStock;
           }).toList();
 
           return Container(
@@ -622,6 +642,332 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
     );
   }
 
+  // ─── CURSOR LOAD SELECTOR MODAL ───
+  void _openCursorLoadSelector(int itemIndex) {
+    final row = _items[itemIndex];
+    String search = "";
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (modalCtx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final filtered = _loadedCursorMaterials.where((l) {
+            final q = search.toLowerCase().trim();
+            if (q.isEmpty) return true;
+            return l.productName.toLowerCase().contains(q) ||
+                l.cursorName.toLowerCase().contains(q) ||
+                l.vehicleNumber.toLowerCase().contains(q) ||
+                l.driverName.toLowerCase().contains(q) ||
+                l.category.toLowerCase().contains(q);
+          }).toList();
+
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.78,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Select Loaded Material",
+                            style: GoogleFonts.outfit(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0F172A),
+                            ),
+                          ),
+                          Text(
+                            "Materials loaded at quarry ready for dispatch",
+                            style: GoogleFonts.outfit(
+                              fontSize: 12,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primarySoft,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          "${filtered.length} Loads",
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: TextField(
+                      autofocus: true,
+                      style: GoogleFonts.outfit(fontSize: 14, color: const Color(0xFF0F172A)),
+                      decoration: InputDecoration(
+                        icon: const Icon(Icons.search_rounded, size: 20, color: Color(0xFF64748B)),
+                        hintText: "Search quarry, material, vehicle, driver...",
+                        hintStyle: GoogleFonts.outfit(fontSize: 13, color: const Color(0xFF94A3B8)),
+                        border: InputBorder.none,
+                      ),
+                      onChanged: (val) => setModalState(() => search = val),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                Expanded(
+                  child: filtered.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.inventory_2_outlined, size: 48, color: Color(0xFFCBD5E1)),
+                              const SizedBox(height: 12),
+                              Text(
+                                "No active loaded quarry materials found",
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF64748B),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Record vehicle loading at a cursor first",
+                                style: GoogleFonts.outfit(
+                                  fontSize: 12,
+                                  color: const Color(0xFF94A3B8),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.separated(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 8),
+                          itemBuilder: (context, i) {
+                            final load = filtered[i];
+                            final isSelected = row.cursorLoadId == load.id;
+
+                            return Material(
+                              color: isSelected ? const Color(0xFFEEF2FF) : Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(14),
+                                onTap: () {
+                                  _selectCursorLoad(load, itemIndex);
+                                  Navigator.pop(modalCtx);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+                                      width: isSelected ? 1.5 : 1.0,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFFEF3C7),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              load.cursorName.isNotEmpty ? load.cursorName : "Quarry Load #${load.id}",
+                                              style: GoogleFonts.outfit(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w800,
+                                                color: const Color(0xFFB45309),
+                                              ),
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFECFDF5),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              "Avail: ${load.remainingQty.toStringAsFixed(0)} units",
+                                              style: GoogleFonts.outfit(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w800,
+                                                color: const Color(0xFF059669),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        "${load.productName} (${load.category})",
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w800,
+                                          color: const Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.local_shipping_outlined, size: 14, color: Color(0xFF64748B)),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            load.vehicleNumber.isNotEmpty ? load.vehicleNumber : "No truck",
+                                            style: GoogleFonts.outfit(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFF334155),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          const Icon(Icons.person_outline_rounded, size: 14, color: Color(0xFF64748B)),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            load.driverName.isNotEmpty ? load.driverName : "No driver",
+                                            style: GoogleFonts.outfit(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFF334155),
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          Text(
+                                            "Buy: ₹${load.pricePerQty.toStringAsFixed(2)}/u",
+                                            style: GoogleFonts.outfit(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _selectCursorLoad(CursorLoadItem load, int itemIndex) {
+    final row = _items[itemIndex];
+    setState(() {
+      row.cursorLoadId = load.id;
+      row.buyPrice = load.pricePerQty;
+      row.productName = load.productName;
+      row.productId = load.cursorProductId ?? 1;
+      row.unit = "units";
+      row.availableQty = load.remainingQty;
+      row.quantity = load.remainingQty;
+      _qtyControllers[itemIndex].text = load.remainingQty.toStringAsFixed(
+        load.remainingQty % 1 == 0 ? 0 : 2,
+      );
+
+      // Auto-fill vehicle if matching vehicle number is found
+      if (load.vehicleNumber.isNotEmpty) {
+        final cleanNum = load.vehicleNumber.replaceAll(" ", "").toLowerCase();
+        final matchedVeh = _allVehicles.where((v) {
+          final vNum = v.number.replaceAll(" ", "").toLowerCase();
+          return vNum.contains(cleanNum) || cleanNum.contains(vNum);
+        }).toList();
+
+        if (matchedVeh.isNotEmpty) {
+          row.vehicleId = matchedVeh.first.id;
+          row.vehicleName = "${matchedVeh.first.number} (${matchedVeh.first.name})";
+        } else {
+          row.vehicleName = load.vehicleNumber;
+        }
+      }
+
+      // Auto-fill driver if matching driver is found
+      if (load.driverId != null && load.driverId! > 0) {
+        row.driverIds = [load.driverId!];
+      } else if (load.driverName.isNotEmpty) {
+        final cleanDriver = load.driverName.trim().toLowerCase();
+        final matchedStaff = _allStaff.where((s) {
+          return s.displayName.trim().toLowerCase() == cleanDriver;
+        }).toList();
+        if (matchedStaff.isNotEmpty) {
+          row.driverIds = [matchedStaff.first.id];
+        }
+      }
+
+      // Auto-fill loader/unload charge if quarry loading charge was specified
+      if (load.hasLoadingCharge && load.loadingChargePerUnit > 0) {
+        row.loaderChargePerUnit = load.loadingChargePerUnit;
+        _loaderChargeControllers[itemIndex].text = load.loadingChargePerUnit.toStringAsFixed(2);
+      }
+
+      // Auto-fill customer if cursor load already recorded a customer
+      if (_selectedCustomer == null && load.customerId != null && load.customerId! > 0) {
+        final matchedCus = _allCustomers.where((c) => c.id == load.customerId).toList();
+        if (matchedCus.isNotEmpty) {
+          _selectedCustomer = matchedCus.first;
+        }
+      }
+
+      // Auto-fill date if available
+      if (load.date.isNotEmpty) {
+        try {
+          _entryDate = DateTime.parse(load.date);
+        } catch (_) {}
+      }
+    });
+  }
+
   // ─── VEHICLE SELECTOR MODAL ───
   void _openVehicleSelector(int itemIndex) {
     final row = _items[itemIndex];
@@ -819,46 +1165,90 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
 
     for (int i = 0; i < _items.length; i++) {
       final item = _items[i];
-      if (item.productId == null || item.productId == 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Please select a material for Item #${i + 1}"),
-            backgroundColor: const Color(0xFFDC2626),
-          ),
-        );
-        _openMaterialSelector(i);
-        return;
-      }
-      if (item.quantity <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Please enter a valid quantity for Item #${i + 1}"),
-            backgroundColor: const Color(0xFFDC2626),
-          ),
-        );
-        return;
-      }
-      if (item.availableQty <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "${item.productName.isNotEmpty ? item.productName : 'Item #${i + 1}'} has 0 stock available in ${item.officeName}. Please select another item.",
+      if (_cursorMode || item.cursorLoadId != null) {
+        if (item.cursorLoadId == null || item.cursorLoadId == 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Please select a cursor loaded material for Item #${i + 1}"),
+              backgroundColor: const Color(0xFFDC2626),
             ),
-            backgroundColor: const Color(0xFFDC2626),
-          ),
-        );
-        return;
-      }
-      if (item.quantity > item.availableQty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "Insufficient stock for ${item.productName}. Requested ${item.quantity.toStringAsFixed(0)} ${item.unit}, but only ${item.availableQty.toStringAsFixed(0)} available in ${item.officeName}.",
+          );
+          _openCursorLoadSelector(i);
+          return;
+        }
+        if (item.quantity <= 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Please enter a valid quantity for Item #${i + 1}"),
+              backgroundColor: const Color(0xFFDC2626),
             ),
-            backgroundColor: const Color(0xFFDC2626),
-          ),
-        );
-        return;
+          );
+          return;
+        }
+        if (item.availableQty <= 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "${item.productName.isNotEmpty ? item.productName : 'Item #${i + 1}'} has 0 available load quantity.",
+              ),
+              backgroundColor: const Color(0xFFDC2626),
+            ),
+          );
+          return;
+        }
+        if (item.quantity > item.availableQty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Requested ${item.quantity.toStringAsFixed(0)} exceeds available cursor load quantity of ${item.availableQty.toStringAsFixed(0)}.",
+              ),
+              backgroundColor: const Color(0xFFDC2626),
+            ),
+          );
+          return;
+        }
+      } else {
+        if (item.productId == null || item.productId == 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Please select a material for Item #${i + 1}"),
+              backgroundColor: const Color(0xFFDC2626),
+            ),
+          );
+          _openMaterialSelector(i);
+          return;
+        }
+        if (item.quantity <= 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Please enter a valid quantity for Item #${i + 1}"),
+              backgroundColor: const Color(0xFFDC2626),
+            ),
+          );
+          return;
+        }
+        if (item.availableQty <= 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "${item.productName.isNotEmpty ? item.productName : 'Item #${i + 1}'} has 0 stock available in ${item.officeName}. Please select another item.",
+              ),
+              backgroundColor: const Color(0xFFDC2626),
+            ),
+          );
+          return;
+        }
+        if (item.quantity > item.availableQty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Insufficient stock for ${item.productName}. Requested ${item.quantity.toStringAsFixed(0)} ${item.unit}, but only ${item.availableQty.toStringAsFixed(0)} available in ${item.officeName}.",
+              ),
+              backgroundColor: const Color(0xFFDC2626),
+            ),
+          );
+          return;
+        }
       }
       if (item.rate < 0) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -888,6 +1278,8 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
           'driver_ids': it.driverIds.where((id) => id > 0).toList(),
           'loader_ids': it.loaderIds.where((id) => id > 0).toList(),
           'loader_charge_per_unit': it.loaderChargePerUnit,
+          if (it.cursorLoadId != null && it.cursorLoadId! > 0) 'cursor_load_id': it.cursorLoadId,
+          if (it.buyPrice != null) 'buy_price': it.buyPrice,
         };
       }).toList();
 
@@ -1031,6 +1423,103 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // ─── CURSOR PROCUREMENT MODE TOGGLE ───
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _cursorMode ? const Color(0xFFEEF2FF) : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _cursorMode ? AppColors.primary : AppColors.border,
+                          width: _cursorMode ? 1.5 : 1.0,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0F172A).withValues(alpha: 0.02),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: _cursorMode ? AppColors.primary : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.account_tree_rounded,
+                              size: 20,
+                              color: _cursorMode ? Colors.white : const Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      "Cursor Procurement Mode",
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: _cursorMode ? AppColors.primary : const Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                      decoration: BoxDecoration(
+                                        color: _cursorMode ? AppColors.primary : const Color(0xFFE2E8F0),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        _cursorMode ? "CURSOR" : "OFF",
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: _cursorMode ? Colors.white : const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  _cursorMode
+                                      ? "Dispatch from quarry load with live profit tracking"
+                                      : "Standard dispatch from company office stock inventory",
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 11,
+                                    color: const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch.adaptive(
+                            value: _cursorMode,
+                            activeColor: AppColors.primary,
+                            onChanged: (val) {
+                              setState(() {
+                                _cursorMode = val;
+                                if (!_cursorMode) {
+                                  for (final itm in _items) {
+                                    itm.cursorLoadId = null;
+                                    itm.buyPrice = null;
+                                  }
+                                }
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+
                     // ─── 1. DISPATCH LOGISTICS (DATE & CUSTOMER ACCOUNT) ───
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -1514,113 +2003,190 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
           ),
           const SizedBox(height: 12),
 
-          // Dispatch Office Selector (Office / Thottam)
-          _buildFieldLabel("DISPATCH PLANT YARD"),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              for (final off in _offices) ...[
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        item.officeName = off;
-                        item.officeId = off.toLowerCase().contains("thot") ? 2 : 1;
-                        // Reset product if office changed
-                        item.productId = null;
-                        item.productName = "";
-                        item.availableQty = 0;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 9),
-                      decoration: BoxDecoration(
-                        color: item.officeName.toLowerCase() == off.toLowerCase()
-                            ? AppColors.primarySoft
-                            : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
+          if (!_cursorMode) ...[
+            // Dispatch Office Selector (Office / Thottam)
+            _buildFieldLabel("DISPATCH PLANT YARD"),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                for (final off in _offices) ...[
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          item.officeName = off;
+                          item.officeId = off.toLowerCase().contains("thot") ? 2 : 1;
+                          // Reset product if office changed
+                          item.productId = null;
+                          item.productName = "";
+                          item.availableQty = 0;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        decoration: BoxDecoration(
                           color: item.officeName.toLowerCase() == off.toLowerCase()
-                              ? AppColors.primary
-                              : const Color(0xFFCBD5E1),
+                              ? AppColors.primarySoft
+                              : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: item.officeName.toLowerCase() == off.toLowerCase()
+                                ? AppColors.primary
+                                : const Color(0xFFCBD5E1),
+                          ),
                         ),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        off,
-                        style: GoogleFonts.outfit(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: item.officeName.toLowerCase() == off.toLowerCase()
-                              ? AppColors.primary
-                              : const Color(0xFF475569),
+                        alignment: Alignment.center,
+                        child: Text(
+                          off,
+                          style: GoogleFonts.outfit(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: item.officeName.toLowerCase() == off.toLowerCase()
+                                ? AppColors.primary
+                                : const Color(0xFF475569),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                if (off != _offices.last) const SizedBox(width: 8),
+                  if (off != _offices.last) const SizedBox(width: 8),
+                ],
               ],
-            ],
-          ),
+            ),
 
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-          // Material Product Selector
-          _buildFieldLabel("SELECT MATERIAL"),
-          const SizedBox(height: 6),
-          GestureDetector(
-            onTap: () => _openMaterialSelector(index),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-              decoration: BoxDecoration(
-                color: item.productId != null ? const Color(0xFFF8FAFC) : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: item.productId != null
-                      ? AppColors.primary.withValues(alpha: 0.5)
-                      : const Color(0xFFCBD5E1),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.layers_outlined,
-                    size: 18,
-                    color: item.productId != null ? AppColors.primary : const Color(0xFF94A3B8),
+            // Material Product Selector
+            _buildFieldLabel("SELECT MATERIAL"),
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: () => _openMaterialSelector(index),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                decoration: BoxDecoration(
+                  color: item.productId != null ? const Color(0xFFF8FAFC) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: item.productId != null
+                        ? AppColors.primary.withValues(alpha: 0.5)
+                        : const Color(0xFFCBD5E1),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.productName.isNotEmpty ? item.productName : "Choose brick / product...",
-                          style: GoogleFonts.outfit(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: item.productName.isNotEmpty
-                                ? const Color(0xFF0F172A)
-                                : const Color(0xFF94A3B8),
-                          ),
-                        ),
-                        if (item.productName.isNotEmpty)
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.layers_outlined,
+                      size: 18,
+                      color: item.productId != null ? AppColors.primary : const Color(0xFF94A3B8),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            "Available: ${item.availableQty.toStringAsFixed(0)} ${item.unit}",
+                            item.productName.isNotEmpty ? item.productName : "Choose brick / product...",
                             style: GoogleFonts.outfit(
-                              fontSize: 11,
-                              color: const Color(0xFF059669),
-                              fontWeight: FontWeight.w600,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: item.productName.isNotEmpty
+                                  ? const Color(0xFF0F172A)
+                                  : const Color(0xFF94A3B8),
                             ),
                           ),
-                      ],
+                          if (item.productName.isNotEmpty)
+                            Text(
+                              "Available: ${item.availableQty.toStringAsFixed(0)} ${item.unit}",
+                              style: GoogleFonts.outfit(
+                                fontSize: 11,
+                                color: const Color(0xFF059669),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF64748B)),
-                ],
+                    const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF64748B)),
+                  ],
+                ),
               ),
             ),
-          ),
+          ] else ...[
+            // Cursor Loaded Material Selector
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildFieldLabel("CURSOR LOADED MATERIAL"),
+                GestureDetector(
+                  onTap: _refreshLoadedMaterials,
+                  child: Text(
+                    "Reload (${_loadedCursorMaterials.length})",
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: () => _openCursorLoadSelector(index),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                decoration: BoxDecoration(
+                  color: item.cursorLoadId != null ? const Color(0xFFEEF2FF) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: item.cursorLoadId != null
+                        ? AppColors.primary
+                        : const Color(0xFFCBD5E1),
+                    width: item.cursorLoadId != null ? 1.5 : 1.0,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.local_shipping_rounded,
+                      size: 20,
+                      color: item.cursorLoadId != null ? AppColors.primary : const Color(0xFF94A3B8),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.cursorLoadId != null
+                                ? "${item.productName} • ${item.availableQty.toStringAsFixed(0)} units available"
+                                : "Select Loaded Material from Cursor...",
+                            style: GoogleFonts.outfit(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                              color: item.cursorLoadId != null
+                                  ? const Color(0xFF0F172A)
+                                  : const Color(0xFF94A3B8),
+                            ),
+                          ),
+                          if (item.cursorLoadId != null)
+                            Text(
+                              "Quarry Buy Rate: ₹${item.buyPrice?.toStringAsFixed(2) ?? '0.00'}/unit | Veh: ${item.vehicleName.isNotEmpty ? item.vehicleName : 'Assigned'}",
+                              style: GoogleFonts.outfit(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF64748B)),
+                  ],
+                ),
+              ),
+            ),
+          ],
 
           const SizedBox(height: 12),
 
@@ -1709,7 +2275,7 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildFieldLabel("RATE (₹)"),
+                    _buildFieldLabel(_cursorMode ? "SELLING RATE (₹)" : "RATE (₹)"),
                     const SizedBox(height: 6),
                     Container(
                       decoration: BoxDecoration(
@@ -1745,6 +2311,72 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
               ),
             ],
           ),
+
+          // Live Margin & Profit Banner in Cursor Mode
+          if (_cursorMode && item.cursorLoadId != null && item.buyPrice != null) ...[
+            Builder(
+              builder: (context) {
+                final buyRate = item.buyPrice ?? 0.0;
+                final sellRate = item.rate;
+                final margin = sellRate - buyRate;
+                final profit = margin * item.quantity;
+                final isProfitable = profit >= 0;
+
+                return Container(
+                  margin: const EdgeInsets.only(top: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isProfitable ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isProfitable ? const Color(0xFFA7F3D0) : const Color(0xFFFECACA),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "BUY: ₹${buyRate.toStringAsFixed(1)}   SELL: ₹${sellRate.toStringAsFixed(1)}",
+                            style: GoogleFonts.outfit(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF475569),
+                            ),
+                          ),
+                          Text(
+                            "MARGIN: ${margin >= 0 ? '+' : ''}₹${margin.toStringAsFixed(2)} / unit",
+                            style: GoogleFonts.outfit(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                              color: isProfitable ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isProfitable ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          "Profit: ₹${profit.toStringAsFixed(2)}",
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
 
           // Subtotal display
           if (item.subtotal > 0) ...[
@@ -1805,7 +2437,7 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          "STAFF & HANDLING CHARGES",
+                          _cursorMode ? "STAFF & UNLOAD CHARGES" : "STAFF & HANDLING CHARGES",
                           style: GoogleFonts.outfit(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w800,
@@ -2002,7 +2634,7 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
                 const SizedBox(height: 16),
 
                 // ── LOADER CHARGE PER UNIT ──
-                _buildFieldLabel("LOADER / UNIT CHARGE (₹)"),
+                _buildFieldLabel(_cursorMode ? "UNLOAD CHARGE / UNIT (₹)" : "LOADER / UNIT CHARGE (₹)"),
                 const SizedBox(height: 6),
                 Container(
                   height: 44,
@@ -2038,6 +2670,23 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
                     },
                   ),
                 ),
+                if (item.loaderChargePerUnit > 0 && item.quantity > 0) ...[
+                  const SizedBox(height: 6),
+                  Builder(
+                    builder: (context) {
+                      final totalWage = item.loaderChargePerUnit * item.quantity;
+                      final perLoader = item.loaderIds.isNotEmpty ? totalWage / item.loaderIds.length : totalWage;
+                      return Text(
+                        "Total Unload Wage: ₹${totalWage.toStringAsFixed(2)}${item.loaderIds.isNotEmpty ? ' (₹${perLoader.toStringAsFixed(2)} each for ${item.loaderIds.length} loaders)' : ''}",
+                        style: GoogleFonts.outfit(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF059669),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ],
             ),
           ),

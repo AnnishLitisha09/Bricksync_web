@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/services/storage_service.dart';
 import 'core/services/api_client.dart';
+import 'core/services/auth_service.dart';
 import 'core/theme/app_theme.dart';
+import 'screens/dashboard_screen.dart';
 import 'screens/login_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -33,11 +35,18 @@ void main() async {
     );
   };
 
-  // Always present the authentic Sign In screen on app launch as required.
-  // The user enters enterprise credentials and is routed to their specific role dashboard (Admin, Driver, Customer).
-  const initialScreen = LoginScreen();
+  // Restore authenticated session seamlessly when opening the app
+  Widget initialScreen = const LoginScreen();
+  if (StorageService.hasToken()) {
+    final cachedUser = StorageService.getUser();
+    if (cachedUser != null) {
+      initialScreen = DashboardScreen(user: cachedUser);
+      // Verify session in background without blocking instant app launch
+      AuthService.verifySession().catchError((_) => null);
+    }
+  }
 
-  runApp(const BrickSyncApp(
+  runApp(BrickSyncApp(
     initialScreen: initialScreen,
   ));
 }

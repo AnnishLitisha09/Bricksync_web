@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/services/fleet_service.dart';
 import '../pages/fuel_records_page.dart';
 import '../pages/vehicles_list_page.dart';
+import '../pages/cursors_page.dart';
 
 class OthersTab extends StatefulWidget {
   const OthersTab({super.key});
@@ -90,6 +91,36 @@ class _OthersTabState extends State<OthersTab> {
                 ),
 
                 const SizedBox(height: 20),
+
+                // Quarry & Cursor Procurement Section
+                Text(
+                  "Raw Material & Quarry Procurement",
+                  style: GoogleFonts.outfit(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _buildMenuCard([
+                  _buildMenuItem(
+                    icon: Icons.layers_rounded,
+                    title: "Cursors (Quarry Loads)",
+                    subtitle: "Quarry loading, M-Sand procurement & vendor ledger",
+                    color: const Color(0xFF4F46E5),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CursorsPage(),
+                        ),
+                      );
+                    },
+                    isLast: true,
+                  ),
+                ]),
+
+                const SizedBox(height: 22),
 
                 // Fleet & Transport Section
                 Text(
