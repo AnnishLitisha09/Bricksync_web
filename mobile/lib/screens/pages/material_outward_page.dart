@@ -385,7 +385,8 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
         builder: (ctx, setModalState) {
           // Available stock for selected office
           final availableInOffice = _allStock.where((s) {
-            final matchesOffice = s.officeName.toLowerCase().contains(row.officeName.toLowerCase().substring(0, 3));
+            final matchesOffice = s.officeId == row.officeId ||
+                s.officeName.toLowerCase().contains(row.officeName.toLowerCase().substring(0, 3));
             final q = search.toLowerCase().trim();
             final matchesSearch = q.isEmpty ||
                 s.productName.toLowerCase().contains(q) ||
@@ -497,98 +498,115 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
                           itemBuilder: (context, i) {
                             final s = availableInOffice[i];
                             final isSelected = row.productId == s.productId;
+                            final isOutOfStock = s.quantity <= 0;
 
-                            return Material(
-                              color: isSelected ? const Color(0xFFEEF2FF) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(14),
-                              child: InkWell(
+                            return Opacity(
+                              opacity: isOutOfStock ? 0.45 : 1.0,
+                              child: Material(
+                                color: isSelected ? const Color(0xFFEEF2FF) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(14),
-                                onTap: () {
-                                  setState(() {
-                                    row.productId = s.productId;
-                                    row.productName = s.productName;
-                                    row.unit = s.unit;
-                                    row.availableQty = s.quantity;
-                                    if (s.price > 0 && row.rate == 0.0) {
-                                      row.rate = s.price;
-                                      _rateControllers[itemIndex].text = s.price.toStringAsFixed(2);
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: () {
+                                    if (isOutOfStock) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text("${s.productName} has 0 stock available in ${row.officeName}"),
+                                          backgroundColor: const Color(0xFFDC2626),
+                                        ),
+                                      );
+                                      return;
                                     }
-                                  });
-                                  Navigator.pop(modalCtx);
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: isSelected ? AppColors.primary : const Color(0xFFF1F5F9),
-                                          borderRadius: BorderRadius.circular(10),
+                                    setState(() {
+                                      row.productId = s.productId;
+                                      row.productName = s.productName;
+                                      row.unit = s.unit;
+                                      row.availableQty = s.quantity;
+                                      row.officeId = s.officeId;
+                                      row.officeName = s.officeName;
+                                      if (s.price > 0 && row.rate == 0.0) {
+                                        row.rate = s.price;
+                                        _rateControllers[itemIndex].text = s.price.toStringAsFixed(2);
+                                      }
+                                    });
+                                    Navigator.pop(modalCtx);
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: isSelected ? AppColors.primary : const Color(0xFFF1F5F9),
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: Icon(
+                                            Icons.layers_rounded,
+                                            size: 18,
+                                            color: isSelected ? Colors.white : const Color(0xFF475569),
+                                          ),
                                         ),
-                                        child: Icon(
-                                          Icons.layers_rounded,
-                                          size: 18,
-                                          color: isSelected ? Colors.white : const Color(0xFF475569),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                s.productName,
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 14.5,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: const Color(0xFF0F172A),
+                                                ),
+                                              ),
+                                              Text(
+                                                "${s.category.toUpperCase()} • PROD-${s.productId}",
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 11,
+                                                  color: const Color(0xFF64748B),
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
                                           children: [
-                                            Text(
-                                              s.productName,
-                                              style: GoogleFonts.outfit(
-                                                fontSize: 14.5,
-                                                fontWeight: FontWeight.w700,
-                                                color: const Color(0xFF0F172A),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                              decoration: BoxDecoration(
+                                                color: s.quantity > 0
+                                                    ? const Color(0xFFECFDF5)
+                                                    : const Color(0xFFFEF2F2),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                s.quantity > 0
+                                                    ? "${s.quantity.toStringAsFixed(0)} ${s.unit}"
+                                                    : "OUT OF STOCK",
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: s.quantity > 0
+                                                    ? const Color(0xFF059669)
+                                                    : const Color(0xFFDC2626),
+                                                ),
                                               ),
                                             ),
+                                            const SizedBox(height: 2),
                                             Text(
-                                              "${s.category.toUpperCase()} • PROD-${s.productId}",
+                                              s.quantity > 0 ? "In Stock" : "Unavailable",
                                               style: GoogleFonts.outfit(
-                                                fontSize: 11,
-                                                color: const Color(0xFF64748B),
-                                                fontWeight: FontWeight.w600,
+                                                fontSize: 10,
+                                                color: s.quantity > 0 ? const Color(0xFF94A3B8) : const Color(0xFFDC2626),
                                               ),
                                             ),
                                           ],
                                         ),
-                                      ),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                            decoration: BoxDecoration(
-                                              color: s.quantity > 0
-                                                  ? const Color(0xFFECFDF5)
-                                                  : const Color(0xFFFEF2F2),
-                                              borderRadius: BorderRadius.circular(6),
-                                            ),
-                                            child: Text(
-                                              "${s.quantity.toStringAsFixed(0)} ${s.unit}",
-                                              style: GoogleFonts.outfit(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w800,
-                                                color: s.quantity > 0
-                                                  ? const Color(0xFF059669)
-                                                  : const Color(0xFFDC2626),
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            "In Stock",
-                                            style: GoogleFonts.outfit(
-                                              fontSize: 10,
-                                              color: const Color(0xFF94A3B8),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -820,6 +838,28 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
         );
         return;
       }
+      if (item.availableQty <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "${item.productName.isNotEmpty ? item.productName : 'Item #${i + 1}'} has 0 stock available in ${item.officeName}. Please select another item.",
+            ),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+        return;
+      }
+      if (item.quantity > item.availableQty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Insufficient stock for ${item.productName}. Requested ${item.quantity.toStringAsFixed(0)} ${item.unit}, but only ${item.availableQty.toStringAsFixed(0)} available in ${item.officeName}.",
+            ),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+        return;
+      }
       if (item.rate < 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -844,9 +884,9 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
           'material_id': it.productId,
           'quantity': it.quantity,
           'price': it.rate,
-          if (it.vehicleId != null) 'vehicle_id': it.vehicleId,
-          'driver_ids': it.driverIds,
-          'loader_ids': it.loaderIds,
+          if (it.vehicleId != null && it.vehicleId! > 0) 'vehicle_id': it.vehicleId,
+          'driver_ids': it.driverIds.where((id) => id > 0).toList(),
+          'loader_ids': it.loaderIds.where((id) => id > 0).toList(),
           'loader_charge_per_unit': it.loaderChargePerUnit,
         };
       }).toList();

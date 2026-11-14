@@ -57,6 +57,29 @@ class ApiClient {
     });
   }
 
+  static String _extractErrorMessage(dynamic unwrapped, int statusCode) {
+    if (unwrapped is Map) {
+      final msg = unwrapped['message']?.toString().trim();
+      final err = unwrapped['error']?.toString().trim();
+
+      // If backend returned a specific error detail along with generic "Internal Server Error"
+      if (err != null && err.isNotEmpty) {
+        if (msg == null || msg.isEmpty || msg == "Internal Server Error") {
+          return err;
+        }
+      }
+      if (msg != null && msg.isNotEmpty && msg != "Internal Server Error") {
+        return msg;
+      }
+      if (err != null && err.isNotEmpty) {
+        return err;
+      }
+    } else if (unwrapped is String && unwrapped.trim().isNotEmpty) {
+      return unwrapped.trim();
+    }
+    return "Server returned error $statusCode";
+  }
+
   static List<String> get candidateBases => [remoteBaseUrl];
 
   static Map<String, String> _buildHeaders() {
@@ -99,14 +122,10 @@ class ApiClient {
         } else {
           _checkAuthFailure(cleanPath, response.statusCode, unwrapped);
           if (response.statusCode != 403 && response.statusCode != 404) {
-            String? msg;
-            if (unwrapped is Map) {
-              msg = unwrapped['message']?.toString() ?? unwrapped['error']?.toString();
-            }
             return ApiResponse(
               statusCode: response.statusCode,
               isSuccess: false,
-              error: msg ?? "Server returned error ${response.statusCode}",
+              error: _extractErrorMessage(unwrapped, response.statusCode),
             );
           }
         }
@@ -147,14 +166,10 @@ class ApiClient {
           );
         } else {
           _checkAuthFailure(cleanPath, response.statusCode, unwrapped);
-          String? msg;
-          if (unwrapped is Map) {
-            msg = unwrapped['message']?.toString() ?? unwrapped['error']?.toString();
-          }
           return ApiResponse(
             statusCode: response.statusCode,
             isSuccess: false,
-            error: msg ?? "Server returned error ${response.statusCode}",
+            error: _extractErrorMessage(unwrapped, response.statusCode),
           );
         }
       } catch (e) {
@@ -194,14 +209,10 @@ class ApiClient {
           );
         } else {
           _checkAuthFailure(cleanPath, response.statusCode, unwrapped);
-          String? msg;
-          if (unwrapped is Map) {
-            msg = unwrapped['message']?.toString() ?? unwrapped['error']?.toString();
-          }
           return ApiResponse(
             statusCode: response.statusCode,
             isSuccess: false,
-            error: msg ?? "Server returned error ${response.statusCode}",
+            error: _extractErrorMessage(unwrapped, response.statusCode),
           );
         }
       } catch (e) {
@@ -241,14 +252,10 @@ class ApiClient {
           );
         } else {
           _checkAuthFailure(cleanPath, response.statusCode, unwrapped);
-          String? msg;
-          if (unwrapped is Map) {
-            msg = unwrapped['message']?.toString() ?? unwrapped['error']?.toString();
-          }
           return ApiResponse(
             statusCode: response.statusCode,
             isSuccess: false,
-            error: msg ?? "Server returned error ${response.statusCode}",
+            error: _extractErrorMessage(unwrapped, response.statusCode),
           );
         }
       } catch (e) {
@@ -281,14 +288,10 @@ class ApiClient {
         );
       } else {
         _checkAuthFailure(cleanPath, response.statusCode, unwrapped);
-        String? msg;
-        if (unwrapped is Map) {
-          msg = unwrapped['message']?.toString() ?? unwrapped['error']?.toString();
-        }
         return ApiResponse(
           statusCode: response.statusCode,
           isSuccess: false,
-          error: msg ?? "Server returned error ${response.statusCode}",
+          error: _extractErrorMessage(unwrapped, response.statusCode),
         );
       }
     } catch (e) {
