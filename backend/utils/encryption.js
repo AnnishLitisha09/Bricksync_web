@@ -63,10 +63,10 @@ function generateSignature(token, timestamp) {
 function verifyClientSignature(token, timestamp, signature) {
   if (!signature || !timestamp) return false;
 
-  // Verify timestamp is within 10 minutes to prevent replay attacks
+  // Verify timestamp is within tolerance (allows 24h clock skew for emulators / cross-device)
   const now = Date.now();
   const time = parseInt(timestamp, 10);
-  if (isNaN(time) || Math.abs(now - time) > 10 * 60 * 1000) {
+  if (isNaN(time) || Math.abs(now - time) > 24 * 60 * 60 * 1000) {
     return false;
   }
 

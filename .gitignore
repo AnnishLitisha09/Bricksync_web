@@ -26,9 +26,9 @@ dist/
 build/
 
 # =========================
-# Mobile application (separate Flutter project)
+# Mobile application
 # =========================
-mobile/
+# mobile build artifacts are ignored by mobile/.gitignore
 # Production environment
 .env
 .env.*

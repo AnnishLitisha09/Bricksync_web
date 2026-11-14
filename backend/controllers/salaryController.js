@@ -142,7 +142,12 @@ exports.getWeeklySalaryOverview = async (req, res) => {
                     is_deleted: false,
                     production_date: { [Op.between]: [startOfWeek, endOfWeek] }
                 },
-                include: [{ model: ProductionEmployee, as: "employees", required: false }]
+                include: [{
+                    model: ProductionEmployee,
+                    as: "employees",
+                    required: false,
+                    where: { is_deleted: false }
+                }]
             });
         } catch (e) {
             console.warn("Could not fetch ProductionLog for weekly salary overview:", e.message);

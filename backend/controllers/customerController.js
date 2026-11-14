@@ -25,7 +25,7 @@ const { Op } = require("sequelize");
 exports.getAllCustomers = async (req, res) => {
     try {
         const { search, page = 1, limit = 20, sortBy = "name", sortOrder = "ASC" } = req.query;
-        const parsedLimit = Math.min(Math.max(parseInt(limit) || 20, 1), 100);
+        const parsedLimit = Math.min(Math.max(parseInt(limit) || 20, 1), 500);
         const parsedPage = Math.max(parseInt(page) || 1, 1);
         const offset = (parsedPage - 1) * parsedLimit;
 
@@ -264,7 +264,14 @@ exports.updateCustomer = async (req, res) => {
             return res.status(404).json({ message: "Customer not found" });
         }
 
-        await customer.update({ name, email, phone_no, address, balance, category });
+        await customer.update({
+            name: name !== undefined ? name : customer.name,
+            email: email !== undefined ? email : customer.email,
+            phone_no: phone_no !== undefined ? phone_no : customer.phone_no,
+            address: address !== undefined ? address : customer.address,
+            balance: balance !== undefined ? balance : customer.balance,
+            category: category !== undefined ? category : customer.category,
+        });
         return res.status(200).json({ message: "Customer updated successfully", data: customer });
     } catch (error) {
         console.error("Error updating customer:", error);

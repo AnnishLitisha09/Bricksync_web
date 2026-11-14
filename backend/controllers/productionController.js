@@ -557,7 +557,7 @@ exports.updateProduction = async (req, res) => {
     }
 };
 
-/* 🔹 Soft Delete Production Log with Full Stock Reversal */
+/* 🔹 Soft Delete Production Log with Full Stock Reversal & Salary Reversal */
 exports.deleteProduction = async (req, res) => {
     console.log(`🗑️ [DeleteProduction] Starting deletion for ID: ${req.params.id}`);
     const t = await sequelize.transaction();
@@ -578,7 +578,7 @@ exports.deleteProduction = async (req, res) => {
         const cementId = log.cement_product_id ? Number(log.cement_product_id) : null;
         const cementUsed = parseFloat(log.cement_used) || 0;
 
-        // 1. Reverse Produced Item Stock (Deduct what was added)
+        // 1. Reverse Produced Item Stock (Deduct what was added during manufacturing)
         if (unitsProduced > 0) {
             const [producedStock] = await ProductStock.findOrCreate({
                 where: { office_id: officeId, product_id: productId },
@@ -586,11 +586,15 @@ exports.deleteProduction = async (req, res) => {
                 transaction: t
             });
 
-            producedStock.quantity = (parseFloat(producedStock.quantity) || 0) - unitsProduced;
+            const currentQty = parseFloat(producedStock.quantity) || 0;
+            const newQty = Math.max(0, currentQty - unitsProduced);
+            producedStock.quantity = newQty.toFixed(2);
             await producedStock.save({ transaction: t });
+            console.log(`📉 Reduced manufactured brick stock (Product ${productId} at Office ${officeId}): -${unitsProduced}. New Qty: ${producedStock.quantity}`);
         }
 
         // 2. Reverse Cement Stock (Add back what was used)
+        let cementRestored = false;
         if (cementId && cementUsed > 0) {
             const [cementStock] = await ProductStock.findOrCreate({
                 where: { office_id: officeId, product_id: cementId },
@@ -598,50 +602,150 @@ exports.deleteProduction = async (req, res) => {
                 transaction: t
             });
 
-            cementStock.quantity = (parseFloat(cementStock.quantity) || 0) + cementUsed;
+            const currentCement = parseFloat(cementStock.quantity) || 0;
+            cementStock.quantity = (currentCement + cementUsed).toFixed(2);
             await cementStock.save({ transaction: t });
+            cementRestored = true;
+            console.log(`📈 Restored cement stock (Product ${cementId} at Office ${officeId}): +${cementUsed} Bags. New Qty: ${cementStock.quantity}`);
         }
 
-        // 3. Reverse Other Raw Materials recorded in raw_materials_used
-        if (log.raw_materials_used && Array.isArray(log.raw_materials_used)) {
-            for (const mat of log.raw_materials_used) {
-                if (!mat.is_cement && mat.material_product_id && mat.standard_qty > 0) {
+        // 3. Reverse Other Raw Materials (Dust, Chips, Sand, etc. recorded in raw_materials_used)
+        let rawMats = log.raw_materials_used;
+        if (typeof rawMats === "string") {
+            try {
+                rawMats = JSON.parse(rawMats);
+            } catch (e) {
+                console.error("Failed to parse raw_materials_used JSON string:", e.message);
+                rawMats = null;
+            }
+        }
+
+        let materialsRestored = false;
+        if (Array.isArray(rawMats) && rawMats.length > 0) {
+            for (const mat of rawMats) {
+                const matProdId = mat.material_product_id ? Number(mat.material_product_id) : null;
+                const qtyToRestore = parseFloat(mat.actual_qty ?? mat.standard_qty ?? 0);
+
+                if (mat.is_cement) {
+                    if (!cementRestored && matProdId && qtyToRestore > 0) {
+                        const [cStock] = await ProductStock.findOrCreate({
+                            where: { office_id: officeId, product_id: matProdId },
+                            defaults: { quantity: 0 },
+                            transaction: t
+                        });
+                        cStock.quantity = ((parseFloat(cStock.quantity) || 0) + qtyToRestore).toFixed(2);
+                        await cStock.save({ transaction: t });
+                        cementRestored = true;
+                        console.log(`📈 Restored cement from raw_materials_used (Product ${matProdId}): +${qtyToRestore} Bags`);
+                    }
+                } else if (matProdId && qtyToRestore > 0) {
                     const [rawStock] = await ProductStock.findOrCreate({
-                        where: { office_id: officeId, product_id: Number(mat.material_product_id) },
+                        where: { office_id: officeId, product_id: matProdId },
                         defaults: { quantity: 0 },
                         transaction: t
                     });
-                    rawStock.quantity = (parseFloat(rawStock.quantity) || 0) + parseFloat(mat.standard_qty);
+                    const currentRawQty = parseFloat(rawStock.quantity) || 0;
+                    rawStock.quantity = (currentRawQty + qtyToRestore).toFixed(2);
                     await rawStock.save({ transaction: t });
-                    console.log(`📈 Restored raw material ${mat.material_name}: +${mat.standard_qty} ${mat.unit}`);
+                    materialsRestored = true;
+                    console.log(`📈 Restored raw material (Product ${matProdId} - ${mat.material_name || 'Material'}): +${qtyToRestore} ${mat.unit || 'Units'}. New Qty: ${rawStock.quantity}`);
                 }
             }
         }
 
-        // 4. Soft Delete the Log
+        // Fallback: If raw_materials_used was not saved on the log, look up the active ProductionRecipe for this product and office
+        if (!materialsRestored && unitsProduced > 0) {
+            try {
+                const recipe = await ProductionRecipe.findOne({
+                    where: { office_id: officeId, product_id: productId, is_active: true },
+                    include: [{ model: ProductionRecipeItem, as: "items" }],
+                    transaction: t
+                });
+
+                if (recipe && Array.isArray(recipe.items) && recipe.items.length > 0) {
+                    const batchBricks = parseFloat(recipe.batch_bricks) || 1000;
+                    const multiplier = unitsProduced / batchBricks;
+
+                    for (const item of recipe.items) {
+                        const itemMatId = item.material_product_id ? Number(item.material_product_id) : null;
+                        const standardQty = parseFloat((parseFloat(item.quantity) * multiplier).toFixed(3));
+
+                        if (item.is_cement) {
+                            if (!cementRestored && itemMatId && standardQty > 0) {
+                                const [cStock] = await ProductStock.findOrCreate({
+                                    where: { office_id: officeId, product_id: itemMatId },
+                                    defaults: { quantity: 0 },
+                                    transaction: t
+                                });
+                                cStock.quantity = ((parseFloat(cStock.quantity) || 0) + standardQty).toFixed(2);
+                                await cStock.save({ transaction: t });
+                                cementRestored = true;
+                                console.log(`📈 Restored cement from recipe BOM (Product ${itemMatId}): +${standardQty} Bags`);
+                            }
+                        } else if (itemMatId && standardQty > 0) {
+                            const [rawStock] = await ProductStock.findOrCreate({
+                                where: { office_id: officeId, product_id: itemMatId },
+                                defaults: { quantity: 0 },
+                                transaction: t
+                            });
+                            const currentRawQty = parseFloat(rawStock.quantity) || 0;
+                            rawStock.quantity = (currentRawQty + standardQty).toFixed(2);
+                            await rawStock.save({ transaction: t });
+                            console.log(`📈 Restored raw material from BOM Recipe ${item.material_name || ''} (Product ${itemMatId}): +${standardQty} ${item.unit || 'Units'}. New Qty: ${rawStock.quantity}`);
+                        }
+                    }
+                }
+            } catch (recipeErr) {
+                console.warn("Could not fallback to ProductionRecipe on deletion:", recipeErr.message);
+            }
+        }
+
+        // 4. Soft Delete associated ProductionEmployee assignments (Reverting operator wages)
+        await ProductionEmployee.update(
+            { is_deleted: true, deleted_at: new Date() },
+            { where: { production_id: log.production_id }, transaction: t }
+        );
+        console.log(`👥 Soft-deleted ProductionEmployee records for production_id: ${log.production_id}`);
+
+        // 5. Soft Delete the Production Log
         log.is_deleted = true;
         log.deleted_at = new Date();
         await log.save({ transaction: t });
 
         await t.commit();
-        res.json({ message: "Production log deleted and all raw materials stock reversed successfully" });
+        res.json({
+            success: true,
+            message: "Production log deleted, manufactured product stock reduced, raw materials restored, and staff wages reversed successfully"
+        });
     } catch (err) {
         if (t) await t.rollback();
-        console.error("Delete error:", err);
-        res.status(500).json({ error: err.message });
+        console.error("Delete production error:", err);
+        res.status(500).json({ success: false, error: err.message });
     }
 };
 
 /* 🔹 Restore Production Log */
 exports.restoreProduction = async (req, res) => {
+    const t = await sequelize.transaction();
     try {
         const [updated] = await ProductionLog.update(
             { is_deleted: false, deleted_at: null },
-            { where: { production_id: req.params.id } }
+            { where: { production_id: req.params.id }, transaction: t }
         );
-        if (!updated) return res.status(404).json({ message: "Production log not found" });
-        res.json({ message: "Production log restored" });
+        if (!updated) {
+            await t.rollback();
+            return res.status(404).json({ message: "Production log not found" });
+        }
+
+        await ProductionEmployee.update(
+            { is_deleted: false, deleted_at: null },
+            { where: { production_id: req.params.id }, transaction: t }
+        );
+
+        await t.commit();
+        res.json({ message: "Production log and employee assignments restored" });
     } catch (err) {
+        if (t) await t.rollback();
         res.status(500).json({ error: err.message });
     }
 };
