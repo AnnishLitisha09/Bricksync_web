@@ -26,9 +26,12 @@ class AppTheme {
         displayColor: AppColors.textPrimary,
       ),
       inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: AppColors.inputBackground,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        filled: false,
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
         hintStyle: GoogleFonts.outfit(
           color: AppColors.textMuted,
           fontSize: 14,
@@ -38,22 +41,6 @@ class AppTheme {
           color: AppColors.textSecondary,
           fontSize: 13,
           fontWeight: FontWeight.w600,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.inputBorder, width: 1.2),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.inputBorder, width: 1.2),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.error, width: 1.2),
         ),
       ),
     );

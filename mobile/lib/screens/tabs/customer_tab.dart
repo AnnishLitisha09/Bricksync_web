@@ -638,6 +638,12 @@ class _CustomerTabState extends State<CustomerTab> {
                       color: const Color(0xFF0F172A),
                     ),
                     decoration: InputDecoration(
+                      filled: false,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
                       prefixIcon: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         child: Text(
@@ -649,7 +655,6 @@ class _CustomerTabState extends State<CustomerTab> {
                           ),
                         ),
                       ),
-                      border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
                   ),
@@ -794,7 +799,12 @@ class _CustomerTabState extends State<CustomerTab> {
         ),
         decoration: InputDecoration(
           isDense: true,
+          filled: false,
           border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          errorBorder: InputBorder.none,
+          disabledBorder: InputBorder.none,
           hintText: hintText,
           hintStyle: GoogleFonts.outfit(
             fontSize: 13,
@@ -1001,7 +1011,12 @@ class _CustomerTabState extends State<CustomerTab> {
                   style: GoogleFonts.outfit(fontSize: 13.5, color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     isDense: true,
+                    filled: false,
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
                     hintText: "Search customer name, location, phone...",
                     hintStyle: GoogleFonts.outfit(fontSize: 12.5, color: AppColors.textMuted),
                     prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
