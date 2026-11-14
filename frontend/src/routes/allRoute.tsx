@@ -55,6 +55,8 @@ import ExecutiveBiPage from "../screens/pages/analytics/ExecutiveBiPage";
 import BomForecastingPage from "../screens/pages/stock/BomForecastingPage";
 import FactoryKioskPage from "../screens/pages/kiosk/FactoryKioskPage";
 import ProductionMixRatioPage from "../screens/pages/stock/ProductionMixRatioPage";
+import CursorsPage from "../screens/pages/cursors/CursorsPage";
+import BranchLedgerDetail from "../screens/pages/customers/BranchLedgerDetail";
 
 // --- CUSTOMER & LEDGER IMPORTS ---
 
@@ -142,6 +144,14 @@ const privateRoutes = [
   {
     path: "/customer/details/:id",
     element: <CustomerDetails />, // The individual ledger view
+  },
+  {
+    path: "/branch/details/:id",
+    element: <BranchLedgerDetail />,
+  },
+  {
+    path: "/cursors",
+    element: <CursorsPage />,
   },
   {
     path: "/customer/add-material/:id?",

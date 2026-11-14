@@ -166,6 +166,7 @@ app.use("/api/spares", require("./routes/sparesRoutes"));
 
 app.use("/api/wallet", require("./routes/walletRoutes"));
 app.use("/api/customers", require("./routes/customerRoutes"));
+app.use("/api/cursors", require("./routes/cursorRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
 app.use("/api/customer-statements", require("./routes/customerStatementRoutes"));
 console.log("🔌 Mounting /api/call-logs...");

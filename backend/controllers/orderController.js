@@ -1,4 +1,4 @@
-const { Order, OrderItem, OrderEmployee, Customer, Office, Product, ProductStock, Vehicle, Employee, User, sequelize } = require("../models");
+const { Order, OrderItem, OrderEmployee, Customer, Office, Product, ProductStock, Vehicle, Employee, User, CursorLoad, BranchDeliveryLog, sequelize } = require("../models");
 
 // Create an Order
 exports.createOrder = async (req, res) => {
@@ -6,7 +6,8 @@ exports.createOrder = async (req, res) => {
     try {
         const {
             cus_id, date, transport_charge,
-            items, // array of { product, office_id, material_id, quantity, price, vehicle_id, driver_ids, loader_ids }
+            items, // array of { product, office_id, material_id, quantity, price, vehicle_id, driver_ids, loader_ids, cursor_load_id, buy_price }
+            branch_deliveries, // optional array of { office_id, cursor_load_id, product_name, category, product_id, quantity, price, vehicle_id, vehicle_number, driver_name, date, notes }
         } = req.body;
 
         if (!items || !Array.isArray(items) || items.length === 0) {
@@ -22,10 +23,11 @@ exports.createOrder = async (req, res) => {
 
         let totalItemsValue = 0;
 
-        // 2. Create Order Items, Employees & Reduce Stock
+        // 2. Create Order Items, Employees & Handle Stock / Cursor Loads
         for (const item of items) {
             const validMaterialId = (item.material_id && Number(item.material_id) > 0) ? Number(item.material_id) : null;
             const validOfficeId = (item.office_id && Number(item.office_id) > 0) ? Number(item.office_id) : null;
+            const validCursorLoadId = (item.cursor_load_id && Number(item.cursor_load_id) > 0) ? Number(item.cursor_load_id) : null;
 
             const newItem = await OrderItem.create({
                 order_id: newOrder.order_id,
@@ -37,6 +39,8 @@ exports.createOrder = async (req, res) => {
                 vehicle_id: (item.vehicle_id && Number(item.vehicle_id) > 0) ? Number(item.vehicle_id) : null,
                 loader_charge_per_unit: item.loader_charge_per_unit || 0,
                 places: item.places || item.place_of_delivery || null,
+                cursor_load_id: validCursorLoadId,
+                buy_price: Number(item.buy_price) || 0,
             }, { transaction });
 
             // Handle item-level employees
@@ -56,8 +60,20 @@ exports.createOrder = async (req, res) => {
 
             totalItemsValue += (Number(item.quantity || item.qty) * Number(item.price || item.rate));
 
-            // Reduce Stock
-            if (validMaterialId && validOfficeId) {
+            // Cursor Load handling: deduct remaining_qty, update status to delivered if exhausted
+            if (validCursorLoadId) {
+                const cursorLoad = await CursorLoad.findByPk(validCursorLoadId, { transaction });
+                if (cursorLoad) {
+                    const itemQty = Number(item.quantity || item.qty);
+                    const newRem = Math.max(0, Number(cursorLoad.remaining_qty) - itemQty);
+                    cursorLoad.remaining_qty = newRem;
+                    if (newRem <= 0) {
+                        cursorLoad.status = "delivered";
+                    }
+                    await cursorLoad.save({ transaction });
+                }
+            } else if (validMaterialId && validOfficeId) {
+                // Normal Dispatch: Reduce Office Stock only when not sourced directly from a Cursor load
                 const stock = await ProductStock.findOne({
                     where: { product_id: validMaterialId, office_id: validOfficeId },
                     transaction
@@ -73,13 +89,88 @@ exports.createOrder = async (req, res) => {
             }
         }
 
-        // 3. Update Customer Balance
+        // 3. Process any split deliveries to Branch/Office
+        if (branch_deliveries && Array.isArray(branch_deliveries) && branch_deliveries.length > 0) {
+            for (const bd of branch_deliveries) {
+                if (bd.office_id && Number(bd.quantity) > 0) {
+                    let bProductId = bd.product_id ? Number(bd.product_id) : null;
+                    if (!bProductId && bd.product_name) {
+                        let mProd = await Product.findOne({
+                            where: { product_name: bd.product_name.trim(), is_deleted: false },
+                            transaction,
+                        });
+                        if (!mProd) {
+                            const cat = bd.category && ["sand", "cement", "bricks"].includes(bd.category.toLowerCase())
+                                ? bd.category.toLowerCase() === "brick"
+                                    ? "bricks"
+                                    : bd.category.toLowerCase()
+                                : "sand";
+                            mProd = await Product.create({
+                                product_name: bd.product_name.trim(),
+                                category: cat,
+                                price_per_stock: Number(bd.price) || 0,
+                            }, { transaction });
+                        }
+                        bProductId = mProd.product_id;
+                    }
+
+                    // Increment stock in Branch
+                    if (bProductId) {
+                        let bStock = await ProductStock.findOne({
+                            where: { office_id: Number(bd.office_id), product_id: bProductId },
+                            transaction,
+                        });
+                        if (bStock) {
+                            await bStock.increment("quantity", { by: Number(bd.quantity), transaction });
+                        } else {
+                            await ProductStock.create({
+                                office_id: Number(bd.office_id),
+                                product_id: bProductId,
+                                quantity: Number(bd.quantity),
+                            }, { transaction });
+                        }
+                    }
+
+                    // Deduct from cursor load if applicable
+                    if (bd.cursor_load_id) {
+                        const cLoad = await CursorLoad.findByPk(bd.cursor_load_id, { transaction });
+                        if (cLoad) {
+                            const bdQty = Number(bd.quantity);
+                            const newRem = Math.max(0, Number(cLoad.remaining_qty) - bdQty);
+                            cLoad.remaining_qty = newRem;
+                            if (newRem <= 0) {
+                                cLoad.status = "delivered";
+                            }
+                            await cLoad.save({ transaction });
+                        }
+                    }
+
+                    // Create BranchDeliveryLog
+                    await BranchDeliveryLog.create({
+                        office_id: Number(bd.office_id),
+                        cursor_load_id: bd.cursor_load_id ? Number(bd.cursor_load_id) : null,
+                        product_name: bd.product_name || "Material",
+                        category: bd.category || null,
+                        product_id: bProductId,
+                        quantity: Number(bd.quantity),
+                        price: Number(bd.price) || 0,
+                        vehicle_id: bd.vehicle_id ? Number(bd.vehicle_id) : null,
+                        vehicle_number: bd.vehicle_number || "",
+                        driver_name: bd.driver_name || "",
+                        date: bd.date || date || new Date().toISOString().split("T")[0],
+                        is_added_to_stock: true,
+                        notes: bd.notes || null,
+                    }, { transaction });
+                }
+            }
+        }
+
+        // 4. Update Customer Balance with Selling Price + Transport Charge
         const totalOrderValue = totalItemsValue + (Number(transport_charge) || 0);
         const customer = await Customer.findByPk(cus_id, { transaction });
         if (customer) {
             await customer.increment("balance", { by: totalOrderValue, transaction });
         }
-
 
         await transaction.commit();
         return res.status(201).json({ message: "Order created successfully", data: newOrder });

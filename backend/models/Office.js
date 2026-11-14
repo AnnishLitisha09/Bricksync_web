@@ -39,6 +39,12 @@ module.exports = (sequelize, DataTypes) => {
             foreignKey: "office_id",
             as: "recipes",
         });
+        if (models.BranchDeliveryLog) {
+            Office.hasMany(models.BranchDeliveryLog, {
+                foreignKey: "office_id",
+                as: "deliveryLogs",
+            });
+        }
     };
 
     return Office;

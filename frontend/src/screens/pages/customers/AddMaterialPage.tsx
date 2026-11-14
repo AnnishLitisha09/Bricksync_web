@@ -17,7 +17,9 @@ import {
   Keyboard,
   Wallet,
   AlertTriangle,
+  Layers,
 } from "lucide-react";
+import { fetchLoadedMaterials, type CursorLoad } from "../../../api/cursor";
 import { fetchCreditCheck } from "../../../api/bi";
 import type { CreditCheckResponse } from "../../../api/bi";
 import { motion, AnimatePresence } from "framer-motion";
@@ -119,9 +121,33 @@ const AddMaterialPage: React.FC = () => {
       vehicle_id: "",
       driver_ids: [] as number[],
       loader_ids: [] as number[],
-      loader_charge_per_unit: ""
+      loader_charge_per_unit: "",
+      cursor_load_id: location.state?.cursorLoadId ? String(location.state.cursorLoadId) : "",
+      buy_price: "",
     }
   ]);
+
+  // Cursor Mode State & Loaded Quarry Materials
+  const [cursorMode, setCursorMode] = useState<boolean>(Boolean(location.state?.cursorLoadId));
+  const [loadedCursorMaterials, setLoadedCursorMaterials] = useState<CursorLoad[]>([]);
+  const [selectedCursorLoadId, setSelectedCursorLoadId] = useState<string>(
+    location.state?.cursorLoadId ? String(location.state.cursorLoadId) : ""
+  );
+  const [showUnloadCharge, setShowUnloadCharge] = useState<boolean>(false);
+
+  // Split Deliveries ("+ Add Another Customer / Branch")
+  interface SplitDestination {
+    id: number;
+    destination_type: "customer" | "branch";
+    target_id: string; // customerId or officeId
+    target_name: string;
+    qty: string;
+    rate: string;
+    driver_ids: number[];
+    loader_ids: number[];
+    loader_charge_per_unit: string;
+  }
+  const [splitDestinations, setSplitDestinations] = useState<SplitDestination[]>([]);
 
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [parsedLedger, setParsedLedger] = useState<ParsedLedger | null>(null);
@@ -220,14 +246,17 @@ const AddMaterialPage: React.FC = () => {
 
     const fetchOptions = async () => {
       try {
-        const [offices, vehicles, products, employees, stocks] = await Promise.all([
+        const [offices, vehicles, products, employees, stocks, loadedMatRes] = await Promise.all([
           getAllOffices(),
           fetchVehicles(),
           getAllProducts(),
           getEmployees(),
           getStock(),
+          fetchLoadedMaterials().catch(() => ({ success: false, data: [] })),
         ]);
         const officesList = offices.data || [];
+        const loadedList = loadedMatRes.data || [];
+        setLoadedCursorMaterials(loadedList);
         setOptions({
           offices: officesList,
           vehicles: vehicles || [],
@@ -237,6 +266,14 @@ const AddMaterialPage: React.FC = () => {
         });
         if (officesList.length > 0) {
           setMaterials(prev => prev.map(m => m.office_id ? m : { ...m, office_id: String(officesList[0].office_id) }));
+        }
+
+        // Auto-select load if navigated from Cursors page
+        if (location.state?.cursorLoadId && loadedList.length > 0) {
+          const targetLoad = loadedList.find((l: any) => String(l.id) === String(location.state.cursorLoadId));
+          if (targetLoad) {
+            handleSelectCursorLoad(String(targetLoad.id), loadedList, vehicles || [], employees.data || []);
+          }
         }
       } catch (error) {
         toast.error("Failed to load options");
@@ -268,6 +305,120 @@ const AddMaterialPage: React.FC = () => {
       }
     }
   }, [id, editData]);
+
+  const handleSelectCursorLoad = (
+    loadId: string,
+    currentLoads = loadedCursorMaterials,
+    currentVehicles = options.vehicles,
+    currentEmployees = options.employees
+  ) => {
+    setSelectedCursorLoadId(loadId);
+    const found = currentLoads.find((l) => String(l.id) === loadId);
+    if (!found) return;
+
+    // 1. Auto-fill Date
+    if (found.date) {
+      setGlobalDate(found.date.includes("T") ? found.date.split("T")[0] : found.date);
+    }
+
+    // 2. Pre-fill customer if recorded on load
+    if (found.customer_id) {
+      setSelectedCustomerId(String(found.customer_id));
+      if (found.customer_name) setCustomerName(found.customer_name);
+    }
+
+    // 3. Find matching vehicle in options.vehicles
+    let matchedVehicleId = "";
+    if (found.vehicle_id) {
+      matchedVehicleId = String(found.vehicle_id);
+    } else if (found.vehicle_number) {
+      const v = currentVehicles.find(
+        (veh) => veh.vehicleNumber?.toUpperCase() === found.vehicle_number?.toUpperCase()
+      );
+      if (v) matchedVehicleId = String(v.id);
+    }
+
+    // 4. Find matching driver in options.employees
+    let driverIds: number[] = [];
+    if (found.driver_id) {
+      driverIds = [found.driver_id];
+    } else if (found.driver_name) {
+      const emp = currentEmployees.find(
+        (e) => e.employee_name?.toLowerCase() === found.driver_name?.toLowerCase()
+      );
+      if (emp) driverIds = [emp.employee_id];
+    }
+
+    // 5. Update first material item with loaded product details
+    setMaterials((prev) => {
+      const first = prev[0] || {};
+      const updated = [
+        {
+          ...first,
+          cursor_load_id: String(found.id),
+          buy_price: String(found.price_per_qty),
+          particulars: found.product_name,
+          material_id: found.product_id ? String(found.product_id) : first.material_id,
+          office_id: first.office_id || (options.offices[0]?.office_id?.toString() || "1"),
+          qty: String(found.remaining_qty),
+          rate: first.rate || "", // Selling price to be entered by user or pre-set
+          vehicle_id: matchedVehicleId || first.vehicle_id,
+          driver_ids: driverIds.length > 0 ? driverIds : first.driver_ids,
+          loader_ids: first.loader_ids || [],
+          loader_charge_per_unit:
+            first.loader_charge_per_unit ||
+            (found.has_loading_charge ? String(found.loading_charge_per_unit || "") : ""),
+        },
+        ...prev.slice(1),
+      ];
+      return updated;
+    });
+
+    if (found.has_loading_charge && found.loading_charge_per_unit) {
+      setShowUnloadCharge(true);
+    }
+  };
+
+  // Add Another Customer / Branch handler
+  // "when i add the another customer remove the auto filled qty alone and then for the customer i will enter 30 and for the office i will deliver 20"
+  const handleAddAnotherCustomer = () => {
+    // 1. Remove auto-filled qty from the first item
+    setMaterials((prev) => [
+      {
+        ...prev[0],
+        qty: "", // clear auto-filled qty so user can enter partial qty
+      },
+      ...prev.slice(1),
+    ]);
+
+    // 2. Add second destination (office or customer)
+    const defaultOffice = options.offices[0];
+    setSplitDestinations((prev) => [
+      ...prev,
+      {
+        id: Date.now() + Math.random(),
+        destination_type: "branch",
+        target_id: defaultOffice ? String(defaultOffice.office_id) : "",
+        target_name: defaultOffice ? defaultOffice.office_name : "Office",
+        qty: "",
+        rate: "",
+        driver_ids: materials[0]?.driver_ids ? [...materials[0].driver_ids] : [],
+        loader_ids: materials[0]?.loader_ids ? [...materials[0].loader_ids] : [],
+        loader_charge_per_unit: materials[0]?.loader_charge_per_unit || "",
+      },
+    ]);
+    toast.success("Split destination added! Enter quantity for each destination.");
+  };
+
+  const handleRemoveSplitDestination = (splitId: number) => {
+    setSplitDestinations((prev) => prev.filter((d) => d.id !== splitId));
+  };
+
+  const handleUpdateSplitDestination = (splitId: number, updates: Partial<SplitDestination>) => {
+    setSplitDestinations((prev) =>
+      prev.map((d) => (d.id === splitId ? { ...d, ...updates } : d))
+    );
+  };
 
   const mergedPreviewRows = useMemo(() => {
     if (!parsedLedger) return [];
@@ -353,15 +504,21 @@ const AddMaterialPage: React.FC = () => {
       return;
     }
 
+    // In cursor mode, ensure at least one cursor load is selected if cursor materials exist
+    if (cursorMode && !materials[0]?.particulars && loadedCursorMaterials.length > 0) {
+      toast.error("Please select a loaded cursor material");
+      return;
+    }
+
     for (let i = 0; i < materials.length; i++) {
       const mat = materials[i];
-      if (!mat.office_id) {
+      if (!cursorMode && !mat.office_id) {
         toast.error(`Please select dispatch office for Item #${i + 1}`);
         officeRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         officeRefs.current[i]?.focus();
         return;
       }
-      if (!mat.material_id) {
+      if (!cursorMode && !mat.material_id) {
         toast.error(`Please select material for Item #${i + 1}`);
         materialRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         materialRefs.current[i]?.focus();
@@ -380,42 +537,112 @@ const AddMaterialPage: React.FC = () => {
         return;
       }
 
-      // Check stock limit on client-side for immediate user feedback
-      const stockItem = options.stocks.find(
-        (s: any) => String(s.product_id) === String(mat.material_id) && String(s.office_id) === String(mat.office_id)
-      );
-      if (stockItem && Number(mat.qty) > Number(stockItem.quantity)) {
-        toast.error(`Insufficient stock for "${mat.particulars || 'material'}". Available: ${stockItem.quantity}, requested: ${mat.qty}`);
-        qtyRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        qtyRefs.current[i]?.focus();
+      // Check stock limit on client-side for immediate user feedback ONLY for non-cursor dispatches
+      if (!cursorMode && !mat.cursor_load_id) {
+        const stockItem = options.stocks.find(
+          (s: any) => String(s.product_id) === String(mat.material_id) && String(s.office_id) === String(mat.office_id)
+        );
+        if (stockItem && Number(mat.qty) > Number(stockItem.quantity)) {
+          toast.error(`Insufficient stock for "${mat.particulars || 'material'}". Available: ${stockItem.quantity}, requested: ${mat.qty}`);
+          qtyRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          qtyRefs.current[i]?.focus();
+          return;
+        }
+      }
+    }
+
+    // Validate split destinations
+    for (let sIdx = 0; sIdx < splitDestinations.length; sIdx++) {
+      const s = splitDestinations[sIdx];
+      if (!s.target_id) {
+        toast.error(`Please select destination for Split #${sIdx + 2} (${s.destination_type})`);
+        return;
+      }
+      if (!s.qty || Number(s.qty) <= 0) {
+        toast.error(`Please enter valid quantity for Split #${sIdx + 2}`);
+        return;
+      }
+      if (!s.rate || Number(s.rate) < 0) {
+        toast.error(`Please enter valid rate for Split #${sIdx + 2}`);
         return;
       }
     }
 
     setIsSubmitting(true);
     try {
+      const branchDeliveries = splitDestinations
+        .filter((d) => d.destination_type === "branch")
+        .map((d) => ({
+          office_id: Number(d.target_id),
+          cursor_load_id: materials[0]?.cursor_load_id ? Number(materials[0].cursor_load_id) : undefined,
+          product_name: materials[0]?.particulars || "Material",
+          product_id: materials[0]?.material_id ? Number(materials[0].material_id) : undefined,
+          quantity: Number(d.qty),
+          price: Number(d.rate),
+          vehicle_id: materials[0]?.vehicle_id ? Number(materials[0].vehicle_id) : undefined,
+          driver_name: options.employees.find((e) => d.driver_ids.includes(e.employee_id))?.employee_name || "",
+          date: globalDate,
+          notes: "Split delivery from cursor to branch",
+        }));
+
       const payload = {
         cus_id: customerIdToUse,
         date: globalDate,
         transport_charge: Number(transportCharge),
         items: materials.map(m => ({
           product: m.particulars,
-          office_id: Number(m.office_id),
-          material_id: Number(m.material_id),
+          office_id: m.office_id ? Number(m.office_id) : (options.offices[0]?.office_id || 1),
+          material_id: m.material_id ? Number(m.material_id) : undefined,
           quantity: Number(m.qty),
-          price: Number(m.rate),
+          price: Number(m.rate), // Selling price per unit
           vehicle_id: m.vehicle_id ? Number(m.vehicle_id) : undefined,
           driver_ids: m.driver_ids,
           loader_ids: m.loader_ids,
           loader_charge_per_unit: Number(m.loader_charge_per_unit) || 0,
-        }))
+          cursor_load_id: m.cursor_load_id ? Number(m.cursor_load_id) : undefined,
+          buy_price: m.buy_price ? Number(m.buy_price) : undefined,
+        })),
+        branch_deliveries: branchDeliveries.length > 0 ? branchDeliveries : undefined,
       };
+
       if (editData) {
         await updateOrder(editData.order_id, payload);
         toast.success("Dispatch updated!");
       } else {
         await createOrder(payload);
-        toast.success("Dispatch confirmed!");
+
+        // Process any extra customer split deliveries
+        const extraCustomerSplits = splitDestinations.filter((d) => d.destination_type === "customer");
+        for (const ec of extraCustomerSplits) {
+          try {
+            await createOrder({
+              cus_id: Number(ec.target_id),
+              date: globalDate,
+              items: [
+                {
+                  product: materials[0]?.particulars || "Material",
+                  material_id: materials[0]?.material_id ? Number(materials[0].material_id) : undefined,
+                  quantity: Number(ec.qty),
+                  price: Number(ec.rate),
+                  vehicle_id: materials[0]?.vehicle_id ? Number(materials[0].vehicle_id) : undefined,
+                  driver_ids: ec.driver_ids,
+                  loader_ids: ec.loader_ids,
+                  loader_charge_per_unit: Number(ec.loader_charge_per_unit) || 0,
+                  cursor_load_id: materials[0]?.cursor_load_id ? Number(materials[0].cursor_load_id) : undefined,
+                  buy_price: materials[0]?.buy_price ? Number(materials[0].buy_price) : undefined,
+                },
+              ],
+            });
+          } catch (_) {}
+        }
+
+        if (branchDeliveries.length > 0) {
+          toast.success(
+            `Dispatch confirmed & ${branchDeliveries.reduce((s, b) => s + b.quantity, 0)} units added to Branch live stock!`
+          );
+        } else {
+          toast.success("Dispatch confirmed at selling price!");
+        }
       }
       navigate(`/customer/details/${customerIdToUse}`);
     } catch (error: any) {
@@ -536,6 +763,8 @@ const AddMaterialPage: React.FC = () => {
         driver_ids: lastRow?.driver_ids ? [...lastRow.driver_ids] : [],
         loader_ids: lastRow?.loader_ids ? [...lastRow.loader_ids] : [],
         loader_charge_per_unit: lastRow?.loader_charge_per_unit || "",
+        cursor_load_id: "",
+        buy_price: "",
       }
     ]);
     setTimeout(() => {
@@ -569,8 +798,34 @@ const AddMaterialPage: React.FC = () => {
   };
 
   const materialSubtotal = materials.reduce((sum, m) => sum + (Number(m.qty) * Number(m.rate)), 0);
-  const loaderSalaryTotal = materials.reduce((sum, m) => sum + (Number(m.qty) * (Number(m.loader_charge_per_unit) || 0)), 0);
-  const finalTotal = materialSubtotal + Number(transportCharge);
+  const splitCustomerSubtotal = splitDestinations
+    .filter((d) => d.destination_type === "customer")
+    .reduce((sum, d) => sum + Number(d.qty) * Number(d.rate), 0);
+  const branchDeliveriesTotal = splitDestinations
+    .filter((d) => d.destination_type === "branch")
+    .reduce((sum, d) => sum + Number(d.qty) * Number(d.rate), 0);
+
+  const loaderSalaryTotal =
+    materials.reduce((sum, m) => sum + Number(m.qty) * (Number(m.loader_charge_per_unit) || 0), 0) +
+    splitDestinations.reduce((sum, d) => sum + Number(d.qty) * (Number(d.loader_charge_per_unit) || 0), 0);
+
+  const finalTotal = materialSubtotal + splitCustomerSubtotal + Number(transportCharge);
+
+  const totalDispatchedQty =
+    materials.reduce((sum, m) => sum + Number(m.qty || 0), 0) +
+    splitDestinations.reduce((sum, d) => sum + Number(d.qty || 0), 0);
+
+  const totalCalculatedProfit =
+    materials.reduce((sum, m) => {
+      const buy = Number(m.buy_price) || 0;
+      const sell = Number(m.rate) || 0;
+      return sum + (sell - buy) * Number(m.qty || 0);
+    }, 0) +
+    splitDestinations.reduce((sum, d) => {
+      const buy = Number(materials[0]?.buy_price) || 0;
+      const sell = Number(d.rate) || 0;
+      return sum + (sell - buy) * Number(d.qty || 0);
+    }, 0);
 
   return (
     <div
@@ -640,6 +895,61 @@ const AddMaterialPage: React.FC = () => {
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-6"
               >
+                {/* CURSOR TOGGLE BUTTON */}
+                <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                        cursorMode
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      <Layers size={18} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-black text-slate-900 tracking-tight">
+                          Cursor Procurement & Dispatch Mode
+                        </h4>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                            cursorMode
+                              ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                              : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {cursorMode ? "Active" : "Off"}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {cursorMode
+                          ? "Loaded material from Cursor quarry — sell to customer with profit tracking & split delivery to branch stock"
+                          : "Standard dispatch from company office stock inventory"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
+                    <label className="relative inline-flex items-center cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={cursorMode}
+                        onChange={(e) => {
+                          const nextVal = e.target.checked;
+                          setCursorMode(nextVal);
+                          if (nextVal && loadedCursorMaterials.length > 0 && !selectedCursorLoadId) {
+                            handleSelectCursorLoad(String(loadedCursorMaterials[0].id));
+                          }
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                      <span className="ml-2.5 text-xs font-black text-slate-800">Cursor</span>
+                    </label>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* 1. ENTRY DATE */}
                   <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs flex items-center gap-3.5 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-600 transition-all">
@@ -767,68 +1077,114 @@ const AddMaterialPage: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* DISPATCH OFFICE */}
-                      <div className="relative">
-                        <label className={labelClass}>Dispatch Office</label>
-                        <div className="relative">
-                           <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
-                           <select 
-                             ref={(el) => { officeRefs.current[index] = el; }}
-                             className={`${inputClass} pl-12 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all cursor-pointer`} 
-                             value={mat.office_id} 
-                             onChange={(e) => {
-                               const val = e.target.value;
-                               updateMaterial(index, { office_id: val });
-                               if (val) {
-                                 focusMaterial(index);
-                               }
-                             }}
-                             onKeyDown={(e) => {
-                               if (isEnterKey(e)) {
-                                 e.preventDefault();
-                                 e.stopPropagation();
-                                 focusMaterial(index);
-                               }
-                             }}
-                             onKeyUp={(e) => {
-                               if (isEnterKey(e)) {
-                                 e.preventDefault();
-                                 e.stopPropagation();
-                                 focusMaterial(index);
-                               }
-                             }}
-                           >
-                              <option value="">Select Office</option>
-                              {options.offices.map(o => <option key={o.office_id} value={o.office_id}>{o.office_name}</option>)}
-                           </select>
-                        </div>
-                      </div>
+                      {!cursorMode ? (
+                        <>
+                          {/* DISPATCH OFFICE */}
+                          <div className="relative">
+                            <label className={labelClass}>Dispatch Office</label>
+                            <div className="relative">
+                               <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
+                               <select 
+                                 ref={(el) => { officeRefs.current[index] = el; }}
+                                 className={`${inputClass} pl-12 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition-all cursor-pointer`} 
+                                 value={mat.office_id} 
+                                 onChange={(e) => {
+                                   const val = e.target.value;
+                                   updateMaterial(index, { office_id: val });
+                                   if (val) {
+                                     focusMaterial(index);
+                                   }
+                                 }}
+                                 onKeyDown={(e) => {
+                                   if (isEnterKey(e)) {
+                                     e.preventDefault();
+                                     e.stopPropagation();
+                                     focusMaterial(index);
+                                   }
+                                 }}
+                                 onKeyUp={(e) => {
+                                   if (isEnterKey(e)) {
+                                     e.preventDefault();
+                                     e.stopPropagation();
+                                     focusMaterial(index);
+                                   }
+                                 }}
+                               >
+                                  <option value="">Select Office</option>
+                                  {options.offices.map(o => <option key={o.office_id} value={o.office_id}>{o.office_name}</option>)}
+                               </select>
+                            </div>
+                          </div>
 
-                      {/* MATERIAL (SEARCHABLE DROPDOWN WITH INSTANT 'XL' FILTERING) */}
-                      <div className="relative">
-                        <label className={labelClass}>
-                          Material <span className="text-indigo-600 font-bold">(Type 'xl' or name to filter)</span>
-                        </label>
-                        <SearchableMaterialSelect
-                          inputRef={(el) => { materialRefs.current[index] = el; }}
-                          products={options.products}
-                          stocks={options.stocks}
-                          officeId={mat.office_id}
-                          value={mat.material_id}
-                          onChange={(pId, pName, defaultPrice) => {
-                            const updates: any = { material_id: pId, particulars: pName };
-                            if (defaultPrice !== undefined && (!mat.rate || mat.rate === "0" || mat.rate === "")) {
-                              updates.rate = String(defaultPrice);
-                            }
-                            updateMaterial(index, updates);
-                          }}
-                          onSelectNext={() => {
-                            safeFocus(vehicleRefs.current[index]);
-                          }}
-                          placeholder="Select Material (type 'xl', name)..."
-                          disabled={!mat.office_id}
-                        />
-                      </div>
+                          {/* MATERIAL (SEARCHABLE DROPDOWN WITH INSTANT 'XL' FILTERING) */}
+                          <div className="relative">
+                            <label className={labelClass}>
+                              Material <span className="text-indigo-600 font-bold">(Type 'xl' or name to filter)</span>
+                            </label>
+                            <SearchableMaterialSelect
+                              inputRef={(el) => { materialRefs.current[index] = el; }}
+                              products={options.products}
+                              stocks={options.stocks}
+                              officeId={mat.office_id}
+                              value={mat.material_id}
+                              onChange={(pId, pName, defaultPrice) => {
+                                const updates: any = { material_id: pId, particulars: pName };
+                                if (defaultPrice !== undefined && (!mat.rate || mat.rate === "0" || mat.rate === "")) {
+                                  updates.rate = String(defaultPrice);
+                                }
+                                updateMaterial(index, updates);
+                              }}
+                              onSelectNext={() => {
+                                safeFocus(vehicleRefs.current[index]);
+                              }}
+                              placeholder="Select Material (type 'xl', name)..."
+                              disabled={!mat.office_id}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        /* CURSOR LOADED MATERIAL SELECTOR (HIDDEN: DISPATCH OFFICE & MATERIAL FILTER) */
+                        <div className="relative col-span-1 md:col-span-2">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className={labelClass}>
+                              Cursor Loaded Material <span className="text-indigo-600 font-bold">(Quarry loads pending delivery)</span>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => navigate("/cursors")}
+                              className="text-[10px] font-bold text-indigo-600 hover:underline cursor-pointer flex items-center gap-1"
+                            >
+                              <Plus size={12} />
+                              <span>Record New Quarry Loading</span>
+                            </button>
+                          </div>
+                          <select
+                            className={`${inputClass} font-bold text-slate-800 border-indigo-200 bg-indigo-50/20 cursor-pointer`}
+                            value={mat.cursor_load_id || selectedCursorLoadId}
+                            onChange={(e) => handleSelectCursorLoad(e.target.value)}
+                          >
+                            <option value="">Select Loaded Material from Cursor...</option>
+                            {loadedCursorMaterials.map((load) => (
+                              <option key={load.id} value={load.id}>
+                                {load.cursor?.name} — {load.product_name} | Avail: {Number(load.remaining_qty).toLocaleString()} units | Buy: ₹{Number(load.price_per_qty).toLocaleString()}/u | Veh: {load.vehicle_number} | {load.date}
+                              </option>
+                            ))}
+                          </select>
+                          {loadedCursorMaterials.length === 0 && (
+                            <p className="text-[11px] text-amber-600 mt-1 font-medium">
+                              No active loaded cursor loads found. Go to{" "}
+                              <button
+                                type="button"
+                                onClick={() => navigate("/cursors")}
+                                className="underline font-bold"
+                              >
+                                Cursors
+                              </button>{" "}
+                              to load vehicles at quarry first.
+                            </p>
+                          )}
+                        </div>
+                      )}
 
                       {/* VEHICLE */}
                       <div>
@@ -845,7 +1201,7 @@ const AddMaterialPage: React.FC = () => {
                         />
                       </div>
 
-                      {/* QTY & RATE */}
+                      {/* QTY & RATE (SELLING PRICE) */}
                       <div className="grid grid-cols-2 gap-4">
                          <div>
                             <label className={labelClass}>Qty</label>
@@ -874,14 +1230,16 @@ const AddMaterialPage: React.FC = () => {
                             </div>
                          </div>
                          <div>
-                            <label className={labelClass}>Rate</label>
+                            <label className={labelClass}>
+                              {cursorMode ? "Selling Price / Unit (Rate)" : "Rate"}
+                            </label>
                             <div className="relative">
                               <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
                               <input 
                                 ref={(el) => { rateRefs.current[index] = el; }}
                                 type="number" 
                                 step="any" 
-                                className={`${inputClass} pl-10`} 
+                                className={`${inputClass} pl-10 font-bold`} 
                                 placeholder="0" 
                                 value={mat.rate} 
                                 onChange={(e) => updateMaterial(index, { rate: e.target.value })}
@@ -904,15 +1262,63 @@ const AddMaterialPage: React.FC = () => {
                             </div>
                          </div>
                       </div>
+
+                      {/* PROFIT AMOUNT DISPLAY (BELOW RATE) */}
+                      {cursorMode && mat.buy_price && Number(mat.buy_price) > 0 && (
+                        <div className="col-span-1 md:col-span-2 p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Buy Rate:</span>
+                            <span className="font-bold text-slate-700">₹{Number(mat.buy_price).toLocaleString()}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Selling Rate:</span>
+                            <span className="font-bold text-slate-900">₹{Number(mat.rate || 0).toLocaleString()}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Margin:</span>
+                            <span className={`font-black ${
+                              Number(mat.rate || 0) >= Number(mat.buy_price) ? "text-emerald-600" : "text-rose-600"
+                            }`}>
+                              ₹{(Number(mat.rate || 0) - Number(mat.buy_price)).toLocaleString()}/unit
+                            </span>
+                          </div>
+
+                          <div className={`px-3 py-1 rounded-lg text-xs font-black flex items-center gap-1.5 shadow-2xs ${
+                            Number(mat.rate || 0) >= Number(mat.buy_price)
+                              ? "bg-emerald-600 text-white"
+                              : "bg-rose-600 text-white"
+                          }`}>
+                            <span>Profit:</span>
+                            <span>
+                              ₹{((Number(mat.rate || 0) - Number(mat.buy_price)) * (Number(mat.qty) || 0)).toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* STAFF ASSIGNMENT AREA */}
                     <div className="mt-8 pt-8 border-t border-slate-50">
-                       <div className="flex items-center gap-2 mb-4">
-                          <Plus size={14} className="text-indigo-600" />
-                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Assign Staff & Charges (Optional)</p>
+                       <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <Plus size={14} className="text-indigo-600" />
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                              Assign Staff & Charges (Optional)
+                            </p>
+                          </div>
+                          {cursorMode && (
+                            <button
+                              type="button"
+                              onClick={() => setShowUnloadCharge(!showUnloadCharge)}
+                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                showUnloadCharge
+                                  ? "bg-indigo-600 text-white shadow-2xs"
+                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              }`}
+                            >
+                              <span>Unload Charge</span>
+                            </button>
+                          )}
                        </div>
-                       <div className="grid grid-cols-3 gap-4">
+                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <select 
                             ref={(el) => { driverRefs.current[index] = el; }}
                             className={`${inputClass} py-3! text-[11px] cursor-pointer`}
@@ -969,32 +1375,36 @@ const AddMaterialPage: React.FC = () => {
                              <option value="">+ Loader</option>
                              {options.employees.map(emp => <option key={emp.employee_id} value={emp.employee_id}>{emp.employee_name}</option>)}
                           </select>
-                          <div className="relative">
-                             <input 
-                              ref={(el) => { loaderChargeRefs.current[index] = el; }}
-                              type="number" 
-                              className={`${inputClass} py-3! text-[11px] pl-8`} 
-                              placeholder="Loader/Unit Charge"
-                              value={mat.loader_charge_per_unit}
-                              onChange={(e) => updateMaterial(index, { loader_charge_per_unit: e.target.value })}
-                              onFocus={(e) => {
-                                try {
-                                  e.target.select();
-                                } catch (_) {}
-                              }}
-                              onKeyDown={(e) => {
-                                if (isEnterKey(e)) {
-                                  e.preventDefault();
-                                  if (index < materials.length - 1) {
-                                    focusOffice(index + 1);
-                                  } else {
-                                    safeFocus(transportChargeRef.current, true);
+
+                          {/* LOADER / UNLOAD CHARGE */}
+                          {(!cursorMode || showUnloadCharge || mat.loader_charge_per_unit) && (
+                            <div className="relative">
+                               <input 
+                                ref={(el) => { loaderChargeRefs.current[index] = el; }}
+                                type="number" 
+                                className={`${inputClass} py-3! text-[11px] pl-8`} 
+                                placeholder={cursorMode ? "Unload Price/Unit" : "Loader/Unit Charge"}
+                                value={mat.loader_charge_per_unit}
+                                onChange={(e) => updateMaterial(index, { loader_charge_per_unit: e.target.value })}
+                                onFocus={(e) => {
+                                  try {
+                                    e.target.select();
+                                  } catch (_) {}
+                                }}
+                                onKeyDown={(e) => {
+                                  if (isEnterKey(e)) {
+                                    e.preventDefault();
+                                    if (index < materials.length - 1) {
+                                      focusOffice(index + 1);
+                                    } else {
+                                      safeFocus(transportChargeRef.current, true);
+                                    }
                                   }
-                                }
-                              }}
-                             />
-                             <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={12} />
-                          </div>
+                                }}
+                               />
+                               <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={12} />
+                            </div>
+                          )}
                        </div>
                        <div className="flex flex-wrap gap-2 mt-4">
                           {mat.driver_ids.map(eid => (
@@ -1014,7 +1424,173 @@ const AddMaterialPage: React.FC = () => {
                   </motion.div>
                 ))}
 
-                {!editData && (
+                {/* SPLIT DESTINATIONS (ADD ANOTHER CUSTOMER / BRANCH) */}
+                {cursorMode && (
+                  <div className="space-y-4">
+                    {splitDestinations.map((split, sIdx) => (
+                      <motion.div
+                        key={split.id}
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-indigo-50/40 rounded-2xl p-6 border-2 border-indigo-200 shadow-2xs relative"
+                      >
+                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-indigo-100">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">
+                              #{sIdx + 2}
+                            </span>
+                            <h4 className="text-xs font-bold text-slate-900">
+                              Destination #{sIdx + 2} ({split.destination_type === "branch" ? "Branch Office" : "Customer"})
+                            </h4>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSplitDestination(split.id)}
+                            className="text-rose-600 text-xs font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Trash2 size={13} />
+                            <span>Remove Destination</span>
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Destination Type Toggle */}
+                          <div>
+                            <label className={labelClass}>Deliver To</label>
+                            <div className="flex p-1 bg-white rounded-xl border border-slate-200">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateSplitDestination(split.id, { destination_type: "customer" })}
+                                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                  split.destination_type === "customer"
+                                    ? "bg-indigo-600 text-white shadow-2xs"
+                                    : "text-slate-600 hover:text-slate-900"
+                                }`}
+                              >
+                                Customer
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateSplitDestination(split.id, { destination_type: "branch" })}
+                                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                  split.destination_type === "branch"
+                                    ? "bg-indigo-600 text-white shadow-2xs"
+                                    : "text-slate-600 hover:text-slate-900"
+                                }`}
+                              >
+                                Branch (Office)
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Target Selector */}
+                          <div className="md:col-span-2">
+                            <label className={labelClass}>
+                              {split.destination_type === "customer" ? "Select Customer" : "Select Branch Office"}
+                            </label>
+                            {split.destination_type === "customer" ? (
+                              <SearchableCustomerSelect
+                                customers={allCustomers}
+                                value={split.target_id}
+                                onChange={(cId, cust) =>
+                                  handleUpdateSplitDestination(split.id, {
+                                    target_id: cId,
+                                    target_name: cust?.name || "",
+                                  })
+                                }
+                                placeholder="Search or click client from dropdown..."
+                              />
+                            ) : (
+                              <select
+                                className={`${inputClass} cursor-pointer`}
+                                value={split.target_id}
+                                onChange={(e) => {
+                                  const oId = e.target.value;
+                                  const off = options.offices.find((o) => String(o.office_id) === oId);
+                                  handleUpdateSplitDestination(split.id, {
+                                    target_id: oId,
+                                    target_name: off ? off.office_name : "Office",
+                                  });
+                                }}
+                              >
+                                <option value="">Select Branch Office to Deliver...</option>
+                                {options.offices.map((o) => (
+                                  <option key={o.office_id} value={o.office_id}>
+                                    {o.office_name} {o.location ? `(${o.location})` : ""}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+
+                          {/* Qty & Rate */}
+                          <div>
+                            <label className={labelClass}>Quantity</label>
+                            <div className="relative">
+                              <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={14} />
+                              <input
+                                type="number"
+                                step="any"
+                                placeholder="0"
+                                className={`${inputClass} pl-9`}
+                                value={split.qty}
+                                onChange={(e) => handleUpdateSplitDestination(split.id, { qty: e.target.value })}
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className={labelClass}>Selling / Transfer Rate (₹)</label>
+                            <div className="relative">
+                              <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={14} />
+                              <input
+                                type="number"
+                                step="any"
+                                placeholder="0"
+                                className={`${inputClass} pl-9 font-bold`}
+                                value={split.rate}
+                                onChange={(e) => handleUpdateSplitDestination(split.id, { rate: e.target.value })}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Destination Total calculation */}
+                          <div>
+                            <label className={labelClass}>Subtotal</label>
+                            <div className="h-10 px-3 rounded-xl bg-white border border-slate-200 flex items-center justify-between text-xs font-bold text-slate-800">
+                              <span className="text-slate-400">Total:</span>
+                              <span className="font-black text-indigo-700">
+                                ₹{(Number(split.qty || 0) * Number(split.rate || 0)).toLocaleString("en-IN")}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {split.destination_type === "branch" && (
+                          <div className="mt-3 p-3 bg-emerald-50 rounded-xl border border-emerald-200/80 flex items-center gap-2">
+                            <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                            <p className="text-[11px] font-medium text-emerald-900">
+                              Delivering <span className="font-bold">{split.qty || 0} units</span> to{" "}
+                              <span className="font-bold">{split.target_name || "Office"}</span> will automatically add this quantity into that branch's live stock inventory!
+                            </p>
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+
+                    {/* "+ Add Another Customer / Branch" button */}
+                    <button
+                      type="button"
+                      onClick={handleAddAnotherCustomer}
+                      className="w-full h-11 border-2 border-dashed border-indigo-300 bg-indigo-50/60 hover:bg-indigo-50 rounded-xl text-indigo-700 font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+                    >
+                      <Plus size={16} />
+                      <span>+ Add Another Customer / Branch</span>
+                    </button>
+                  </div>
+                )}
+
+                {!editData && !cursorMode && (
                   <button
                     ref={addMaterialButtonRef}
                     type="button"
@@ -1098,46 +1674,96 @@ const AddMaterialPage: React.FC = () => {
           <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs relative overflow-hidden">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div className="flex-1 w-full md:w-auto">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Order Subtotal & Charges</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                  {cursorMode ? "Customer Payable (Selling Price)" : "Order Subtotal & Charges"}
+                </span>
                 <div className="flex items-baseline gap-2">
-                  <h2 className="text-3xl font-black text-slate-900 tabular-nums">₹{finalTotal.toLocaleString('en-IN')}</h2>
-                  <span className="text-xs text-slate-400 font-semibold">Net Total</span>
+                  <h2 className="text-3xl font-black text-slate-900 tabular-nums">
+                    ₹{finalTotal.toLocaleString("en-IN")}
+                  </h2>
+                  <span className="text-xs text-slate-400 font-semibold">
+                    {cursorMode ? "Customer Ledger" : "Net Total"}
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-2.5 mt-4">
-                   <div className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200/60">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Items</p>
-                      <p className="text-xs font-bold text-slate-800">{entryMode === 'today' ? materials.filter(m => m.material_id).length : parsedLedger?.orders.length || 0}</p>
-                   </div>
-                   <div className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center gap-2 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-600">
+                  <div className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200/60">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                      {cursorMode ? "Total Qty" : "Items"}
+                    </p>
+                    <p className="text-xs font-bold text-slate-800">
+                      {cursorMode
+                        ? `${totalDispatchedQty.toLocaleString()} units`
+                        : entryMode === "today"
+                        ? materials.filter((m) => m.material_id).length
+                        : parsedLedger?.orders.length || 0}
+                    </p>
+                  </div>
+
+                  {cursorMode && totalCalculatedProfit !== 0 && (
+                    <div
+                      className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${
+                        totalCalculatedProfit >= 0
+                          ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                          : "bg-rose-50 border-rose-200 text-rose-800"
+                      }`}
+                    >
                       <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Transport (₹)</p>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs font-bold text-slate-500">₹</span>
-                          <input 
-                            ref={transportChargeRef}
-                            type="number" 
-                            className="w-16 bg-transparent text-xs font-bold outline-none text-slate-800" 
-                            value={transportCharge}
-                            onChange={(e) => setTransportCharge(e.target.value)}
-                            onFocus={(e) => {
-                              try {
-                                e.target.select();
-                              } catch (_) {}
-                            }}
-                            onKeyDown={(e) => {
-                              if (isEnterKey(e)) {
-                                e.preventDefault();
-                                safeFocus(submitButtonRef.current);
-                              }
-                            }}
-                          />
-                        </div>
+                        <p className="text-[9px] font-bold uppercase tracking-wider opacity-75">
+                          Calculated Profit
+                        </p>
+                        <p className="text-xs font-black">
+                          ₹{totalCalculatedProfit.toLocaleString("en-IN")}
+                        </p>
                       </div>
-                   </div>
-                   <div className="px-3 py-1.5 bg-emerald-50 rounded-xl border border-emerald-100">
-                      <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">Loader Total</p>
+                    </div>
+                  )}
+
+                  {cursorMode && branchDeliveriesTotal > 0 && (
+                    <div className="px-3 py-1.5 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-900">
+                      <p className="text-[9px] font-bold uppercase tracking-wider opacity-75">
+                        Branch Stock Value
+                      </p>
+                      <p className="text-xs font-black">
+                        ₹{branchDeliveriesTotal.toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center gap-2 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-600">
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Transport (₹)</p>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-bold text-slate-500">₹</span>
+                        <input
+                          ref={transportChargeRef}
+                          type="number"
+                          className="w-16 bg-transparent text-xs font-bold outline-none text-slate-800"
+                          value={transportCharge}
+                          onChange={(e) => setTransportCharge(e.target.value)}
+                          onFocus={(e) => {
+                            try {
+                              e.target.select();
+                            } catch (_) {}
+                          }}
+                          onKeyDown={(e) => {
+                            if (isEnterKey(e)) {
+                              e.preventDefault();
+                              safeFocus(submitButtonRef.current);
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {loaderSalaryTotal > 0 && (
+                    <div className="px-3 py-1.5 bg-emerald-50 rounded-xl border border-emerald-100">
+                      <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">
+                        {cursorMode ? "Unload Total" : "Loader Total"}
+                      </p>
                       <p className="text-xs font-bold text-emerald-700">₹{loaderSalaryTotal.toLocaleString()}</p>
-                   </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

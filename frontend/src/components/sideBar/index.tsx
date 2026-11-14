@@ -94,6 +94,7 @@ export const menuGroups: MenuGroup[] = [
         path: "/customers",
         children: [
           { name: "Customer Directory", icon: Users, path: "/customers" },
+          { name: "Cursors (Quarry Loads)", icon: Layers, path: "/cursors" },
           { name: "Today's Delivery Entry", icon: Calendar, path: "/todays-entry" },
           { name: "New Dispatch Entry", icon: FilePlus, path: "/customer/add-material/new" },
           { name: "Call Logs", icon: PhoneCall, path: "/call-logs" },

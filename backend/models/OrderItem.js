@@ -46,6 +46,15 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.STRING,
                 allowNull: true,
             },
+            cursor_load_id: {
+                type: DataTypes.INTEGER,
+                allowNull: true,
+            },
+            buy_price: {
+                type: DataTypes.DECIMAL(10, 2),
+                allowNull: true,
+                defaultValue: 0.00,
+            },
         },
         {
             tableName: "order_items",
@@ -76,6 +85,12 @@ module.exports = (sequelize, DataTypes) => {
             foreignKey: "order_item_id",
             as: "orderEmployees",
         });
+        if (models.CursorLoad) {
+            OrderItem.belongsTo(models.CursorLoad, {
+                foreignKey: "cursor_load_id",
+                as: "cursorLoad",
+            });
+        }
     };
 
     return OrderItem;

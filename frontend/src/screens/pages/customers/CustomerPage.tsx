@@ -4,8 +4,9 @@ import {
   Search, ShieldCheck, Users, Phone, ExternalLink, Loader2,
   Plus, X, Pencil, Trash2, AlertTriangle, Upload, CheckCircle2,
   ListFilter, Download, LayoutGrid, List, MoreVertical, IndianRupee,
-  TrendingUp, UserCircle2, Package, RefreshCw, ChevronDown
+  TrendingUp, UserCircle2, Package, RefreshCw, ChevronDown, Building2
 } from "lucide-react";
+import { getAllOffices } from "../../../api/inventory";
 import type { CustomerData } from "../../../store/customers/useCustomerStore";
 import { useCustomerStore } from "../../../store/customers/useCustomerStore";
 import { bulkCreateCustomers } from "../../../api/customer";
@@ -147,6 +148,15 @@ const CustomerHub: React.FC = () => {
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [accountFilter, setAccountFilter] = useState<"all" | "customers" | "branches">("all");
+  const [offices, setOffices] = useState<any[]>([]);
+
+  // Fetch offices
+  useEffect(() => {
+    getAllOffices()
+      .then((res) => setOffices(res.data || []))
+      .catch(() => {});
+  }, []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<CustomerData>({ name: "", email: "", phone_no: "", address: "", balance: 0, category: "other" });
   const [submitting, setSubmitting] = useState(false);
@@ -375,6 +385,44 @@ const CustomerHub: React.FC = () => {
         </div>
       </div>
 
+      {/* ─── DIRECTORY FILTER TABS (CUSTOMERS & BRANCH OFFICES) ─── */}
+      <div className="flex p-1 bg-slate-100 rounded-xl border border-slate-200/80 w-fit">
+        <button
+          type="button"
+          onClick={() => setAccountFilter("all")}
+          className={`h-8 px-4 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            accountFilter === "all"
+              ? "bg-white text-indigo-700 shadow-2xs font-black"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          All Accounts ({clientCount + offices.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setAccountFilter("customers")}
+          className={`h-8 px-4 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            accountFilter === "customers"
+              ? "bg-white text-indigo-700 shadow-2xs font-black"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          Customers ({clientCount})
+        </button>
+        <button
+          type="button"
+          onClick={() => setAccountFilter("branches")}
+          className={`h-8 px-4 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            accountFilter === "branches"
+              ? "bg-white text-indigo-700 shadow-2xs font-black"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <Building2 size={13} />
+          <span>Branches / Offices ({offices.length})</span>
+        </button>
+      </div>
+
       {/* ─── SEARCH + CONTROLS ─── */}
       <div className="flex items-center gap-2">
         <div className="relative group flex-1">
@@ -490,6 +538,72 @@ const CustomerHub: React.FC = () => {
           {/* ── GRID VIEW ── */}
           {viewMode === "grid" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {/* BRANCH OFFICES CARDS */}
+              {accountFilter !== "customers" && (
+                <>
+                  {offices
+                    .filter((o) => {
+                      const term = search.toLowerCase();
+                      return (
+                        !term ||
+                        o.office_name.toLowerCase().includes(term) ||
+                        (o.location && o.location.toLowerCase().includes(term))
+                      );
+                    })
+                    .map((o) => (
+                      <motion.div
+                        key={`branch-${o.office_id}`}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        whileHover={{ y: -3, transition: { duration: 0.16, ease: "easeOut" } }}
+                        onClick={() => navigate(`/branch/details/${o.office_id}`)}
+                        className="bg-white rounded-2xl border-2 border-indigo-200 shadow-2xs hover:shadow-md hover:border-indigo-500 transition-all group overflow-hidden cursor-pointer flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="p-4 flex items-start justify-between gap-2.5">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                                <Building2 size={18} />
+                              </div>
+                              <div className="min-w-0">
+                                <h3 className="font-black text-slate-800 text-sm truncate max-w-[170px] sm:max-w-[200px] group-hover:text-indigo-600 transition-colors uppercase tracking-tight">
+                                  {o.office_name}
+                                </h3>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                    Branch Office
+                                  </span>
+                                  {o.location && (
+                                    <span className="text-[10px] text-slate-400 truncate">
+                                      • {o.location}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="px-4 pb-2">
+                            <div className="p-2.5 rounded-xl bg-indigo-50/60 border border-indigo-100 flex items-center justify-between text-xs">
+                              <span className="text-slate-500 font-semibold">Delivery Log & Stock</span>
+                              <span className="font-black text-indigo-700 flex items-center gap-1">
+                                <span>Branch Log</span>
+                                <ExternalLink size={12} />
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="px-4 py-2.5 bg-slate-50/60 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-500">
+                          <span>Branch #{o.office_id}</span>
+                          <span className="text-emerald-600 font-black">Live Stock Synced</span>
+                        </div>
+                      </motion.div>
+                    ))}
+                </>
+              )}
+
+              {accountFilter !== "branches" && (
               <AnimatePresence>
                 {customers.map((c, i) => (
                   <motion.div key={c.id}
@@ -593,6 +707,7 @@ const CustomerHub: React.FC = () => {
                   </motion.div>
                 ))}
               </AnimatePresence>
+              )}
 
               {/* Streaming loading skeleton cards in Grid View */}
               {loadingMore && (
@@ -619,6 +734,65 @@ const CustomerHub: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
+                    {/* BRANCH OFFICES IN TABLE VIEW */}
+                    {accountFilter !== "customers" &&
+                      offices
+                        .filter((o) => {
+                          const term = search.toLowerCase();
+                          return (
+                            !term ||
+                            o.office_name.toLowerCase().includes(term) ||
+                            (o.location && o.location.toLowerCase().includes(term))
+                          );
+                        })
+                        .map((o) => (
+                          <tr
+                            key={`table-office-${o.office_id}`}
+                            onClick={() => navigate(`/branch/details/${o.office_id}`)}
+                            className="border-b border-indigo-50 bg-indigo-50/20 hover:bg-indigo-50/50 transition-colors group cursor-pointer"
+                          >
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white font-black text-sm shrink-0 shadow-sm">
+                                  <Building2 size={16} />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-black text-slate-900 text-sm truncate uppercase tracking-tight">
+                                    {o.office_name}
+                                  </p>
+                                  <p className="text-[10px] text-slate-400 font-semibold">{o.location || "Office Location"}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-xs font-semibold text-slate-500">
+                              Branch #{o.office_id}
+                            </td>
+                            <td className="px-6 py-4 hidden md:table-cell">
+                              <span className="px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                                Branch Office
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <span className="text-xs font-black text-emerald-600">Stock Linked</span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/branch/details/${o.office_id}`);
+                                  }}
+                                  className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                                >
+                                  <span>Branch Log</span>
+                                  <ExternalLink size={12} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+
+                    {accountFilter !== "branches" && (
                     <AnimatePresence>
                       {customers.map((c, i) => (
                         <motion.tr key={c.id}
@@ -661,6 +835,7 @@ const CustomerHub: React.FC = () => {
                         </motion.tr>
                       ))}
                     </AnimatePresence>
+                    )}
 
                     {/* Streaming skeleton rows in Table View */}
                     {loadingMore && (

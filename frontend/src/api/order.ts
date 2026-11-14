@@ -11,7 +11,10 @@ export interface OrderItem {
     vehicle_id?: number;
     driver_ids?: number[];
     loader_ids?: number[];
+    loader_charge_per_unit?: number;
     places?: string;
+    cursor_load_id?: number;
+    buy_price?: number;
 }
 
 export interface OrderData {
@@ -20,6 +23,7 @@ export interface OrderData {
     date: string;
     items: OrderItem[];
     transport_charge?: number;
+    branch_deliveries?: any[];
 }
 
 export const fetchOrders = async () => {
