@@ -19,10 +19,8 @@ class MaterialItemRow {
   String vehicleName;
   double quantity;
   double rate;
-  int? driverId;
-  String driverName;
-  int? loaderId;
-  String loaderName;
+  List<int> driverIds;
+  List<int> loaderIds;
   double loaderChargePerUnit;
 
   MaterialItemRow({
@@ -36,12 +34,11 @@ class MaterialItemRow {
     this.vehicleName = "",
     this.quantity = 0.0,
     this.rate = 0.0,
-    this.driverId,
-    this.driverName = "",
-    this.loaderId,
-    this.loaderName = "",
+    List<int>? driverIds,
+    List<int>? loaderIds,
     this.loaderChargePerUnit = 0.0,
-  });
+  })  : driverIds = driverIds ?? [],
+        loaderIds = loaderIds ?? [];
 
   double get subtotal => quantity * rate;
 }
@@ -67,7 +64,6 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
   final List<TextEditingController> _qtyControllers = [];
   final List<TextEditingController> _rateControllers = [];
   final List<TextEditingController> _loaderChargeControllers = [];
-  final List<bool> _staffExpanded = [];
 
   bool _isLoadingInitial = true;
   bool _isSubmitting = false;
@@ -77,6 +73,9 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
   List<VehicleModel> _allVehicles = [];
   List<StaffMember> _allStaff = [];
   List<String> _offices = ["Office", "Thottam"];
+
+  final Set<int> _showAllDriversForItems = {};
+  final Set<int> _showAllLoadersForItems = {};
 
   @override
   void initState() {
@@ -94,7 +93,6 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
     _qtyControllers.add(TextEditingController());
     _rateControllers.add(TextEditingController());
     _loaderChargeControllers.add(TextEditingController(text: "0"));
-    _staffExpanded.add(false);
   }
 
   void _removeItemRow(int index) {
@@ -107,7 +105,6 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
       _rateControllers.removeAt(index);
       _loaderChargeControllers[index].dispose();
       _loaderChargeControllers.removeAt(index);
-      _staffExpanded.removeAt(index);
     });
   }
 
@@ -848,8 +845,8 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
           'quantity': it.quantity,
           'price': it.rate,
           if (it.vehicleId != null) 'vehicle_id': it.vehicleId,
-          if (it.driverId != null) 'driver_ids': [it.driverId],
-          if (it.loaderId != null) 'loader_ids': [it.loaderId],
+          'driver_ids': it.driverIds,
+          'loader_ids': it.loaderIds,
           'loader_charge_per_unit': it.loaderChargePerUnit,
         };
       }).toList();
@@ -1740,167 +1737,369 @@ class _MaterialOutwardPageState extends State<MaterialOutwardPage> {
 
           const SizedBox(height: 10),
 
-          // Staff & Loader Charges Accordion (Optional)
-          GestureDetector(
-            onTap: () => setState(() => _staffExpanded[index] = !_staffExpanded[index]),
-            child: Row(
+          // ─── STAFF & HANDLING CHARGES (ALWAYS EXPANDED) ───
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  _staffExpanded[index]
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.keyboard_arrow_down_rounded,
-                  size: 18,
-                  color: AppColors.primary,
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEEF2FF),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.people_alt_rounded, size: 15, color: AppColors.primary),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "STAFF & HANDLING CHARGES",
+                          style: GoogleFonts.outfit(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.6,
+                            color: const Color(0xFF334155),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      "Optional",
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  _staffExpanded[index]
-                      ? "Hide Staff & Handling Charges"
-                      : "+ Assign Staff & Loader Charges (Optional)",
-                  style: GoogleFonts.outfit(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
+                const SizedBox(height: 14),
+
+                // ── DRIVERS SECTION (MULTIPLE SELECTABLE CHIPS) ──
+                Builder(
+                  builder: (context) {
+                    final designatedDrivers = _allStaff
+                        .where((s) => (s.role ?? '').toLowerCase().contains('driver'))
+                        .toList();
+                    final showAllD = _showAllDriversForItems.contains(index) || designatedDrivers.isEmpty;
+                    final displayDrivers = showAllD
+                        ? _allStaff
+                        : [
+                            ...designatedDrivers,
+                            ..._allStaff.where((s) => item.driverIds.contains(s.id) && !designatedDrivers.contains(s)),
+                          ];
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildFieldLabel("DRIVER(S)"),
+                            if (item.driverIds.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEEF2FF),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  "${item.driverIds.length} Selected",
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        _allStaff.isEmpty
+                            ? Text(
+                                "No staff members available",
+                                style: GoogleFonts.outfit(fontSize: 12, color: const Color(0xFF94A3B8)),
+                              )
+                            : Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  for (final st in displayDrivers)
+                                    _buildSelectableChip(
+                                      label: st.displayName,
+                                      isSelected: item.driverIds.contains(st.id),
+                                      activeColor: const Color(0xFF4F46E5), // Indigo
+                                      onTap: () {
+                                        setState(() {
+                                          if (item.driverIds.contains(st.id)) {
+                                            item.driverIds.remove(st.id);
+                                          } else {
+                                            item.driverIds.add(st.id);
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  if (_allStaff.length > designatedDrivers.length && designatedDrivers.isNotEmpty)
+                                    _buildActionChip(
+                                      label: showAllD ? "Drivers Only" : "+ All (${_allStaff.length})",
+                                      icon: showAllD ? Icons.filter_list_off_rounded : Icons.groups_outlined,
+                                      onTap: () {
+                                        setState(() {
+                                          if (showAllD) {
+                                            _showAllDriversForItems.remove(index);
+                                          } else {
+                                            _showAllDriversForItems.add(index);
+                                          }
+                                        });
+                                      },
+                                    ),
+                                ],
+                              ),
+                      ],
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // ── LOADERS / LABOR SECTION (MULTIPLE SELECTABLE CHIPS) ──
+                Builder(
+                  builder: (context) {
+                    final designatedLoaders = _allStaff
+                        .where((s) => (s.role ?? '').toLowerCase().contains('loader') || (s.role ?? '').toLowerCase().contains('labour') || (s.role ?? '').toLowerCase().contains('labor'))
+                        .toList();
+                    final showAllL = _showAllLoadersForItems.contains(index) || designatedLoaders.isEmpty;
+                    final displayLoaders = showAllL
+                        ? _allStaff
+                        : [
+                            ...designatedLoaders,
+                            ..._allStaff.where((s) => item.loaderIds.contains(s.id) && !designatedLoaders.contains(s)),
+                          ];
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildFieldLabel("LOADER(S) / LABOR"),
+                            if (item.loaderIds.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFECFDF5),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  "${item.loaderIds.length} Selected",
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF059669),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        _allStaff.isEmpty
+                            ? Text(
+                                "No staff members available",
+                                style: GoogleFonts.outfit(fontSize: 12, color: const Color(0xFF94A3B8)),
+                              )
+                            : Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  for (final st in displayLoaders)
+                                    _buildSelectableChip(
+                                      label: st.displayName,
+                                      isSelected: item.loaderIds.contains(st.id),
+                                      activeColor: const Color(0xFF059669), // Emerald
+                                      onTap: () {
+                                        setState(() {
+                                          if (item.loaderIds.contains(st.id)) {
+                                            item.loaderIds.remove(st.id);
+                                          } else {
+                                            item.loaderIds.add(st.id);
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  if (_allStaff.length > designatedLoaders.length && designatedLoaders.isNotEmpty)
+                                    _buildActionChip(
+                                      label: showAllL ? "Loaders Only" : "+ All (${_allStaff.length})",
+                                      icon: showAllL ? Icons.filter_list_off_rounded : Icons.groups_outlined,
+                                      onTap: () {
+                                        setState(() {
+                                          if (showAllL) {
+                                            _showAllLoadersForItems.remove(index);
+                                          } else {
+                                            _showAllLoadersForItems.add(index);
+                                          }
+                                        });
+                                      },
+                                    ),
+                                ],
+                              ),
+                      ],
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // ── LOADER CHARGE PER UNIT ──
+                _buildFieldLabel("LOADER / UNIT CHARGE (₹)"),
+                const SizedBox(height: 6),
+                Container(
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFCBD5E1)),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: TextField(
+                    controller: _loaderChargeControllers[index],
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: GoogleFonts.outfit(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF0F172A),
+                    ),
+                    decoration: InputDecoration(
+                      prefixText: "₹ ",
+                      prefixStyle: GoogleFonts.outfit(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF64748B),
+                        fontSize: 13.5,
+                      ),
+                      hintText: "0.00",
+                      hintStyle: GoogleFonts.outfit(color: const Color(0xFF94A3B8)),
+                      border: InputBorder.none,
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        item.loaderChargePerUnit = double.tryParse(val.trim()) ?? 0.0;
+                      });
+                    },
                   ),
                 ),
               ],
             ),
           ),
-
-          if (_staffExpanded[index]) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Driver Dropdown
-                  _buildFieldLabel("DRIVER"),
-                  const SizedBox(height: 4),
-                  Container(
-                    height: 42,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFCBD5E1)),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<int?>(
-                        value: item.driverId,
-                        isExpanded: true,
-                        hint: Text(
-                          "Select Driver...",
-                          style: GoogleFonts.outfit(fontSize: 12, color: const Color(0xFF94A3B8)),
-                        ),
-                        items: [
-                          const DropdownMenuItem<int?>(
-                            value: null,
-                            child: Text("None / Not assigned"),
-                          ),
-                          for (final st in _allStaff)
-                            DropdownMenuItem<int?>(
-                              value: st.id,
-                              child: Text(
-                                st.displayName,
-                                style: GoogleFonts.outfit(fontSize: 12.5),
-                              ),
-                            ),
-                        ],
-                        onChanged: (val) {
-                          setState(() {
-                            item.driverId = val;
-                            item.driverName = _allStaff.firstWhere((s) => s.id == val, orElse: () => StaffMember(id: 0, name: '')).displayName;
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Loader Dropdown
-                  _buildFieldLabel("LOADER / LABOR"),
-                  const SizedBox(height: 4),
-                  Container(
-                    height: 42,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFCBD5E1)),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<int?>(
-                        value: item.loaderId,
-                        isExpanded: true,
-                        hint: Text(
-                          "Select Loader...",
-                          style: GoogleFonts.outfit(fontSize: 12, color: const Color(0xFF94A3B8)),
-                        ),
-                        items: [
-                          const DropdownMenuItem<int?>(
-                            value: null,
-                            child: Text("None / Not assigned"),
-                          ),
-                          for (final st in _allStaff)
-                            DropdownMenuItem<int?>(
-                              value: st.id,
-                              child: Text(
-                                st.displayName,
-                                style: GoogleFonts.outfit(fontSize: 12.5),
-                              ),
-                            ),
-                        ],
-                        onChanged: (val) {
-                          setState(() {
-                            item.loaderId = val;
-                            item.loaderName = _allStaff.firstWhere((s) => s.id == val, orElse: () => StaffMember(id: 0, name: '')).displayName;
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Loader Charge Per Unit
-                  _buildFieldLabel("LOADER / UNIT CHARGE (₹)"),
-                  const SizedBox(height: 4),
-                  Container(
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFCBD5E1)),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: TextField(
-                      controller: _loaderChargeControllers[index],
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600),
-                      decoration: const InputDecoration(
-                        prefixText: "₹ ",
-                        hintText: "0.00",
-                        border: InputBorder.none,
-                      ),
-                      onChanged: (val) {
-                        setState(() {
-                          item.loaderChargePerUnit = double.tryParse(val.trim()) ?? 0.0;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildSelectableChip({
+    required String label,
+    required bool isSelected,
+    required Color activeColor,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+          decoration: BoxDecoration(
+            color: isSelected ? activeColor : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? activeColor : const Color(0xFFCBD5E1),
+              width: isSelected ? 1.4 : 1.0,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: activeColor.withValues(alpha: 0.28),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: const Color(0xFF0F172A).withValues(alpha: 0.02),
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isSelected ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
+                size: 14,
+                color: isSelected ? Colors.white : const Color(0xFF94A3B8),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  color: isSelected ? Colors.white : const Color(0xFF334155),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionChip({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: const Color(0xFF64748B)),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: GoogleFonts.outfit(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF475569),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
