@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/customer_service.dart';
+import '../../core/services/file_share_service.dart';
 import '../../core/services/phone_service.dart';
 import '../../core/services/statement_export_service.dart';
 import '../../core/stores/customer_store.dart';
@@ -1309,20 +1310,74 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     );
   }
 
+  Future<void> _handleShareStatementPdf(StatementExportResult res) async {
+    final filePath = res.filePath;
+    if (filePath == null || filePath.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("PDF statement file path not available")),
+        );
+      }
+      return;
+    }
+
+    final success = await FileShareService.shareFile(
+      filePath: filePath,
+      title: "Statement - ${_customer.name}",
+      text: "Official Account Statement for ${_customer.name} (Balance: ₹${res.netBalance.toStringAsFixed(2)})",
+    );
+
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Opening share sheet..."),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleViewStatementPdf(
+    StatementExportResult res,
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    final filePath = res.filePath;
+    if (filePath != null && filePath.isNotEmpty) {
+      // First attempt to launch system PDF reader / browser
+      await FileShareService.viewFile(filePath: filePath);
+    }
+
+    // Also display the in-app statement preview so user can review the statement immediately
+    if (mounted) {
+      _showInAppStatementViewer(res: res, startDate: startDate, endDate: endDate);
+    }
+  }
+
   void _showStatementDownloadSuccessSheet({
     required StatementExportResult res,
     required DateTime startDate,
     required DateTime endDate,
   }) {
+    final fileName = res.filePath != null
+        ? res.filePath!.split('/').last
+        : "Statement_${_customer.name.replaceAll(' ', '_')}.pdf";
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (bctx) {
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+          padding: EdgeInsets.only(
+            left: 22,
+            right: 22,
+            top: 20,
+            bottom: MediaQuery.of(bctx).viewInsets.bottom + 24,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1356,10 +1411,10 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
               ),
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
@@ -1387,29 +1442,644 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                         Text("₹${res.netBalance.toStringAsFixed(2)}", style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w900, color: const Color(0xFF4F46E5))),
                       ],
                     ),
-                    if (res.filePath != null) ...[
-                      const Divider(height: 14),
-                      Text(
-                        res.filePath!,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.outfit(fontSize: 10, color: const Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+                    const SizedBox(height: 12),
+                    // Dedicated File Card with Quick Eye & Share Icons
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
-                    ],
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFFDC2626), size: 20),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  fileName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.outfit(fontSize: 11.5, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                                ),
+                                Text(
+                                  "Downloads • Tap Eye to view, Share to send",
+                                  style: GoogleFonts.outfit(fontSize: 9.5, color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          // Quick Eye Icon Button
+                          Tooltip(
+                            message: "View PDF",
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.pop(bctx);
+                                _handleViewStatementPdf(res, startDate, endDate);
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEEF2FF),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFFC7D2FE)),
+                                ),
+                                child: const Icon(Icons.visibility_rounded, color: Color(0xFF4F46E5), size: 18),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          // Quick Share Icon Button
+                          Tooltip(
+                            message: "Share PDF",
+                            child: InkWell(
+                              onTap: () => _handleShareStatementPdf(res),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF4F46E5),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.share_rounded, color: Colors.white, size: 18),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 18),
+              // Main Action Buttons: [ 👁️ View PDF ] and [ ↗️ Share Statement ]
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF4F46E5),
+                          backgroundColor: const Color(0xFFEEF2FF),
+                          side: const BorderSide(color: Color(0xFFC7D2FE), width: 1.2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(bctx);
+                          _handleViewStatementPdf(res, startDate, endDate);
+                        },
+                        icon: const Icon(Icons.visibility_rounded, size: 18),
+                        label: Text("View PDF", style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w800)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4F46E5),
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shadowColor: const Color(0xFF4F46E5).withOpacity(0.4),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: () => _handleShareStatementPdf(res),
+                        icon: const Icon(Icons.share_rounded, size: 18),
+                        label: Text("Share PDF", style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w800)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
-                height: 46,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F172A),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
+                height: 42,
+                child: TextButton(
                   onPressed: () => Navigator.pop(bctx),
-                  child: Text("Done", style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w800)),
+                  child: Text("Done", style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF64748B))),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ─── IN-APP STATEMENT VIEWER (Pixel-Perfect Document Preview) ───
+  void _showInAppStatementViewer({
+    required StatementExportResult res,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) {
+    final start = DateTime(startDate.year, startDate.month, startDate.day);
+    final end = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+
+    final allEntries = _detailData?.entries ?? [];
+
+    // 1. Calculate opening balance before startDate
+    double creditBefore = 0.0;
+    double debitBefore = 0.0;
+    for (final e in allEntries) {
+      DateTime? dt;
+      try {
+        dt = DateTime.parse(e.date);
+      } catch (_) {}
+      if (dt != null && dt.isBefore(start)) {
+        creditBefore += e.credit;
+        debitBefore += e.debit;
+      }
+    }
+    final cumulativeOpeningBalance = creditBefore - debitBefore;
+
+    // 2. Filter entries within range
+    final inRange = allEntries.where((e) {
+      DateTime? dt;
+      try {
+        dt = DateTime.parse(e.date);
+      } catch (_) {}
+      if (dt == null) return false;
+      return !dt.isBefore(start) && !dt.isAfter(end);
+    }).toList();
+
+    inRange.sort((a, b) {
+      try {
+        return DateTime.parse(a.date).compareTo(DateTime.parse(b.date));
+      } catch (_) {
+        return 0;
+      }
+    });
+
+    final startStr = "${startDate.day.toString().padLeft(2, '0')}/${startDate.month.toString().padLeft(2, '0')}/${startDate.year}";
+    final endStr = "${endDate.day.toString().padLeft(2, '0')}/${endDate.month.toString().padLeft(2, '0')}/${endDate.year}";
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (vctx) {
+        return Container(
+          height: MediaQuery.of(vctx).size.height * 0.92,
+          decoration: const BoxDecoration(
+            color: Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // Header Control Bar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEF2FF),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFF4F46E5), size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Official Statement Preview",
+                            style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A)),
+                          ),
+                          Text(
+                            "${_customer.name} • Period: $startStr - $endStr",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.outfit(fontSize: 11, color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Quick Share icon button in header
+                    Tooltip(
+                      message: "Share PDF",
+                      child: IconButton(
+                        style: IconButton.styleFrom(
+                          backgroundColor: const Color(0xFFEEF2FF),
+                          foregroundColor: const Color(0xFF4F46E5),
+                        ),
+                        icon: const Icon(Icons.share_rounded, size: 19),
+                        onPressed: () => _handleShareStatementPdf(res),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      style: IconButton.styleFrom(
+                        backgroundColor: const Color(0xFFF1F5F9),
+                        foregroundColor: const Color(0xFF64748B),
+                      ),
+                      icon: const Icon(Icons.close_rounded, size: 20),
+                      onPressed: () => Navigator.pop(vctx),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Scrollable Official Document
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Company Letterhead Banner
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0F172A),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "M.ASWATH",
+                                    style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
+                                  ),
+                                  Text(
+                                    "HOLLOW BRICKS & LORRY SERVICES",
+                                    style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w700, color: const Color(0xFFCBD5E1)),
+                                  ),
+                                  Text(
+                                    "Tiruppur, Tamil Nadu",
+                                    style: GoogleFonts.outfit(fontSize: 8.5, color: const Color(0xFF94A3B8)),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFEF08A),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      "ACCOUNT STATEMENT",
+                                      style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF854D0E)),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Generated: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}",
+                                    style: GoogleFonts.outfit(fontSize: 8, color: const Color(0xFFCBD5E1)),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Client Target Card
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text("STATEMENT FOR", style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w800, color: const Color(0xFF94A3B8))),
+                                  Text(_customer.name, style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A))),
+                                  Text(
+                                    _customer.phone.isNotEmpty ? _customer.phone : "No phone provided",
+                                    style: GoogleFonts.outfit(fontSize: 10.5, color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text("PERIOD RANGE", style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w800, color: const Color(0xFF94A3B8))),
+                                  Text("$startStr to $endStr", style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A))),
+                                  Text("Currency: INR (₹)", style: GoogleFonts.outfit(fontSize: 10, color: const Color(0xFF64748B))),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Financial Summary Row
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("OPENING BAL", style: GoogleFonts.outfit(fontSize: 8.5, fontWeight: FontWeight.w800, color: const Color(0xFF64748B))),
+                                    const SizedBox(height: 2),
+                                    Text("₹${cumulativeOpeningBalance.toStringAsFixed(2)}", style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A))),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("TOTAL BILLED", style: GoogleFonts.outfit(fontSize: 8.5, fontWeight: FontWeight.w800, color: const Color(0xFF2563EB))),
+                                    const SizedBox(height: 2),
+                                    Text("₹${res.totalCredit.toStringAsFixed(2)}", style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF1E40AF))),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFECFDF5),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("TOTAL PAID", style: GoogleFonts.outfit(fontSize: 8.5, fontWeight: FontWeight.w800, color: const Color(0xFF059669))),
+                                    const SizedBox(height: 2),
+                                    Text("₹${res.totalDebit.toStringAsFixed(2)}", style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF047857))),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Net Outstanding Hero Banner
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0F172A),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text("NET OUTSTANDING DUE", style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white)),
+                              Text("₹${res.netBalance.toStringAsFixed(2)}", style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w900, color: const Color(0xFF38BDF8))),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Ledger Items Table Header
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(width: 65, child: Text("DATE", style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF475569)))),
+                              Expanded(child: Text("PARTICULARS", style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF475569)))),
+                              SizedBox(width: 65, child: Text("CREDIT", textAlign: TextAlign.right, style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF475569)))),
+                              SizedBox(width: 65, child: Text("DEBIT", textAlign: TextAlign.right, style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF475569)))),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+
+                        // Opening Balance Row
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: const BoxDecoration(
+                            border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(width: 65, child: Text(startStr, style: GoogleFonts.outfit(fontSize: 9.5, color: const Color(0xFF64748B)))),
+                              Expanded(
+                                child: Text(
+                                  "OPENING BALANCE (B/F)",
+                                  style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                                ),
+                              ),
+                              SizedBox(
+                                width: 65,
+                                child: Text(
+                                  cumulativeOpeningBalance > 0 ? "₹${cumulativeOpeningBalance.toStringAsFixed(2)}" : "-",
+                                  textAlign: TextAlign.right,
+                                  style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                                ),
+                              ),
+                              const SizedBox(width: 65, child: Text("-", textAlign: TextAlign.right)),
+                            ],
+                          ),
+                        ),
+
+                        // Transaction Rows
+                        if (inRange.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
+                            child: Center(
+                              child: Text(
+                                "No transactions recorded in this period",
+                                style: GoogleFonts.outfit(fontSize: 11, color: const Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          )
+                        else
+                          ...inRange.map((e) {
+                            String dStr = e.date;
+                            try {
+                              final dt = DateTime.parse(e.date);
+                              dStr = "${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}";
+                            } catch (_) {}
+
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                              decoration: const BoxDecoration(
+                                border: Border(bottom: BorderSide(color: Color(0xFFF8FAFC))),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 65,
+                                    child: Text(dStr, style: GoogleFonts.outfit(fontSize: 9.5, color: const Color(0xFF64748B), fontWeight: FontWeight.w600)),
+                                  ),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          e.particulars,
+                                          style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                                        ),
+                                        Text(
+                                          e.id,
+                                          style: GoogleFonts.outfit(fontSize: 8.5, color: const Color(0xFF94A3B8)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 65,
+                                    child: Text(
+                                      e.credit > 0 ? "₹${e.credit.toStringAsFixed(2)}" : "-",
+                                      textAlign: TextAlign.right,
+                                      style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF2563EB)),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 65,
+                                    child: Text(
+                                      e.debit > 0 ? "₹${e.debit.toStringAsFixed(2)}" : "-",
+                                      textAlign: TextAlign.right,
+                                      style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF059669)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+
+                        const SizedBox(height: 16),
+                        // Official Stamp & Verification Note
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.verified_rounded, color: Color(0xFF059669), size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  "Authorized Commercial Ledger Statement • M.Aswath Hollow Bricks & Transport",
+                                  style: GoogleFonts.outfit(fontSize: 9.5, color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Sticky Bottom Actions
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF4F46E5),
+                            backgroundColor: const Color(0xFFEEF2FF),
+                            side: const BorderSide(color: Color(0xFFC7D2FE), width: 1.2),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          onPressed: () async {
+                            if (res.filePath != null) {
+                              await FileShareService.viewFile(filePath: res.filePath!);
+                            }
+                          },
+                          icon: const Icon(Icons.visibility_rounded, size: 18),
+                          label: Text("System PDF App", style: GoogleFonts.outfit(fontSize: 12.5, fontWeight: FontWeight.w800)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4F46E5),
+                            foregroundColor: Colors.white,
+                            elevation: 2,
+                            shadowColor: const Color(0xFF4F46E5).withOpacity(0.4),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          onPressed: () => _handleShareStatementPdf(res),
+                          icon: const Icon(Icons.share_rounded, size: 18),
+                          label: Text("Share PDF", style: GoogleFonts.outfit(fontSize: 12.5, fontWeight: FontWeight.w800)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

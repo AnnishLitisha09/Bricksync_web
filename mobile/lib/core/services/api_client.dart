@@ -108,7 +108,7 @@ class ApiClient {
         final url = Uri.parse("$base$cleanPath");
         final response = await http
             .get(url, headers: _buildHeaders())
-            .timeout(const Duration(seconds: 5));
+            .timeout(const Duration(seconds: 15));
 
         final unwrapped = CryptoService.parseResponse(response.body);
 
@@ -153,7 +153,7 @@ class ApiClient {
               headers: _buildHeaders(),
               body: jsonEncode(body),
             )
-            .timeout(const Duration(seconds: 6));
+            .timeout(const Duration(seconds: 15));
 
         final unwrapped = CryptoService.parseResponse(response.body);
 
@@ -196,7 +196,7 @@ class ApiClient {
               headers: _buildHeaders(),
               body: jsonEncode(body),
             )
-            .timeout(const Duration(seconds: 6));
+            .timeout(const Duration(seconds: 15));
 
         final unwrapped = CryptoService.parseResponse(response.body);
 
@@ -239,7 +239,7 @@ class ApiClient {
               headers: _buildHeaders(),
               body: jsonEncode(body),
             )
-            .timeout(const Duration(seconds: 6));
+            .timeout(const Duration(seconds: 15));
 
         final unwrapped = CryptoService.parseResponse(response.body);
 
@@ -276,7 +276,7 @@ class ApiClient {
       final url = Uri.parse("$baseUrl$cleanPath");
       final response = await http
           .delete(url, headers: _buildHeaders())
-          .timeout(const Duration(seconds: 8));
+          .timeout(const Duration(seconds: 15));
 
       final unwrapped = CryptoService.parseResponse(response.body);
 
