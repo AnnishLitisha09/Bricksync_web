@@ -397,6 +397,22 @@ class CustomerService {
     return false;
   }
 
+  /// Updates customer phone in backend
+  static Future<bool> updateCustomerPhone(int customerId, String phone) async {
+    final res = await ApiClient.put('/customers/$customerId', {
+      'phone_no': phone.trim(),
+    });
+    if (res.isSuccess) {
+      final index = _customers.indexWhere((c) => c.id == customerId);
+      if (index != -1) {
+        final old = _customers[index];
+        _customers[index] = old.copyWith(phone: phone.trim());
+      }
+      return true;
+    }
+    return false;
+  }
+
   /// Fetches bank accounts and cash accounts: /api/banks
   static Future<List<BankAccountModel>> fetchBanks() async {
     try {

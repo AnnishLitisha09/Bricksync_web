@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/customer_service.dart';
+import '../../core/services/phone_service.dart';
 import '../../core/services/statement_export_service.dart';
 import '../../core/stores/customer_store.dart';
 import '../../core/theme/app_colors.dart';
@@ -76,6 +77,160 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
       default:
         return const Color(0xFF7C3AED); // Violet
     }
+  }
+
+  // ─── DIRECT PHONE CALLING ───
+  Future<void> _handleDirectCall() async {
+    final rawPhone = _customer.phone.trim();
+    final cleanPhone = rawPhone.replaceAll(RegExp(r'[^0-9+]'), '');
+
+    if (cleanPhone.isEmpty ||
+        rawPhone.toLowerCase().contains("not provided") ||
+        rawPhone.toLowerCase().contains("no phone")) {
+      _showAddPhoneAndCallDialog();
+      return;
+    }
+
+    final success = await PhoneService.makeCall(cleanPhone);
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Launching mobile dialer for $cleanPhone..."),
+          backgroundColor: const Color(0xFF059669),
+        ),
+      );
+    }
+  }
+
+  void _showAddPhoneAndCallDialog() {
+    final phoneCtrl = TextEditingController();
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (dlgCtx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          child: Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.phone_in_talk_rounded, color: Color(0xFF059669), size: 20),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          "Direct Call",
+                          style: GoogleFonts.outfit(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF64748B)),
+                      onPressed: () => Navigator.pop(dlgCtx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "No phone number on file for ${_customer.name}. Enter a 10-digit mobile number to call directly.",
+                  style: GoogleFonts.outfit(fontSize: 12.5, color: const Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFCBD5E1)),
+                  ),
+                  child: TextField(
+                    controller: phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    autofocus: true,
+                    style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                    decoration: InputDecoration(
+                      icon: const Icon(Icons.phone_outlined, size: 18, color: Color(0xFF059669)),
+                      hintText: "Enter 10-digit phone...",
+                      hintStyle: GoogleFonts.outfit(fontSize: 13, color: const Color(0xFF94A3B8)),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(dlgCtx),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFCBD5E1)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: Text(
+                          "Cancel",
+                          style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF64748B)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        icon: isSaving
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.call_rounded, size: 16, color: Colors.white),
+                        label: Text(
+                          isSaving ? "Saving..." : "Save & Call",
+                          style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF059669),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: isSaving
+                            ? null
+                            : () async {
+                                final phone = phoneCtrl.text.trim();
+                                if (phone.isEmpty) return;
+                                setDlgState(() => isSaving = true);
+                                await CustomerService.updateCustomerPhone(_customer.id, phone);
+                                if (dlgCtx.mounted) Navigator.pop(dlgCtx);
+                                if (!mounted) return;
+                                setState(() {
+                                  _customer = _customer.copyWith(phone: phone);
+                                });
+                                PhoneService.makeCall(phone);
+                              },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // ─── DIALOG: EDIT BALANCE ───
@@ -1592,125 +1747,495 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                   ),
                 ],
 
-                // ─── 2. CLIENT IDENTITY & CONTACT BAR ───
+                // ─── 2. SINGLE EXECUTIVE MASTER CUSTOMER CARD ───
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  width: double.infinity,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF0F172A).withValues(alpha: 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
+                        color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: _getAvatarColor(_customer.name),
-                          borderRadius: BorderRadius.circular(13),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          _customer.name.isNotEmpty ? _customer.name.substring(0, 1).toUpperCase() : "C",
-                          style: GoogleFonts.outfit(
-                            fontSize: 19,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
+                      // Part A: Customer Profile & Direct Call Action
+                      Padding(
+                        padding: const EdgeInsets.all(18),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Top Row: Avatar + Name & Meta + Edit Due Button
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
+                                // Avatar with glow
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  width: 48,
+                                  height: 48,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(6),
+                                    color: _getAvatarColor(_customer.name),
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: _getAvatarColor(_customer.name).withValues(alpha: 0.35),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
                                   ),
+                                  alignment: Alignment.center,
                                   child: Text(
-                                    _customer.category.toUpperCase(),
+                                    _customer.name.isNotEmpty
+                                        ? _customer.name.substring(0, 1).toUpperCase()
+                                        : "C",
                                     style: GoogleFonts.outfit(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      color: const Color(0xFF475569),
-                                      letterSpacing: 0.4,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
                                     ),
                                   ),
                                 ),
-                                if (_customer.location.isNotEmpty) ...[
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      "• ${_customer.location}",
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: const Color(0xFF64748B),
+                                const SizedBox(width: 14),
+
+                                // Name, Category & Location
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _customer.name,
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w900,
+                                          color: const Color(0xFF0F172A),
+                                          letterSpacing: -0.3,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF1F5F9),
+                                              borderRadius: BorderRadius.circular(6),
+                                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                                            ),
+                                            child: Text(
+                                              _customer.category.toUpperCase(),
+                                              style: GoogleFonts.outfit(
+                                                fontSize: 9.5,
+                                                fontWeight: FontWeight.w800,
+                                                color: const Color(0xFF475569),
+                                                letterSpacing: 0.4,
+                                              ),
+                                            ),
+                                          ),
+                                          if (_customer.location.isNotEmpty) ...[
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child: Text(
+                                                "• ${_customer.location}",
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 11.5,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: const Color(0xFF64748B),
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(width: 8),
+
+                                // Edit Due Pill
+                                GestureDetector(
+                                  onTap: _showEditBalanceDialog,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFEF3C7),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: const Color(0xFFFDE68A)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.edit_outlined, size: 12.5, color: Color(0xFFD97706)),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          "Edit Due",
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                            color: const Color(0xFFD97706),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 14),
+
+                            // Direct Call Contact Strip
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFECFDF5),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: const Color(0xFFA7F3D0)),
+                                    ),
+                                    child: const Icon(
+                                      Icons.phone_rounded,
+                                      color: Color(0xFF059669),
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _customer.phone.isNotEmpty &&
+                                                  !_customer.phone.toLowerCase().contains("not provided")
+                                              ? _customer.phone
+                                              : "No phone on file",
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w800,
+                                            color: const Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                        Text(
+                                          "Tap Call to dial directly from device",
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                            color: const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+
+                                  // Direct Call Action Button
+                                  GestureDetector(
+                                    onTap: _handleDirectCall,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFF059669), Color(0xFF10B981)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF059669).withValues(alpha: 0.35),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 3),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.call_rounded, size: 14, color: Colors.white),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            "Call",
+                                            style: GoogleFonts.outfit(
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
-                              ],
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              _customer.phone.isNotEmpty ? _customer.phone : "No phone provided",
-                              style: GoogleFonts.outfit(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF1E293B),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      // Quick Edit Balance Icon
-                      GestureDetector(
-                        onTap: _showEditBalanceDialog,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEF3C7),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFFDE68A)),
+
+                      // Part B: Embedded Financial Matrix (Dark Navy Theme)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.edit_outlined, size: 13, color: Color(0xFFD97706)),
-                              const SizedBox(width: 4),
-                              Text(
-                                "Edit Due",
-                                style: GoogleFonts.outfit(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFFD97706),
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF0F172A).withValues(alpha: 0.15),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            // Hero Row: OUTSTANDING BALANCE
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 6,
+                                          height: 6,
+                                          decoration: BoxDecoration(
+                                            color: totals.outstandingBalance > 0
+                                                ? const Color(0xFFF59E0B)
+                                                : const Color(0xFF10B981),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          "OUTSTANDING BALANCE",
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w900,
+                                            color: const Color(0xFF94A3B8),
+                                            letterSpacing: 0.8,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      "₹${totals.outstandingBalance.toStringAsFixed(totals.outstandingBalance % 1 == 0 ? 0 : 2)}",
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 26,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
-                          ),
+
+                                // Status Badge
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: totals.outstandingBalance > 0
+                                        ? const Color(0xFFEF4444).withValues(alpha: 0.15)
+                                        : const Color(0xFF10B981).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: totals.outstandingBalance > 0
+                                          ? const Color(0xFFF87171).withValues(alpha: 0.4)
+                                          : const Color(0xFF34D399).withValues(alpha: 0.4),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        totals.outstandingBalance > 0
+                                            ? Icons.schedule_rounded
+                                            : Icons.check_circle_rounded,
+                                        size: 12,
+                                        color: totals.outstandingBalance > 0
+                                            ? const Color(0xFFF87171)
+                                            : const Color(0xFF34D399),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        totals.outstandingBalance > 0 ? "DUE" : "SETTLED",
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: totals.outstandingBalance > 0
+                                              ? const Color(0xFFF87171)
+                                              : const Color(0xFF34D399),
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 12),
+                            Container(
+                              height: 1,
+                              color: Colors.white.withValues(alpha: 0.08),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Sub-Metrics: TOTAL BILLED & TOTAL PAID
+                            Row(
+                              children: [
+                                // TOTAL BILLED
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.05),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 32,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: const Icon(
+                                            Icons.inventory_2_outlined,
+                                            color: Color(0xFF818CF8),
+                                            size: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                "TOTAL BILLED",
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 8.5,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: const Color(0xFF94A3B8),
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                "₹${totals.totalBilled.toStringAsFixed(totals.totalBilled % 1 == 0 ? 0 : 2)}",
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w900,
+                                                  color: Colors.white,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+
+                                // TOTAL PAID
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.05),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 32,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: const Icon(
+                                            Icons.trending_up_rounded,
+                                            color: Color(0xFF34D399),
+                                            size: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                "TOTAL PAID",
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 8.5,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: const Color(0xFF94A3B8),
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                "₹${totals.totalPaid.toStringAsFixed(totals.totalPaid % 1 == 0 ? 0 : 2)}",
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w900,
+                                                  color: const Color(0xFF34D399),
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
 
-                // ─── 3. ACTION BUTTONS (REORDERED OPTIMALLY FOR MOBILE UI) ───
+                // ─── 3. ACTION BUTTONS ───
                 // Row A: Primary Core Actions
                 Row(
                   children: [
@@ -1857,184 +2382,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
-
-                // ─── 4. METRICS & FINANCIAL CARDS (MATCHING WEBSITE) ───
-                // Card A: Outstanding Balance (Dark Navy)
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF0F172A).withValues(alpha: 0.18),
-                        blurRadius: 14,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "OUTSTANDING BALANCE",
-                            style: GoogleFonts.outfit(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFF94A3B8),
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "₹${totals.outstandingBalance.toStringAsFixed(totals.outstandingBalance % 1 == 0 ? 0 : 2)}",
-                            style: GoogleFonts.outfit(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 20),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // Cards B & C: Total Billed & Total Paid
-                Row(
-                  children: [
-                    // Total Billed
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF0F172A).withValues(alpha: 0.02),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "TOTAL BILLED",
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w900,
-                                    color: const Color(0xFF94A3B8),
-                                    letterSpacing: 0.6,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  "₹${totals.totalBilled.toStringAsFixed(0)}",
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w900,
-                                    color: const Color(0xFF0F172A),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEEF2FF),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFE0E7FF)),
-                              ),
-                              child: const Icon(Icons.inventory_2_outlined, color: Color(0xFF4F46E5), size: 18),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-
-                    // Total Paid
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF0F172A).withValues(alpha: 0.02),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "TOTAL PAID",
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w900,
-                                    color: const Color(0xFF94A3B8),
-                                    letterSpacing: 0.6,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  "₹${totals.totalPaid.toStringAsFixed(0)}",
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w900,
-                                    color: const Color(0xFF059669),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFECFDF5),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFA7F3D0)),
-                              ),
-                              child: const Icon(Icons.trending_up_rounded, color: Color(0xFF059669), size: 18),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 20),
 
                 // ─── 5. LEDGER TRANSACTIONS SECTION ───
                 Row(
