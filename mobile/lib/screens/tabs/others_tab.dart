@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/fleet_service.dart';
+import '../pages/fuel_records_page.dart';
+import '../pages/vehicles_list_page.dart';
 
 class OthersTab extends StatefulWidget {
   const OthersTab({super.key});
@@ -41,157 +43,6 @@ class _OthersTabState extends State<OthersTab> {
         .take(2)
         .join(", ");
     return "$_activeCount Active trucks • $activeNumbers";
-  }
-
-  void _showVehiclesSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return Container(
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.75),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Enterprise Fleet Vehicles",
-                          style: GoogleFonts.outfit(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          "Live records from central MySQL database",
-                          style: GoogleFonts.outfit(
-                            fontSize: 12,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      icon: const Icon(Icons.close_rounded, color: AppColors.textMuted),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1, color: AppColors.borderLight),
-              Expanded(
-                child: _vehicles.isEmpty
-                    ? Center(
-                        child: Text(
-                          "No fleet vehicles found",
-                          style: GoogleFonts.outfit(color: AppColors.textMuted),
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        itemCount: _vehicles.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (context, i) {
-                          final v = _vehicles[i];
-                          return Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.background,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: v.isActive
-                                        ? AppColors.primarySoft
-                                        : const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    Icons.local_shipping_rounded,
-                                    color: v.isActive
-                                        ? AppColors.primary
-                                        : AppColors.textMuted,
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        v.number,
-                                        style: GoogleFonts.outfit(
-                                          fontSize: 14.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.textPrimary,
-                                        ),
-                                      ),
-                                      Text(
-                                        "${v.name} • ${v.kilometer} km",
-                                        style: GoogleFonts.outfit(
-                                          fontSize: 11.5,
-                                          color: AppColors.textMuted,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: v.isActive
-                                        ? const Color(0xFFDCFCE7)
-                                        : const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    v.isActive ? "Active" : "Inactive",
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: v.isActive
-                                        ? const Color(0xFF16A34A)
-                                        : AppColors.textMuted,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   @override
@@ -256,14 +107,28 @@ class _OthersTabState extends State<OthersTab> {
                     title: "Transport Vehicles",
                     subtitle: _fleetSummary,
                     color: AppColors.primary,
-                    onTap: () => _showVehiclesSheet(context),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const VehiclesListPage(),
+                        ),
+                      );
+                    },
                   ),
                   _buildMenuItem(
                     icon: Icons.local_gas_station_rounded,
                     title: "Diesel & Fuel Bunk Log",
                     subtitle: "Track bunk slips, mileage & fuel expenses",
                     color: AppColors.brickAmber,
-                    onTap: () => _showNotice(context, "Fuel Bunk Records"),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const FuelRecordsPage(),
+                        ),
+                      );
+                    },
                   ),
                   _buildMenuItem(
                     icon: Icons.build_circle_rounded,

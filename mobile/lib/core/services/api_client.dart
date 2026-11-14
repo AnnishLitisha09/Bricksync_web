@@ -216,6 +216,53 @@ class ApiClient {
     );
   }
 
+  static Future<ApiResponse> patch(String path, dynamic body) async {
+    final cleanPath = path.startsWith('/') ? path : '/$path';
+
+    for (final base in candidateBases) {
+      try {
+        final url = Uri.parse("$base$cleanPath");
+        final response = await http
+            .patch(
+              url,
+              headers: _buildHeaders(),
+              body: jsonEncode(body),
+            )
+            .timeout(const Duration(seconds: 6));
+
+        final unwrapped = CryptoService.parseResponse(response.body);
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          baseUrl = base;
+          return ApiResponse(
+            statusCode: response.statusCode,
+            data: unwrapped,
+            isSuccess: true,
+          );
+        } else {
+          _checkAuthFailure(cleanPath, response.statusCode, unwrapped);
+          String? msg;
+          if (unwrapped is Map) {
+            msg = unwrapped['message']?.toString() ?? unwrapped['error']?.toString();
+          }
+          return ApiResponse(
+            statusCode: response.statusCode,
+            isSuccess: false,
+            error: msg ?? "Server returned error ${response.statusCode}",
+          );
+        }
+      } catch (e) {
+        if (kDebugMode) print("[ApiClient PATCH $base$cleanPath error]: $e");
+      }
+    }
+
+    return ApiResponse(
+      statusCode: 0,
+      isSuccess: false,
+      error: "Network error: unable to reach server",
+    );
+  }
+
   static Future<ApiResponse> delete(String path) async {
     try {
       final cleanPath = path.startsWith('/') ? path : '/$path';
